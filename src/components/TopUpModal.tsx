@@ -17,6 +17,7 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [cryptoAmount, setCryptoAmount] = useState("");
   const [giftCardCode, setGiftCardCode] = useState("");
+  const [giftCardAmount, setGiftCardAmount] = useState("");
   const { toast } = useToast();
 
   const handleCryptoTopUp = (e: React.FormEvent) => {
@@ -43,17 +44,28 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
 
   const handleGiftCardTopUp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!giftCardCode.trim()) {
+    if (!giftCardCode.trim() || !giftCardAmount.trim()) {
       toast({
-        title: "Invalid Code",
-        description: "Please enter a valid gift card code",
+        title: "Missing Information",
+        description: "Please enter both gift card code and amount",
         variant: "destructive",
       });
       return;
     }
     
-    onTopUp(0, "gift_card", { code: giftCardCode });
+    const amount = parseFloat(giftCardAmount);
+    if (amount < 1) {
+      toast({
+        title: "Invalid Amount",
+        description: "Minimum gift card amount is $1.00",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    onTopUp(amount, "gift_card", { code: giftCardCode, amount });
     setGiftCardCode("");
+    setGiftCardAmount("");
     setIsOpen(false);
     
     toast({
@@ -141,6 +153,20 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleGiftCardTopUp} className="space-y-4">
+                  <div>
+                    <Label htmlFor="gift-amount">Gift Card Amount (USD)</Label>
+                    <Input
+                      id="gift-amount"
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      placeholder="25.00"
+                      value={giftCardAmount}
+                      onChange={(e) => setGiftCardAmount(e.target.value)}
+                      required
+                      className="bg-muted border-primary/20"
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="gift-code">Gift Card Code</Label>
                     <Input

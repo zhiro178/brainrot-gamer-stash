@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Wallet, LogOut } from "lucide-react";
+import { User, Wallet, LogOut, Ticket, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface NavbarProps {
   user?: any;
@@ -16,6 +17,7 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }: NavbarProps) => {
+  const navigate = useNavigate();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -73,6 +75,28 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                   <User className="h-4 w-4" />
                   <span className="text-sm">{user.email}</span>
                 </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/tickets')}
+                  className="border-primary/20 hover:bg-primary/10"
+                >
+                  <Ticket className="h-4 w-4 mr-2" />
+                  My Tickets
+                </Button>
+
+                {user.email === 'admin@592stock.com' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/admin')}
+                    className="border-gaming-warning/20 text-gaming-warning hover:bg-gaming-warning/10"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Admin
+                  </Button>
+                )}
                 
                 <Button 
                   variant="outline" 
