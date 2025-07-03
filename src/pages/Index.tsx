@@ -209,7 +209,7 @@ const Index = () => {
         
         toast({
           title: "Ticket Created",
-          description: "Your top-up request has been submitted. Check your tickets for updates.",
+          description: "Your top-up request has been submitted. Check 'My Tickets' for updates.",
         });
       } else if (method === "crypto") {
         // Legacy crypto payment flow (if still needed)

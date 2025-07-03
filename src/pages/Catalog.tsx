@@ -46,8 +46,41 @@ export default function Catalog() {
     }
   });
 
-  const handlePurchase = (item: any) => {
+  const handlePurchase = async (item: any) => {
     console.log("Purchase item:", item);
+    
+    // Create a purchase ticket
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { error } = await supabase
+          .from('support_tickets')
+          .insert({
+            user_id: user.id,
+            subject: `Purchase Request - ${item.name}`,
+            message: `Purchase request for: ${item.name} - Price: $${item.price}`,
+            status: 'open',
+            category: 'purchase'
+          });
+        
+        if (!error) {
+          const { toast } = await import("@/hooks/use-toast");
+          toast({
+            title: "Purchase Request Submitted",
+            description: "A ticket has been created for your purchase. Check 'My Tickets' for updates.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Purchase ticket creation error:', error);
+    }
   };
 
   const handleAddItem = () => {

@@ -87,7 +87,7 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                   className="border-primary/20 hover:bg-primary/10"
                 >
                   <Ticket className="h-4 w-4 mr-2" />
-                  {user.email?.split('@')[0] || 'My'} Tickets
+                  My Tickets
                 </Button>
 
                 {isUserAdmin && (

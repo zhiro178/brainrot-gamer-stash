@@ -1,46 +1,101 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Ticket, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { TicketChat } from "@/components/TicketChat";
+import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/contexts/AdminContext";
 
 const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+interface Ticket {
+  id: string;
+  subject: string;
+  message: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  category: string;
+  created_at: string;
+  user_id: string;
+}
+
 export default function Tickets() {
-  const [tickets, setTickets] = useState([]);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const { toast } = useToast();
+  const { isAdmin } = useAdmin();
 
   useEffect(() => {
-    // Get user session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserTickets(session.user.id);
-      }
-      setLoading(false);
-    });
+    fetchUserAndTickets();
   }, []);
 
-  const fetchUserTickets = async (userId: string) => {
+  const fetchUserAndTickets = async () => {
     try {
-      const { data, error } = await supabase
-        .from('purchase_tickets')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      // Get current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
       
-      if (error) throw error;
-      setTickets(data || []);
+      if (currentUser) {
+        // Fetch tickets - admins see all tickets, users see only their own
+        let query = supabase
+          .from('support_tickets')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (!isAdmin) {
+          query = query.eq('user_id', currentUser.id);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        setTickets(data || []);
+      }
     } catch (error) {
       console.error('Error fetching tickets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load tickets",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'open':
+        return <AlertCircle className="h-4 w-4" />;
+      case 'in_progress':
+        return <Clock className="h-4 w-4" />;
+      case 'resolved':
+      case 'closed':
+        return <CheckCircle className="h-4 w-4" />;
+      default:
+        return <AlertCircle className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'bg-destructive';
+      case 'in_progress':
+        return 'bg-gaming-warning';
+      case 'resolved':
+      case 'closed':
+        return 'bg-gaming-success';
+      default:
+        return 'bg-muted';
     }
   };
 
@@ -48,8 +103,8 @@ export default function Tickets() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading your tickets...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading tickets...</p>
         </div>
       </div>
     );
@@ -58,19 +113,13 @@ export default function Tickets() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="bg-gradient-card border-primary/20 max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-            <CardDescription className="text-center">
-              Please log in to view your purchase tickets
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => navigate('/')}
-              className="w-full bg-gradient-primary hover:shadow-glow"
-            >
-              Go to Homepage
+        <Card className="bg-gradient-card border-primary/20">
+          <CardContent className="p-8 text-center">
+            <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
+            <p className="text-muted-foreground mb-4">Please log in to view your tickets.</p>
+            <Button onClick={() => navigate("/")} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Home
             </Button>
           </CardContent>
         </Card>
@@ -80,94 +129,99 @@ export default function Tickets() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-8">
+      <div className="relative bg-gradient-hero">
+        <div className="container mx-auto px-4 py-12">
           <Button 
+            onClick={() => navigate("/")} 
             variant="outline" 
-            size="sm"
-            onClick={() => navigate('/')}
-            className="border-primary/20"
+            className="mb-6 border-primary/20 hover:bg-primary/10"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Button>
-          <div className="flex items-center gap-3">
-            <Ticket className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              My Purchase Tickets
+          
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">
+              {isAdmin ? 'All Support Tickets' : 'My Tickets'}
             </h1>
+            <p className="text-muted-foreground">
+              {isAdmin ? 'Manage all customer support requests' : 'View and manage your support requests'}
+            </p>
           </div>
-        </div>
 
-        <Card className="bg-gradient-card border-primary/20">
-          <CardHeader>
-            <CardTitle>Purchase History</CardTitle>
-            <CardDescription>
-              View all your gaming item purchases and transaction details
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {tickets.length === 0 ? (
-              <div className="text-center py-8">
-                <Ticket className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Purchase History</h3>
+          {tickets.length === 0 ? (
+            <Card className="bg-gradient-card border-primary/20">
+              <CardContent className="p-8 text-center">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No tickets found</h3>
                 <p className="text-muted-foreground">
-                  You haven&apos;t made any purchases yet. Start shopping to see your tickets here!
+                  {isAdmin ? 'No support tickets have been created yet.' : 'You haven\'t created any support tickets yet.'}
                 </p>
-                <Button 
-                  onClick={() => navigate('/')}
-                  className="mt-4 bg-gradient-primary hover:shadow-glow"
-                >
-                  Browse Games
-                </Button>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ticket ID</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Game</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tickets.map((ticket: any) => (
-                    <TableRow key={ticket.id}>
-                      <TableCell className="font-mono text-sm">
-                        #{ticket.id.slice(0, 8)}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {ticket.item_name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {ticket.game_name}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6">
+              {tickets.map((ticket) => (
+                <Card key={ticket.id} className="bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-primary flex items-center gap-2">
+                        {getStatusIcon(ticket.status)}
+                        {ticket.subject}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge className={`${getStatusColor(ticket.status)} text-white`}>
+                          {ticket.status.replace('_', ' ').toUpperCase()}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold text-gaming-success">
-                        ${ticket.amount}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          ticket.status === 'completed' ? 'default' :
-                          ticket.status === 'pending' ? 'secondary' : 'destructive'
-                        }>
-                          {ticket.status}
+                        <Badge variant="outline">
+                          {ticket.category || 'general'}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(ticket.created_at).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                      </div>
+                    </div>
+                    <CardDescription className="text-muted-foreground">
+                      Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
+                    
+                    <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedTicket(ticket)}
+                            className="border-primary/20 hover:bg-primary/10"
+                          >
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            Open Chat
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                          <DialogHeader>
+                            <DialogTitle>Support Ticket Chat</DialogTitle>
+                            <DialogDescription>
+                              Communicate with {isAdmin ? 'the user' : 'our support team'} about your ticket
+                            </DialogDescription>
+                          </DialogHeader>
+                          {selectedTicket && user && (
+                            <TicketChat 
+                              ticketId={selectedTicket.id}
+                              ticketSubject={selectedTicket.subject}
+                              currentUser={user}
+                            />
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
