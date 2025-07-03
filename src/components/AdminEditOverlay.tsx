@@ -74,7 +74,7 @@ export const AdminEditOverlay = ({
               <div>
                 <Label htmlFor="edit-value">
                   {type === "game" ? "Game (imageUrl|description)" : 
-                   type === "catalog" ? "Item/Category (name|price|image or name|description|count)" :
+                   type === "catalog" ? "Item/Category (name|price|imageUrl or name|description|count)" :
                    type === "price" ? "Price ($)" : "Value"}
                 </Label>
                 <Input

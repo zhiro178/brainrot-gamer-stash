@@ -43,13 +43,28 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
   return (
     <Card className="group hover:shadow-gaming transition-all duration-300 bg-gradient-card border-primary/20">
       <CardHeader className="text-center relative">
-        <div className="text-4xl mb-2">{item.image}</div>
+        <div className="text-4xl mb-2 h-16 flex items-center justify-center">
+          {item.image.startsWith('http') ? (
+            <img 
+              src={item.image} 
+              alt={item.name}
+              className="max-h-16 max-w-16 object-cover rounded"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling!.textContent = '🎁';
+              }}
+            />
+          ) : (
+            <span>{item.image}</span>
+          )}
+          {item.image.startsWith('http') && <span className="hidden">🎁</span>}
+        </div>
         {isAdminMode && onUpdateItem ? (
           <AdminEditOverlay 
             type="catalog" 
             currentValue={`${item.name}|${item.price}|${item.image}`} 
             onSave={handleItemUpdate}
-            placeholder="name|price|emoji"
+            placeholder="name|price|imageUrl"
           >
             <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
               {item.name}

@@ -40,24 +40,11 @@ export const CategoryCard = ({
       className="group hover:shadow-gaming transition-all duration-300 cursor-pointer bg-gradient-card border-primary/20"
       onClick={onClick}
     >
-      <CardHeader className="relative">
+      <CardHeader>
         <div className="flex items-center justify-between">
-          {isAdminMode && onUpdateCategory ? (
-            <AdminEditOverlay 
-              type="catalog" 
-              currentValue={`${category.name}|${category.description}|${category.itemCount}`} 
-              onSave={handleCategoryUpdate}
-              placeholder="name|description|itemCount"
-            >
-              <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
-                {category.name}
-              </CardTitle>
-            </AdminEditOverlay>
-          ) : (
-            <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
-              {category.name}
-            </CardTitle>
-          )}
+          <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+            {category.name}
+          </CardTitle>
           <Badge className="bg-gaming-accent text-black">
             {category.itemCount} Items
           </Badge>
@@ -67,7 +54,7 @@ export const CategoryCard = ({
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="space-y-2">
         <Button 
           className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
           onClick={(e) => {
@@ -77,6 +64,23 @@ export const CategoryCard = ({
         >
           Browse {category.name} Items
         </Button>
+        
+        {isAdminMode && onUpdateCategory && (
+          <AdminEditOverlay 
+            type="catalog" 
+            currentValue={`${category.name}|${category.description}|${category.itemCount}`} 
+            onSave={handleCategoryUpdate}
+            placeholder="name|description|itemCount"
+          >
+            <Button 
+              variant="outline"
+              className="w-full border-gaming-warning text-gaming-warning hover:bg-gaming-warning hover:text-black"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Edit Category
+            </Button>
+          </AdminEditOverlay>
+        )}
       </CardContent>
     </Card>
   );
