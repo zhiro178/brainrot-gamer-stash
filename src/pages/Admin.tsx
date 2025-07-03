@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { TicketChat } from "@/components/TicketChat";
-import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity } from "lucide-react";
+import { CryptoTopupList } from "@/components/CryptoTopupList";
+import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -406,104 +407,21 @@ export default function Admin() {
           </TabsContent>
 
           {/* Crypto Top-ups Tab */}
-          <TabsContent value="crypto-settings" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-gradient-card border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bitcoin className="h-5 w-5" />
-                    Crypto Top-up Submissions
-                  </CardTitle>
-                  <CardDescription>
-                    Review and approve cryptocurrency top-up requests from users
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User ID</TableHead>
-                        <TableHead>Amount (USD)</TableHead>
-                        <TableHead>Crypto Type</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="text-center text-muted-foreground" colSpan={6}>
-                          No crypto top-up submissions yet
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-card border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bitcoin className="h-5 w-5" />
-                    Crypto Payment Setup
-                  </CardTitle>
-                  <CardDescription>
-                    Configure cryptocurrency payment addresses and exchange rates
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="ltc-address">Litecoin (LTC) Address</Label>
-                    <Input
-                      id="ltc-address"
-                      value={cryptoPaymentInfo.ltcAddress}
-                      onChange={(e) => setCryptoPaymentInfo(prev => ({
-                        ...prev,
-                        ltcAddress: e.target.value
-                      }))}
-                      placeholder="LTC1abc123..."
-                      className="bg-background border-primary/20 font-mono"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="sol-address">Solana (SOL) Address</Label>
-                    <Input
-                      id="sol-address"
-                      value={cryptoPaymentInfo.solAddress}
-                      onChange={(e) => setCryptoPaymentInfo(prev => ({
-                        ...prev,
-                        solAddress: e.target.value
-                      }))}
-                      placeholder="SOL1abc123..."
-                      className="bg-background border-primary/20 font-mono"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="exchange-rate">USD Exchange Rate</Label>
-                    <Input
-                      id="exchange-rate"
-                      type="number"
-                      step="0.01"
-                      value={cryptoPaymentInfo.exchangeRate}
-                      onChange={(e) => setCryptoPaymentInfo(prev => ({
-                        ...prev,
-                        exchangeRate: parseFloat(e.target.value)
-                      }))}
-                      className="bg-background border-primary/20"
-                    />
-                  </div>
-                  
-                  <Button 
-                    onClick={updateCryptoSettings}
-                    className="w-full bg-gradient-primary hover:shadow-glow"
-                  >
-                    Save Crypto Settings
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+          <TabsContent value="crypto-settings" className="space-y-6">
+            <Card className="bg-gradient-card border-primary/20">
+              <CardHeader>
+                <CardTitle className="text-primary flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Crypto Top-up Submissions
+                </CardTitle>
+                <CardDescription>
+                  Manage cryptocurrency top-up requests from users
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CryptoTopupList />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
