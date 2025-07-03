@@ -20,7 +20,7 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
   const [giftCardAmount, setGiftCardAmount] = useState("");
   const { toast } = useToast();
 
-  const handleCryptoTopUp = (e: React.FormEvent) => {
+  const handleCryptoTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(cryptoAmount);
     if (amount <= 0) {
@@ -32,17 +32,31 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
       return;
     }
     
-    onTopUp(amount, "crypto");
-    setCryptoAmount("");
-    setIsOpen(false);
-    
-    toast({
-      title: "Crypto Payment Initiated",
-      description: "You will be redirected to complete the payment",
-    });
+    // Create a support ticket for crypto top-up
+    try {
+      await onTopUp(amount, "crypto_ticket", { 
+        type: "crypto_topup",
+        amount,
+        message: `Crypto top-up request for $${amount} USD (LTC/SOL)`
+      });
+      
+      setCryptoAmount("");
+      setIsOpen(false);
+      
+      toast({
+        title: "Top-up Request Submitted",
+        description: "A support ticket has been created. You'll receive payment instructions shortly.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create support ticket. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleGiftCardTopUp = (e: React.FormEvent) => {
+  const handleGiftCardTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!giftCardCode.trim() || !giftCardAmount.trim()) {
       toast({
@@ -63,15 +77,30 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
       return;
     }
     
-    onTopUp(amount, "gift_card", { code: giftCardCode, amount });
-    setGiftCardCode("");
-    setGiftCardAmount("");
-    setIsOpen(false);
-    
-    toast({
-      title: "Gift Card Submitted",
-      description: "Your gift card will be verified manually within 24 hours",
-    });
+    // Create a support ticket for gift card top-up
+    try {
+      await onTopUp(amount, "giftcard_ticket", { 
+        type: "giftcard_topup",
+        code: giftCardCode, 
+        amount,
+        message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`
+      });
+      
+      setGiftCardCode("");
+      setGiftCardAmount("");
+      setIsOpen(false);
+      
+      toast({
+        title: "Gift Card Submitted",
+        description: "A support ticket has been created. Your gift card will be verified within 24 hours.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create support ticket. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!user) {
@@ -146,7 +175,7 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
                     />
                   </div>
                   <Button type="submit" className="w-full bg-gradient-primary hover:shadow-glow">
-                    Pay with LTC/SOL
+                    Create Top-up Ticket
                   </Button>
                 </form>
               </CardContent>
@@ -200,7 +229,7 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
                     />
                   </div>
                   <Button type="submit" className="w-full bg-gaming-warning text-black hover:shadow-glow">
-                    Submit US Gift Card
+                    Create Gift Card Ticket
                   </Button>
                 </form>
               </CardContent>

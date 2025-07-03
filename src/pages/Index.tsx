@@ -185,10 +185,28 @@ const Index = () => {
 
   const handleTopUp = async (amount: number, method: string, details?: any) => {
     try {
-      if (method === "crypto") {
-        // Trigger crypto payment flow
+      if (method === "crypto_ticket" || method === "giftcard_ticket") {
+        // Create a support ticket for top-up requests
+        const { error } = await supabase
+          .from('support_tickets')
+          .insert({
+            user_id: user?.id,
+            subject: `Top-up Request - ${method === "crypto_ticket" ? "Crypto" : "Gift Card"}`,
+            message: details.message,
+            status: 'open',
+            category: 'payment'
+          });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Ticket Created",
+          description: "Your top-up request has been submitted. Check 'My Tickets' for updates.",
+        });
+      } else if (method === "crypto") {
+        // Legacy crypto payment flow (if still needed)
         const { data, error } = await supabase.functions.invoke('create-payment', {
-          body: { amount: amount * 100 } // Convert to cents
+          body: { amount: amount * 100 }
         });
         
         if (error) throw error;
@@ -196,17 +214,6 @@ const Index = () => {
         if (data?.url) {
           window.location.href = data.url;
         }
-      } else if (method === "gift_card") {
-        // Handle gift card submission
-        const { error } = await supabase
-          .from('gift_card_submissions')
-          .insert({
-            user_id: user?.id,
-            gift_card_code: details.code,
-            status: 'pending'
-          });
-        
-        if (error) throw error;
       }
     } catch (error) {
       console.error('Top-up error:', error);

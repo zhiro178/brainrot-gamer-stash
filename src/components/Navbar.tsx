@@ -67,17 +67,13 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
           <div className="flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-4">
-                <Card className="bg-gradient-card border-primary/20">
-                  <CardContent className="p-3">
-                    <div className="flex items-center space-x-3">
-                      <Wallet className="h-4 w-4 text-gaming-success" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Balance</p>
-                        <p className="font-semibold text-gaming-success">${userBalance.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center space-x-3 bg-background/50 backdrop-blur-sm border border-primary/20 rounded-lg px-3 py-2">
+                  <Wallet className="h-4 w-4 text-gaming-success" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Balance</p>
+                    <p className="font-semibold text-gaming-success text-sm">${userBalance.toFixed(2)}</p>
+                  </div>
+                </div>
                 
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4" />
