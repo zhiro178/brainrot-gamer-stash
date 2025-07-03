@@ -52,55 +52,47 @@ export const GameCard = ({
         
         <div className="absolute inset-0 bg-gradient-hero opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        {isAdminMode && onUpdateCount ? (
-          <div className="absolute top-2 right-2">
-            <AdminEditOverlay 
-              type="price" 
-              currentValue={itemCount} 
-              onSave={onUpdateCount}
-              placeholder="Enter item count"
-            >
-              <Badge className="bg-gaming-accent text-black">
-                {itemCount} Items
-              </Badge>
-            </AdminEditOverlay>
-          </div>
-        ) : (
-          <Badge className="absolute top-2 right-2 bg-gaming-accent text-black">
-            {itemCount} Items
-          </Badge>
-        )}
+        <Badge className="absolute top-2 right-2 bg-gaming-accent text-black">
+          {itemCount} Items
+        </Badge>
       </div>
       
       <CardHeader>
-        {isAdminMode && onUpdateTitle ? (
-          <AdminEditOverlay 
-            type="game" 
-            currentValue={title} 
-            onSave={onUpdateTitle}
-            placeholder="Enter game title"
-          >
-            <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
-              {title}
-            </CardTitle>
-          </AdminEditOverlay>
-        ) : (
-          <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
-            {title}
-          </CardTitle>
-        )}
+        <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+          {title}
+        </CardTitle>
         <CardDescription className="text-muted-foreground">
           {description}
         </CardDescription>
       </CardHeader>
       
-      <CardFooter>
-        <Button 
-          onClick={onClick}
-          className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
-        >
-          Browse Items
-        </Button>
+      <CardFooter className="relative">
+        {isAdminMode && (onUpdateTitle || onUpdateImage) ? (
+          <AdminEditOverlay 
+            type="game" 
+            currentValue={`${title}|${imageUrl}|${description}`} 
+            onSave={(value) => {
+              const [newTitle, newImageUrl] = value.split('|');
+              if (onUpdateTitle && newTitle) onUpdateTitle(newTitle);
+              if (onUpdateImage && newImageUrl) onUpdateImage(newImageUrl);
+            }}
+            placeholder="title|imageUrl"
+          >
+            <Button 
+              onClick={onClick}
+              className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
+            >
+              Browse Items
+            </Button>
+          </AdminEditOverlay>
+        ) : (
+          <Button 
+            onClick={onClick}
+            className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
+          >
+            Browse Items
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

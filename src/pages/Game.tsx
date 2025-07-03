@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { CategoryCard } from "@/components/CategoryCard";
 import { ArrowLeft } from "lucide-react";
 
 const GAMES = {
@@ -42,8 +43,9 @@ const GAMES = {
 export default function Game() {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const [gameData, setGameData] = useState(GAMES);
   
-  const game = gameId ? GAMES[gameId as keyof typeof GAMES] : null;
+  const game = gameId ? gameData[gameId as keyof typeof gameData] : null;
 
   if (!game) {
     return (
@@ -94,37 +96,23 @@ export default function Game() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {game.categories.map((category) => (
-            <Card 
+            <CategoryCard
               key={category.id}
-              className="group hover:shadow-gaming transition-all duration-300 cursor-pointer bg-gradient-card border-primary/20"
+              category={category}
+              gameId={gameId!}
               onClick={() => navigate(`/game/${gameId}/category/${category.id}`)}
-            >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
-                    {category.name}
-                  </CardTitle>
-                  <Badge className="bg-gaming-accent text-black">
-                    {category.itemCount} Items
-                  </Badge>
-                </div>
-                <CardDescription className="text-muted-foreground">
-                  {category.description}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent>
-                <Button 
-                  className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/game/${gameId}/category/${category.id}`);
-                  }}
-                >
-                  Browse {category.name} Items
-                </Button>
-              </CardContent>
-            </Card>
+              onUpdateCategory={(categoryId, updates) => {
+                setGameData(prev => ({
+                  ...prev,
+                  [gameId!]: {
+                    ...prev[gameId! as keyof typeof prev],
+                    categories: prev[gameId! as keyof typeof prev].categories.map(cat =>
+                      cat.id === categoryId ? { ...cat, ...updates } : cat
+                    )
+                  }
+                }));
+              }}
+            />
           ))}
         </div>
       </div>

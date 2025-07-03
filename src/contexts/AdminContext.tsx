@@ -10,11 +10,11 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(true); // Always on
   const [isAdmin, setIsAdmin] = useState(false);
 
   const toggleAdminMode = () => {
-    setIsAdminMode(!isAdminMode);
+    // Admin mode is always on now
   };
 
   return (

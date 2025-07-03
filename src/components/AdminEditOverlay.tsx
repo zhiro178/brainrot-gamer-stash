@@ -26,7 +26,13 @@ export const AdminEditOverlay = ({
   const { toast } = useToast();
 
   const handleSave = () => {
-    const finalValue = type === "price" ? parseFloat(editValue) : editValue;
+    let finalValue: any = editValue;
+    if (type === "price") {
+      finalValue = parseFloat(editValue);
+    } else if (type === "game" && editValue.includes('|')) {
+      // Handle game editing with title|imageUrl format
+      finalValue = editValue;
+    }
     onSave(finalValue);
     setIsEditing(false);
     toast({
@@ -67,14 +73,15 @@ export const AdminEditOverlay = ({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="edit-value">
-                  {type === "game" ? "Game Title" : 
+                  {type === "game" ? "Game (title|imageUrl)" : 
+                   type === "catalog" ? "Item Name" :
                    type === "price" ? "Price ($)" : "Value"}
                 </Label>
                 <Input
                   id="edit-value"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
-                  placeholder={placeholder}
+                  placeholder={placeholder || (type === "game" ? "Game Title|Image URL" : "Enter value")}
                   type={type === "price" ? "number" : "text"}
                   step={type === "price" ? "0.01" : undefined}
                   className="bg-background border-primary/20"

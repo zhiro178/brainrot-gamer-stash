@@ -1,10 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ItemCard } from "@/components/ItemCard";
 import { ArrowLeft, Search, Filter } from "lucide-react";
 
 // Mock data for demonstration
@@ -19,22 +18,15 @@ const SAMPLE_ITEMS = [
   { id: 8, name: "Speed Boots", price: 6.99, rarity: "Common", image: "👢" },
 ];
 
-const RARITY_COLORS = {
-  "Common": "bg-gray-500",
-  "Rare": "bg-blue-500",
-  "Epic": "bg-purple-500",
-  "Legendary": "bg-yellow-500",
-  "Mythical": "bg-red-500"
-};
-
 export default function Catalog() {
   const { gameId, categoryId } = useParams<{ gameId: string; categoryId: string }>();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [filterRarity, setFilterRarity] = useState("all");
+  const [items, setItems] = useState(SAMPLE_ITEMS);
 
-  const filteredItems = SAMPLE_ITEMS.filter(item => {
+  const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRarity = filterRarity === "all" || item.rarity === filterRarity;
     return matchesSearch && matchesRarity;
@@ -126,37 +118,16 @@ export default function Catalog() {
         {/* Items Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredItems.map((item) => (
-            <Card 
+            <ItemCard
               key={item.id}
-              className="group hover:shadow-gaming transition-all duration-300 bg-gradient-card border-primary/20"
-            >
-              <CardHeader className="text-center">
-                <div className="text-4xl mb-2">{item.image}</div>
-                <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
-                  {item.name}
-                </CardTitle>
-                <CardDescription className="flex items-center justify-center gap-2">
-                  <Badge className={`${RARITY_COLORS[item.rarity as keyof typeof RARITY_COLORS]} text-white`}>
-                    {item.rarity}
-                  </Badge>
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <span className="text-2xl font-bold text-gaming-success">
-                    ${item.price}
-                  </span>
-                </div>
-                
-                <Button 
-                  onClick={() => handlePurchase(item)}
-                  className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
-                >
-                  Purchase Now
-                </Button>
-              </CardContent>
-            </Card>
+              item={item}
+              onPurchase={handlePurchase}
+              onUpdateItem={(itemId, updates) => {
+                setItems(prev => prev.map(item => 
+                  item.id === itemId ? { ...item, ...updates } : item
+                ));
+              }}
+            />
           ))}
         </div>
 
