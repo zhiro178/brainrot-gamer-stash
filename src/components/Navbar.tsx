@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Wallet, LogOut, Ticket, Settings } from "lucide-react";
+import { User, Wallet, LogOut, Ticket, Settings, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAdmin } from "@/contexts/AdminContext";
 
 interface NavbarProps {
   user?: any;
@@ -18,6 +19,13 @@ interface NavbarProps {
 
 export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }: NavbarProps) => {
   const navigate = useNavigate();
+  const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
+  
+  // Check if user is admin and set admin status
+  const isUserAdmin = user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com');
+  if (isUserAdmin && !isAdminMode) {
+    setIsAdmin(true);
+  }
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -86,16 +94,28 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                   My Tickets
                 </Button>
 
-                {(user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/admin')}
-                    className="border-gaming-warning/20 text-gaming-warning hover:bg-gaming-warning/10"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Admin
-                  </Button>
+                {isUserAdmin && (
+                  <>
+                    <Button 
+                      variant={isAdminMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={toggleAdminMode}
+                      className={isAdminMode ? "bg-gaming-warning text-black hover:bg-gaming-warning/80" : "border-gaming-warning/20 text-gaming-warning hover:bg-gaming-warning/10"}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      {isAdminMode ? "Exit Admin Mode" : "Admin Mode"}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate('/admin')}
+                      className="border-primary/20 text-primary hover:bg-primary/10"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin Panel
+                    </Button>
+                  </>
                 )}
                 
                 <Button 

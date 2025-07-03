@@ -8,6 +8,7 @@ import { LiveChat } from "@/components/LiveChat";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/contexts/AdminContext";
 
 // Import game banners
 import adoptMeBanner from "@/assets/adopt-me-banner.jpg";
@@ -57,9 +58,11 @@ const GAMES = [
 const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [userBalance, setUserBalance] = useState(0);
+  const [games, setGames] = useState(GAMES);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setIsAdmin } = useAdmin();
 
   useEffect(() => {
     // Get initial session
@@ -67,6 +70,10 @@ const Index = () => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserBalance(session.user.id);
+        // Set admin status if user is admin
+        if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
+          setIsAdmin(true);
+        }
       }
       setLoading(false);
     });
@@ -76,8 +83,13 @@ const Index = () => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserBalance(session.user.id);
+        // Set admin status if user is admin
+        if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
+          setIsAdmin(true);
+        }
       } else {
         setUserBalance(0);
+        setIsAdmin(false);
       }
     });
 
@@ -210,6 +222,31 @@ const Index = () => {
     navigate(`/game/${gameId}`);
   };
 
+  const handleUpdateGameTitle = (gameId: string, newTitle: string) => {
+    setGames(prevGames => 
+      prevGames.map(game => 
+        game.id === gameId ? { ...game, title: newTitle } : game
+      )
+    );
+  };
+
+  const handleUpdateGameImage = (gameId: string, newImageUrl: string) => {
+    setGames(prevGames => 
+      prevGames.map(game => 
+        game.id === gameId ? { ...game, imageUrl: newImageUrl } : game
+      )
+    );
+  };
+
+  const handleUpdateGameCount = (gameId: string, newCount: number) => {
+    setGames(prevGames => 
+      prevGames.map(game => 
+        game.id === gameId ? { ...game, itemCount: newCount } : game
+      )
+    );
+  };
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -267,18 +304,21 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {GAMES.map((game) => (
-            <GameCard
-              key={game.id}
-              title={game.title}
-              description={game.description}
-              imageUrl={game.imageUrl}
-              itemCount={game.itemCount}
-              onClick={() => handleGameClick(game.id)}
-            />
-          ))}
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {games.map((game) => (
+              <GameCard
+                key={game.id}
+                title={game.title}
+                description={game.description}
+                imageUrl={game.imageUrl}
+                itemCount={game.itemCount}
+                onClick={() => handleGameClick(game.id)}
+                onUpdateTitle={(newTitle) => handleUpdateGameTitle(game.id, newTitle)}
+                onUpdateImage={(newImageUrl) => handleUpdateGameImage(game.id, newImageUrl)}
+                onUpdateCount={(newCount) => handleUpdateGameCount(game.id, newCount)}
+              />
+            ))}
+          </div>
       </div>
 
       {/* Features Section */}
