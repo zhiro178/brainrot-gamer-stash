@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Send, User, Crown } from "lucide-react";
+import { Send, User, Crown, Clock, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 
@@ -33,8 +33,13 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isAdmin } = useAdmin();
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     fetchMessages();
@@ -59,6 +64,10 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
       subscription.unsubscribe();
     };
   }, [ticketId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const fetchMessages = async () => {
     try {
@@ -126,63 +135,77 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
 
   return (
     <Card className="bg-gradient-card border-primary/20">
-      <CardHeader>
-        <CardTitle className="text-primary flex items-center gap-2">
-          <span>Chat: {ticketSubject}</span>
-          <Badge variant="secondary">Ticket #{ticketId.slice(-8)}</Badge>
-        </CardTitle>
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-primary flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            <span>{ticketSubject}</span>
+          </CardTitle>
+          <Badge variant="secondary" className="bg-primary/10">
+            Ticket #{ticketId.slice(-8)}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ScrollArea className="h-96 w-full">
-          <div className="space-y-3 p-4">
-            {messages.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No messages yet. Start the conversation!
-              </div>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.user_id === currentUser.id ? 'justify-end' : 'justify-start'
-                  }`}
-                >
+        <div className="border border-primary/20 rounded-lg bg-background/50">
+          <ScrollArea className="h-96 p-4">
+            <div className="space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Chat is ready! Send a message to start the conversation.</p>
+                </div>
+              ) : (
+                messages.map((message) => (
                   <div
-                    className={`max-w-[70%] rounded-lg p-3 ${
-                      message.user_id === currentUser.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background border border-primary/20'
+                    key={message.id}
+                    className={`flex ${
+                      message.user_id === currentUser.id ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      {message.is_admin ? (
-                        <Crown className="h-4 w-4 text-gaming-warning" />
-                      ) : (
-                        <User className="h-4 w-4" />
-                      )}
-                      <span className="text-xs font-medium">
-                        {message.is_admin ? 'Admin' : 'User'}
-                      </span>
-                      <span className="text-xs opacity-70">
-                        {formatTime(message.created_at)}
-                      </span>
+                    <div
+                      className={`max-w-[80%] rounded-lg p-3 shadow-sm ${
+                        message.user_id === currentUser.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-background border border-primary/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        {message.is_admin ? (
+                          <Crown className="h-4 w-4 text-gaming-warning" />
+                        ) : (
+                          <User className="h-4 w-4" />
+                        )}
+                        <span className="text-xs font-medium">
+                          {message.is_admin ? 'Admin' : 'Customer'}
+                        </span>
+                        <span className="text-xs opacity-70">
+                          {formatTime(message.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-sm leading-relaxed">{message.message}</p>
                     </div>
-                    <p className="text-sm">{message.message}</p>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+        </div>
 
-        <form onSubmit={sendMessage} className="flex gap-2">
+        <form onSubmit={sendMessage} className="flex gap-3 p-3 bg-background/30 rounded-lg border border-primary/20">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 bg-background border-primary/20"
+            placeholder={`Type your message as ${isAdmin ? 'admin' : 'customer'}...`}
+            className="flex-1 bg-background border-primary/20 focus:border-primary"
           />
-          <Button type="submit" size="sm" className="bg-gradient-primary">
+          <Button 
+            type="submit" 
+            size="sm" 
+            className="bg-gradient-primary hover:shadow-glow px-4"
+            disabled={!newMessage.trim()}
+          >
             <Send className="h-4 w-4" />
           </Button>
         </form>
