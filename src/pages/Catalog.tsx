@@ -1,0 +1,172 @@
+import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Search, Filter } from "lucide-react";
+
+// Mock data for demonstration
+const SAMPLE_ITEMS = [
+  { id: 1, name: "Legendary Dragon Pet", price: 25.99, rarity: "Legendary", image: "🐉" },
+  { id: 2, name: "Rainbow Unicorn", price: 19.99, rarity: "Epic", image: "🦄" },
+  { id: 3, name: "Golden Crown", price: 15.50, rarity: "Rare", image: "👑" },
+  { id: 4, name: "Magic Wand", price: 8.99, rarity: "Common", image: "🪄" },
+  { id: 5, name: "Crystal Sword", price: 35.00, rarity: "Legendary", image: "⚔️" },
+  { id: 6, name: "Phoenix Egg", price: 42.99, rarity: "Mythical", image: "🥚" },
+  { id: 7, name: "Enchanted Ring", price: 12.75, rarity: "Rare", image: "💍" },
+  { id: 8, name: "Speed Boots", price: 6.99, rarity: "Common", image: "👢" },
+];
+
+const RARITY_COLORS = {
+  "Common": "bg-gray-500",
+  "Rare": "bg-blue-500",
+  "Epic": "bg-purple-500",
+  "Legendary": "bg-yellow-500",
+  "Mythical": "bg-red-500"
+};
+
+export default function Catalog() {
+  const { gameId, categoryId } = useParams<{ gameId: string; categoryId: string }>();
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [filterRarity, setFilterRarity] = useState("all");
+
+  const filteredItems = SAMPLE_ITEMS.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRarity = filterRarity === "all" || item.rarity === filterRarity;
+    return matchesSearch && matchesRarity;
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case "price-low":
+        return a.price - b.price;
+      case "price-high":
+        return b.price - a.price;
+      case "rarity":
+        return a.rarity.localeCompare(b.rarity);
+      default:
+        return a.name.localeCompare(b.name);
+    }
+  });
+
+  const handlePurchase = (item: any) => {
+    // This would integrate with your payment system
+    console.log("Purchase item:", item);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="relative bg-gradient-hero">
+        <div className="container mx-auto px-4 py-8">
+          <Button 
+            onClick={() => navigate(`/game/${gameId}`)} 
+            variant="outline" 
+            className="mb-6 border-primary/20 hover:bg-primary/10"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Categories
+          </Button>
+          
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">
+              {categoryId?.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())} Items
+            </h1>
+            <p className="text-muted-foreground">
+              Browse and purchase items from this category
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Filters and Search */}
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search items..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-background border-primary/20"
+              />
+            </div>
+            
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full md:w-48 bg-background border-primary/20">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name (A-Z)</SelectItem>
+                <SelectItem value="price-low">Price (Low to High)</SelectItem>
+                <SelectItem value="price-high">Price (High to Low)</SelectItem>
+                <SelectItem value="rarity">Rarity</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={filterRarity} onValueChange={setFilterRarity}>
+              <SelectTrigger className="w-full md:w-48 bg-background border-primary/20">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by rarity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Rarities</SelectItem>
+                <SelectItem value="Common">Common</SelectItem>
+                <SelectItem value="Rare">Rare</SelectItem>
+                <SelectItem value="Epic">Epic</SelectItem>
+                <SelectItem value="Legendary">Legendary</SelectItem>
+                <SelectItem value="Mythical">Mythical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Items Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredItems.map((item) => (
+            <Card 
+              key={item.id}
+              className="group hover:shadow-gaming transition-all duration-300 bg-gradient-card border-primary/20"
+            >
+              <CardHeader className="text-center">
+                <div className="text-4xl mb-2">{item.image}</div>
+                <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+                  {item.name}
+                </CardTitle>
+                <CardDescription className="flex items-center justify-center gap-2">
+                  <Badge className={`${RARITY_COLORS[item.rarity as keyof typeof RARITY_COLORS]} text-white`}>
+                    {item.rarity}
+                  </Badge>
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <span className="text-2xl font-bold text-gaming-success">
+                    ${item.price}
+                  </span>
+                </div>
+                
+                <Button 
+                  onClick={() => handlePurchase(item)}
+                  className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
+                >
+                  Purchase Now
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredItems.length === 0 && (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-semibold text-muted-foreground mb-2">No items found</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

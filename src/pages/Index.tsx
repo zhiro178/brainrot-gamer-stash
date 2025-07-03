@@ -1,12 +1,332 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
+import { Navbar } from "@/components/Navbar";
+import { GameCard } from "@/components/GameCard";
+import { TopUpModal } from "@/components/TopUpModal";
+import { LiveChat } from "@/components/LiveChat";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+
+// Import game banners
+import adoptMeBanner from "@/assets/adopt-me-banner.jpg";
+import gardenBanner from "@/assets/garden-banner.jpg";
+import mm2Banner from "@/assets/mm2-banner.jpg";
+import brainrotBanner from "@/assets/brainrot-banner.jpg";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+const GAMES = [
+  {
+    id: "adopt-me",
+    title: "Adopt Me",
+    description: "Trade pets, eggs, and exclusive items from the popular Roblox game",
+    imageUrl: adoptMeBanner,
+    itemCount: 245
+  },
+  {
+    id: "grow-garden",
+    title: "Grow a Garden",
+    description: "Seeds, tools, and garden decorations for your virtual garden",
+    imageUrl: gardenBanner,
+    itemCount: 170
+  },
+  {
+    id: "mm2",
+    title: "MM2 (Murder Mystery 2)",
+    description: "Knives, guns, and exclusive items from Murder Mystery 2",
+    imageUrl: mm2Banner,
+    itemCount: 201
+  },
+  {
+    id: "steal-brainrot",
+    title: "Steal a Brainrot",
+    description: "Unique items and collectibles from this trending game",
+    imageUrl: brainrotBanner,
+    itemCount: 83
+  }
+];
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+  const [user, setUser] = useState<any>(null);
+  const [userBalance, setUserBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserBalance(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserBalance(session.user.id);
+      } else {
+        setUserBalance(0);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserBalance = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching balance:', error);
+        return;
+      }
+      
+      setUserBalance(data?.balance || 0);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "Successfully logged in to 592 Stock",
+        });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  };
+
+  const handleRegister = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      
+      if (error) {
+        toast({
+          title: "Registration Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Account Created!",
+          description: "Please check your email to confirm your account",
+        });
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast({
+          title: "Logout Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Goodbye!",
+          description: "Successfully logged out",
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const handleTopUp = async (amount: number, method: string, details?: any) => {
+    try {
+      if (method === "crypto") {
+        // Trigger crypto payment flow
+        const { data, error } = await supabase.functions.invoke('create-payment', {
+          body: { amount: amount * 100 } // Convert to cents
+        });
+        
+        if (error) throw error;
+        
+        if (data?.url) {
+          window.location.href = data.url;
+        }
+      } else if (method === "gift_card") {
+        // Handle gift card submission
+        const { error } = await supabase
+          .from('gift_card_submissions')
+          .insert({
+            user_id: user?.id,
+            gift_card_code: details.code,
+            status: 'pending'
+          });
+        
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Top-up error:', error);
+      toast({
+        title: "Top-up Failed",
+        description: "There was an error processing your request",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGameClick = (gameId: string) => {
+    navigate(`/game/${gameId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading 592 Stock...</p>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar
+        user={user}
+        userBalance={userBalance}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onLogout={handleLogout}
+      />
+      
+      {/* Hero Section */}
+      <div className="relative bg-gradient-hero">
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
+            Welcome to 592 Stock
+          </h1>
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Your ultimate destination for gaming items across Adopt Me, Grow a Garden, MM2, and Steal a Brainrot
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <TopUpModal user={user} onTopUp={handleTopUp} />
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary" className="bg-gaming-success text-black">
+                🎮 4 Games
+              </Badge>
+              <Badge variant="secondary" className="bg-gaming-accent text-black">
+                📦 700+ Items
+              </Badge>
+              <Badge variant="secondary" className="bg-gaming-warning text-black">
+                💰 Secure Payments
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Games Section */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4 text-primary">Browse Games</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Select your favorite game to explore available items and start trading
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {GAMES.map((game) => (
+            <GameCard
+              key={game.id}
+              title={game.title}
+              description={game.description}
+              imageUrl={game.imageUrl}
+              itemCount={game.itemCount}
+              onClick={() => handleGameClick(game.id)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="bg-gradient-card py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4 text-primary">Why Choose 592 Stock?</h2>
+            <p className="text-muted-foreground">The most trusted gaming marketplace</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="bg-background border-primary/20">
+              <CardHeader className="text-center">
+                <div className="text-4xl mb-2">🔒</div>
+                <CardTitle className="text-primary">Secure Payments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-center">
+                  Multiple payment options including crypto and gift cards with secure processing
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-background border-primary/20">
+              <CardHeader className="text-center">
+                <div className="text-4xl mb-2">⚡</div>
+                <CardTitle className="text-primary">Instant Delivery</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-center">
+                  Get your gaming items delivered instantly after successful payment
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-background border-primary/20">
+              <CardHeader className="text-center">
+                <div className="text-4xl mb-2">💬</div>
+                <CardTitle className="text-primary">24/7 Support</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-center">
+                  Our AI-powered support mascot is always here to help with your questions
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      <LiveChat user={user} />
     </div>
   );
 };
