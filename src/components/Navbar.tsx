@@ -86,7 +86,7 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                   My Tickets
                 </Button>
 
-                {user.email === 'admin@592stock.com' && (
+                {(user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
                   <Button 
                     variant="outline" 
                     size="sm"

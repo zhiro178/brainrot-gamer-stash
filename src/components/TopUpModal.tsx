@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, CreditCard, Gift } from "lucide-react";
+import { Wallet, CreditCard, Gift, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface TopUpModalProps {
@@ -23,10 +23,10 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
   const handleCryptoTopUp = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(cryptoAmount);
-    if (amount < 5) {
+    if (amount <= 0) {
       toast({
-        title: "Minimum Amount",
-        description: "Minimum crypto top-up is $5.00",
+        title: "Invalid Amount",
+        description: "Please enter a valid amount",
         variant: "destructive",
       });
       return;
@@ -112,11 +112,21 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
           </TabsList>
 
           <TabsContent value="crypto" className="space-y-4">
+            <div className="bg-gaming-warning/10 border border-gaming-warning/20 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-gaming-warning" />
+                <span className="text-sm font-medium text-gaming-warning">Payment Notice</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Only LTC (Litecoin) and SOL (Solana) payments accepted. No minimum amount required.
+              </p>
+            </div>
+            
             <Card className="bg-background border-primary/20">
               <CardHeader>
                 <CardTitle className="text-sm">Crypto Payment</CardTitle>
                 <CardDescription>
-                  Instant processing • Minimum $5.00
+                  Instant processing • LTC & SOL only • No minimum
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -126,9 +136,9 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
                     <Input
                       id="crypto-amount"
                       type="number"
-                      min="5"
+                      min="0.01"
                       step="0.01"
-                      placeholder="5.00"
+                      placeholder="25.00"
                       value={cryptoAmount}
                       onChange={(e) => setCryptoAmount(e.target.value)}
                       required
@@ -136,7 +146,7 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
                     />
                   </div>
                   <Button type="submit" className="w-full bg-gradient-primary hover:shadow-glow">
-                    Pay with Crypto
+                    Pay with LTC/SOL
                   </Button>
                 </form>
               </CardContent>
@@ -144,11 +154,21 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
           </TabsContent>
 
           <TabsContent value="giftcard" className="space-y-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <span className="text-sm font-medium text-destructive">Important Notice</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Only US Amazon gift cards are accepted. Other gift cards will be rejected.
+              </p>
+            </div>
+            
             <Card className="bg-background border-primary/20">
               <CardHeader>
-                <CardTitle className="text-sm">Amazon Gift Card</CardTitle>
+                <CardTitle className="text-sm">US Amazon Gift Card</CardTitle>
                 <CardDescription>
-                  Manual verification • 24h processing time
+                  Manual verification • 24h processing time • US cards only
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -172,7 +192,7 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
                     <Input
                       id="gift-code"
                       type="text"
-                      placeholder="Enter your Amazon gift card code"
+                      placeholder="Enter your US Amazon gift card code"
                       value={giftCardCode}
                       onChange={(e) => setGiftCardCode(e.target.value)}
                       required
@@ -180,7 +200,7 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
                     />
                   </div>
                   <Button type="submit" className="w-full bg-gaming-warning text-black hover:shadow-glow">
-                    Submit Gift Card
+                    Submit US Gift Card
                   </Button>
                 </form>
               </CardContent>
