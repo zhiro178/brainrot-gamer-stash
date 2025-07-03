@@ -232,16 +232,16 @@ export default function Admin() {
           </Card>
         </div>
 
-        <Tabs defaultValue="support-tickets" className="w-full">
+        <Tabs defaultValue="gift-cards" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-background border border-primary/20">
-            <TabsTrigger value="support-tickets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Support Tickets
-            </TabsTrigger>
             <TabsTrigger value="gift-cards" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Gift Cards
             </TabsTrigger>
             <TabsTrigger value="crypto-settings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Crypto Settings
+              Crypto Top-ups
+            </TabsTrigger>
+            <TabsTrigger value="support-tickets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Support Tickets
             </TabsTrigger>
           </TabsList>
 
