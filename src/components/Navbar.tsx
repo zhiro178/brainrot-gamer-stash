@@ -95,27 +95,15 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                 </Button>
 
                 {isUserAdmin && (
-                  <>
-                    <Button 
-                      variant={isAdminMode ? "default" : "outline"}
-                      size="sm"
-                      onClick={toggleAdminMode}
-                      className={isAdminMode ? "bg-gaming-warning text-black hover:bg-gaming-warning/80" : "border-gaming-warning/20 text-gaming-warning hover:bg-gaming-warning/10"}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      {isAdminMode ? "Exit Admin Mode" : "Admin Mode"}
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate('/admin')}
-                      className="border-primary/20 text-primary hover:bg-primary/10"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Admin Panel
-                    </Button>
-                  </>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/admin')}
+                    className="border-primary/20 text-primary hover:bg-primary/10"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Admin Panel
+                  </Button>
                 )}
                 
                 <Button 

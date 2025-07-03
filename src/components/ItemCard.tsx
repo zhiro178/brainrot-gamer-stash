@@ -66,16 +66,16 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
             onSave={handleItemUpdate}
             placeholder="name|price|imageUrl"
           >
-            <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+            <CardTitle className="text-primary group-hover:text-primary-glow transition-colors text-base">
               {item.name}
             </CardTitle>
           </AdminEditOverlay>
         ) : (
-          <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+          <CardTitle className="text-primary group-hover:text-primary-glow transition-colors text-base">
             {item.name}
           </CardTitle>
         )}
-        <CardDescription className="flex items-center justify-center gap-2">
+        <CardDescription className="flex items-center justify-center gap-2 text-xs">
           <Badge className={`${RARITY_COLORS[item.rarity as keyof typeof RARITY_COLORS]} text-white`}>
             {item.rarity}
           </Badge>
@@ -84,7 +84,7 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
       
       <CardContent className="space-y-4">
         <div className="text-center">
-          <span className="text-2xl font-bold text-gaming-success">
+          <span className="text-xl font-bold text-gaming-success">
             ${item.price}
           </span>
         </div>
