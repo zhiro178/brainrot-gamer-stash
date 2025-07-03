@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AdminEditOverlay } from "@/components/AdminEditOverlay";
 import { useAdmin } from "@/contexts/AdminContext";
+import { Trash2 } from "lucide-react";
 
 const RARITY_COLORS = {
   "Common": "bg-gray-500",
@@ -22,15 +23,19 @@ interface ItemCardProps {
   };
   onPurchase: (item: any) => void;
   onUpdateItem?: (itemId: number, updates: { name?: string; price?: number; rarity?: string; image?: string }) => void;
+  onDeleteItem?: (itemId: number) => void;
 }
 
-export const ItemCard = ({ item, onPurchase, onUpdateItem }: ItemCardProps) => {
+export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemCardProps) => {
   const { isAdminMode } = useAdmin();
 
   const handleItemUpdate = (value: string) => {
     if (onUpdateItem) {
-      // Only update the name/text of the item
-      const updates: any = { name: value };
+      const [newName, newPrice, newImage] = value.split('|');
+      const updates: any = {};
+      if (newName) updates.name = newName;
+      if (newPrice && !isNaN(parseFloat(newPrice))) updates.price = parseFloat(newPrice);
+      if (newImage) updates.image = newImage;
       onUpdateItem(item.id, updates);
     }
   };
@@ -42,9 +47,9 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem }: ItemCardProps) => {
         {isAdminMode && onUpdateItem ? (
           <AdminEditOverlay 
             type="catalog" 
-            currentValue={item.name} 
+            currentValue={`${item.name}|${item.price}|${item.image}`} 
             onSave={handleItemUpdate}
-            placeholder="Enter item name"
+            placeholder="name|price|emoji"
           >
             <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
               {item.name}
@@ -69,12 +74,25 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem }: ItemCardProps) => {
           </span>
         </div>
         
-        <Button 
-          onClick={() => onPurchase(item)}
-          className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
-        >
-          Purchase Now
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => onPurchase(item)}
+            className="flex-1 bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
+          >
+            Purchase Now
+          </Button>
+          
+          {isAdminMode && onDeleteItem && (
+            <Button 
+              onClick={() => onDeleteItem(item.id)}
+              variant="destructive"
+              size="sm"
+              className="px-3"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

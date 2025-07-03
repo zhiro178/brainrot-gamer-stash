@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ItemCard } from "@/components/ItemCard";
-import { ArrowLeft, Search, Filter } from "lucide-react";
+import { useAdmin } from "@/contexts/AdminContext";
+import { ArrowLeft, Search, Filter, Plus } from "lucide-react";
 
 // Mock data for demonstration
 const SAMPLE_ITEMS = [
@@ -24,6 +25,8 @@ export default function Catalog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [filterRarity, setFilterRarity] = useState("all");
+  const { isAdminMode } = useAdmin();
+
   const [items, setItems] = useState(SAMPLE_ITEMS);
 
   const filteredItems = items.filter(item => {
@@ -44,8 +47,18 @@ export default function Catalog() {
   });
 
   const handlePurchase = (item: any) => {
-    // This would integrate with your payment system
     console.log("Purchase item:", item);
+  };
+
+  const handleAddItem = () => {
+    const newItem = {
+      id: Math.max(...items.map(i => i.id)) + 1,
+      name: "New Item",
+      price: 9.99,
+      rarity: "Common",
+      image: "🎁"
+    };
+    setItems(prev => [...prev, newItem]);
   };
 
   return (
@@ -90,7 +103,7 @@ export default function Catalog() {
               <SelectTrigger className="w-full md:w-48 bg-background border-primary/20">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-primary/20 z-50">
                 <SelectItem value="name">Name (A-Z)</SelectItem>
                 <SelectItem value="price-low">Price (Low to High)</SelectItem>
                 <SelectItem value="price-high">Price (High to Low)</SelectItem>
@@ -103,7 +116,7 @@ export default function Catalog() {
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by rarity" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-primary/20 z-50">
                 <SelectItem value="all">All Rarities</SelectItem>
                 <SelectItem value="Common">Common</SelectItem>
                 <SelectItem value="Rare">Rare</SelectItem>
@@ -112,6 +125,16 @@ export default function Catalog() {
                 <SelectItem value="Mythical">Mythical</SelectItem>
               </SelectContent>
             </Select>
+
+            {isAdminMode && (
+              <Button 
+                onClick={handleAddItem}
+                className="bg-gaming-success hover:bg-gaming-success/80 text-black"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            )}
           </div>
         </div>
 
@@ -126,6 +149,9 @@ export default function Catalog() {
                 setItems(prev => prev.map(item => 
                   item.id === itemId ? { ...item, ...updates } : item
                 ));
+              }}
+              onDeleteItem={(itemId) => {
+                setItems(prev => prev.filter(item => item.id !== itemId));
               }}
             />
           ))}

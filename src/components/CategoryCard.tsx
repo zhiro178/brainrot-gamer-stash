@@ -40,11 +40,24 @@ export const CategoryCard = ({
       className="group hover:shadow-gaming transition-all duration-300 cursor-pointer bg-gradient-card border-primary/20"
       onClick={onClick}
     >
-      <CardHeader>
+      <CardHeader className="relative">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
-            {category.name}
-          </CardTitle>
+          {isAdminMode && onUpdateCategory ? (
+            <AdminEditOverlay 
+              type="catalog" 
+              currentValue={`${category.name}|${category.description}|${category.itemCount}`} 
+              onSave={handleCategoryUpdate}
+              placeholder="name|description|itemCount"
+            >
+              <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+                {category.name}
+              </CardTitle>
+            </AdminEditOverlay>
+          ) : (
+            <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+              {category.name}
+            </CardTitle>
+          )}
           <Badge className="bg-gaming-accent text-black">
             {category.itemCount} Items
           </Badge>
@@ -54,35 +67,16 @@ export const CategoryCard = ({
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="relative">
-        {isAdminMode && onUpdateCategory ? (
-          <AdminEditOverlay 
-            type="catalog" 
-            currentValue={`${category.name}|${category.description}|${category.itemCount}`} 
-            onSave={handleCategoryUpdate}
-            placeholder="name|description|itemCount"
-          >
-            <Button 
-              className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-            >
-              Browse {category.name} Items
-            </Button>
-          </AdminEditOverlay>
-        ) : (
-          <Button 
-            className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-          >
-            Browse {category.name} Items
-          </Button>
-        )}
+      <CardContent>
+        <Button 
+          className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+        >
+          Browse {category.name} Items
+        </Button>
       </CardContent>
     </Card>
   );
