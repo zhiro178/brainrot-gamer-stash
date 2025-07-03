@@ -15,6 +15,10 @@ import gardenBanner from "@/assets/garden-banner.jpg";
 import mm2Banner from "@/assets/mm2-banner.jpg";
 import brainrotBanner from "@/assets/brainrot-banner.jpg";
 
+// Debug: Check if env variables are loaded
+console.log('SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'LOADED' : 'MISSING');
+
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
