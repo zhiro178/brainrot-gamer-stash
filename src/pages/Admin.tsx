@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Upload, Ticket, DollarSign } from "lucide-react";
+import { Settings, Upload, Ticket, DollarSign, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
@@ -16,6 +17,7 @@ import { createClient } from "@supabase/supabase-js";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function Admin() {
+  const navigate = useNavigate();
   const [giftCardSubmissions, setGiftCardSubmissions] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [gameSettings, setGameSettings] = useState({
@@ -143,11 +145,22 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Settings className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Admin Panel
-          </h1>
+        <div className="flex items-center gap-4 mb-8">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate('/')}
+            className="border-primary/20"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
+          <div className="flex items-center gap-3">
+            <Settings className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Admin Panel
+            </h1>
+          </div>
         </div>
 
         <Tabs defaultValue="gift-cards" className="w-full">
