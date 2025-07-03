@@ -61,11 +61,7 @@ export default function Tickets() {
       }
     } catch (error) {
       console.error('Error fetching tickets:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load tickets",
-        variant: "destructive",
-      });
+      // Don't show error toast for no tickets - it's normal
     } finally {
       setLoading(false);
     }

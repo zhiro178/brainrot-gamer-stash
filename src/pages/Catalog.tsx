@@ -60,7 +60,8 @@ export default function Catalog() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        const { error } = await supabase
+        // Create support ticket
+        const { data: ticketData, error } = await supabase
           .from('support_tickets')
           .insert({
             user_id: user.id,
@@ -68,9 +69,39 @@ export default function Catalog() {
             message: `Purchase request for: ${item.name} - Price: $${item.price}`,
             status: 'open',
             category: 'purchase'
-          });
+          })
+          .select('id')
+          .single();
         
-        if (!error) {
+        if (!error && ticketData) {
+          // Add user message
+          await supabase
+            .from('ticket_messages')
+            .insert({
+              ticket_id: ticketData.id,
+              user_id: user.id,
+              message: `I would like to purchase: ${item.name} for $${item.price}`,
+              is_admin: false
+            });
+          
+          // Add admin welcome message
+          const { data: adminUsers } = await supabase
+            .from('auth.users')
+            .select('id')
+            .eq('email', 'zhirocomputer@gmail.com')
+            .single();
+          
+          if (adminUsers) {
+            await supabase
+              .from('ticket_messages')
+              .insert({
+                ticket_id: ticketData.id,
+                user_id: adminUsers.id,
+                message: `Hello! We've received your purchase request for ${item.name}. We'll process this order and get back to you shortly.`,
+                is_admin: true
+              });
+          }
+          
           const { toast } = await import("@/hooks/use-toast");
           toast({
             title: "Purchase Request Submitted",

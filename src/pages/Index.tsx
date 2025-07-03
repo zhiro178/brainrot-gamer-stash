@@ -207,6 +207,46 @@ const Index = () => {
         
         if (error) throw error;
         
+        // Add initial message from user
+        const { data: ticketData } = await supabase
+          .from('support_tickets')
+          .select('id')
+          .eq('user_id', user?.id)
+          .eq('subject', `Top-up Request - ${method === "crypto_ticket" ? "Crypto" : "Gift Card"}`)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (ticketData) {
+          // Add user message
+          await supabase
+            .from('ticket_messages')
+            .insert({
+              ticket_id: ticketData.id,
+              user_id: user?.id,
+              message: details.message,
+              is_admin: false
+            });
+          
+          // Add admin welcome message
+          const adminUser = await supabase
+            .from('auth.users')
+            .select('id')
+            .eq('email', 'zhirocomputer@gmail.com')
+            .single();
+          
+          if (adminUser.data) {
+            await supabase
+              .from('ticket_messages')
+              .insert({
+                ticket_id: ticketData.id,
+                user_id: adminUser.data.id,
+                message: `Hello! We've received your ${method === "crypto_ticket" ? "crypto" : "gift card"} top-up request. We'll process this shortly and get back to you.`,
+                is_admin: true
+              });
+          }
+        }
+        
         toast({
           title: "Ticket Created",
           description: "Your top-up request has been submitted. Check 'My Tickets' for updates.",
@@ -281,10 +321,10 @@ const Index = () => {
             <TopUpModal user={user} onTopUp={handleTopUp} />
             <div className="flex items-center space-x-2">
               <Badge variant="secondary" className="bg-gaming-success text-black">
-                🎮 4 Games
+                🎮 Most Popular
               </Badge>
               <Badge variant="secondary" className="bg-gaming-accent text-black">
-                📦 700+ Items
+                📦 Guaranteed Items
               </Badge>
               <Badge variant="secondary" className="bg-gaming-warning text-black">
                 💰 Secure Payments
