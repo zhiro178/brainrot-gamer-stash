@@ -318,7 +318,7 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <TopUpModal user={user} onTopUp={handleTopUp} />
+            <TopUpModal user={user} />
             <div className="flex items-center space-x-2">
               <Badge variant="secondary" className="bg-gaming-success text-black">
                 🎮 Most Popular

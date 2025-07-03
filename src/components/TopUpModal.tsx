@@ -10,10 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface TopUpModalProps {
   user?: any;
-  onTopUp: (amount: number, method: string, details?: any) => void;
 }
 
-export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
+export const TopUpModal = ({ user }: TopUpModalProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [cryptoAmount, setCryptoAmount] = useState("");
   const [giftCardCode, setGiftCardCode] = useState("");
