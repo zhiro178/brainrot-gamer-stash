@@ -405,9 +405,42 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          {/* Crypto Settings Tab */}
+          {/* Crypto Top-ups Tab */}
           <TabsContent value="crypto-settings" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-gradient-card border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bitcoin className="h-5 w-5" />
+                    Crypto Top-up Submissions
+                  </CardTitle>
+                  <CardDescription>
+                    Review and approve cryptocurrency top-up requests from users
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User ID</TableHead>
+                        <TableHead>Amount (USD)</TableHead>
+                        <TableHead>Crypto Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="text-center text-muted-foreground" colSpan={6}>
+                          No crypto top-up submissions yet
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
               <Card className="bg-gradient-card border-primary/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -468,36 +501,6 @@ export default function Admin() {
                   >
                     Save Crypto Settings
                   </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-card border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Payment Instructions
-                  </CardTitle>
-                  <CardDescription>
-                    Template message for crypto payment requests
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="bg-background border border-primary/20 rounded-lg p-4">
-                      <h4 className="font-semibold mb-2">Crypto Payment Instructions:</h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        "Thank you for your crypto top-up request! Please send your payment to one of these addresses:"
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        <p><strong>LTC:</strong> {cryptoPaymentInfo.ltcAddress || "Not configured"}</p>
-                        <p><strong>SOL:</strong> {cryptoPaymentInfo.solAddress || "Not configured"}</p>
-                        <p><strong>Rate:</strong> 1 USD = ${cryptoPaymentInfo.exchangeRate}</p>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        "Once payment is confirmed, your balance will be updated within 24 hours."
-                      </p>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </div>

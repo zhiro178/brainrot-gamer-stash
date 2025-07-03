@@ -49,7 +49,6 @@ export default function Catalog() {
   const handlePurchase = async (item: any) => {
     console.log("Purchase item:", item);
     
-    // Create a purchase ticket
     try {
       const { createClient } = await import("@supabase/supabase-js");
       const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
@@ -60,57 +59,81 @@ export default function Catalog() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Create support ticket
-        const { data: ticketData, error } = await supabase
-          .from('support_tickets')
-          .insert({
-            user_id: user.id,
-            subject: `Purchase Request - ${item.name}`,
-            message: `Purchase request for: ${item.name} - Price: $${item.price}`,
-            status: 'open',
-            category: 'purchase'
-          })
-          .select('id')
+        // Check user balance
+        const { data: balanceData } = await supabase
+          .from('user_balances')
+          .select('balance')
+          .eq('user_id', user.id)
           .single();
         
-        if (!error && ticketData) {
-          // Add user message
+        const currentBalance = balanceData?.balance || 0;
+        
+        if (currentBalance >= item.price) {
+          // Deduct from balance
           await supabase
-            .from('ticket_messages')
-            .insert({
-              ticket_id: ticketData.id,
+            .from('user_balances')
+            .upsert({
               user_id: user.id,
-              message: `I would like to purchase: ${item.name} for $${item.price}`,
-              is_admin: false
+              balance: currentBalance - item.price
             });
           
-          // Add admin welcome message
-          const { data: adminUsers } = await supabase
-            .from('auth.users')
+          // Create purchase ticket
+          const { data: ticketData, error } = await supabase
+            .from('support_tickets')
+            .insert({
+              user_id: user.id,
+              subject: `Purchase Claim - ${item.name}`,
+              message: `Purchase completed for: ${item.name} - Price: $${item.price}. Please deliver the item.`,
+              status: 'open',
+              category: 'purchase'
+            })
             .select('id')
-            .eq('email', 'zhirocomputer@gmail.com')
             .single();
           
-          if (adminUsers) {
+          if (!error && ticketData) {
+            // Add user message
             await supabase
               .from('ticket_messages')
               .insert({
                 ticket_id: ticketData.id,
-                user_id: adminUsers.id,
-                message: `Hello! We've received your purchase request for ${item.name}. We'll process this order and get back to you shortly.`,
+                user_id: user.id,
+                message: `I have successfully purchased: ${item.name} for $${item.price}. My remaining balance is $${(currentBalance - item.price).toFixed(2)}. Please deliver the item to my account.`,
+                is_admin: false
+              });
+            
+            // Add admin message
+            await supabase
+              .from('ticket_messages')
+              .insert({
+                ticket_id: ticketData.id,
+                user_id: user.id,
+                message: `Payment received! We'll process your ${item.name} order and deliver it to your account within 24 hours. Thank you for your purchase!`,
                 is_admin: true
               });
+            
+            const { toast } = await import("@/hooks/use-toast");
+            toast({
+              title: "Purchase Successful!",
+              description: `${item.name} purchased for $${item.price}. Check 'My Tickets' for delivery updates.`,
+            });
           }
-          
+        } else {
           const { toast } = await import("@/hooks/use-toast");
           toast({
-            title: "Purchase Request Submitted",
-            description: "A ticket has been created for your purchase. Check 'My Tickets' for updates.",
+            title: "Insufficient Balance",
+            description: `You need $${item.price} but only have $${currentBalance.toFixed(2)}. Please top up your balance.`,
+            variant: "destructive",
           });
         }
       }
     } catch (error) {
-      console.error('Purchase ticket creation error:', error);
+      console.error('Purchase error:', error);
+      const { toast } = await import("@/hooks/use-toast");
+      toast({
+        title: "Purchase Failed",
+        description: "There was an error processing your purchase. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
