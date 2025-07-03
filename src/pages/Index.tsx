@@ -62,7 +62,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setIsAdmin } = useAdmin();
+  const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
 
   useEffect(() => {
     // Get initial session
@@ -73,6 +73,10 @@ const Index = () => {
         // Set admin status if user is admin
         if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
           setIsAdmin(true);
+          // Auto-enable admin mode for admin users
+          if (!isAdminMode) {
+            toggleAdminMode();
+          }
         }
       }
       setLoading(false);
@@ -86,6 +90,10 @@ const Index = () => {
         // Set admin status if user is admin
         if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
           setIsAdmin(true);
+          // Auto-enable admin mode for admin users
+          if (!isAdminMode) {
+            toggleAdminMode();
+          }
         }
       } else {
         setUserBalance(0);
@@ -201,7 +209,7 @@ const Index = () => {
         
         toast({
           title: "Ticket Created",
-          description: "Your top-up request has been submitted. Check 'My Tickets' for updates.",
+          description: "Your top-up request has been submitted. Check your tickets for updates.",
         });
       } else if (method === "crypto") {
         // Legacy crypto payment flow (if still needed)

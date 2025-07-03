@@ -22,7 +22,7 @@ export const CategoryCard = ({
   onClick, 
   onUpdateCategory 
 }: CategoryCardProps) => {
-  const { isAdminMode } = useAdmin();
+  const { isAdminMode, isAdmin } = useAdmin();
 
   const handleCategoryUpdate = (value: string) => {
     if (onUpdateCategory) {
@@ -65,7 +65,7 @@ export const CategoryCard = ({
           Browse {category.name} Items
         </Button>
         
-        {isAdminMode && onUpdateCategory && (
+        {isAdmin && isAdminMode && onUpdateCategory && (
           <AdminEditOverlay 
             type="catalog" 
             currentValue={`${category.name}|${category.description}|${category.itemCount}`} 

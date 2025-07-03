@@ -25,7 +25,7 @@ export default function Catalog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [filterRarity, setFilterRarity] = useState("all");
-  const { isAdminMode } = useAdmin();
+  const { isAdminMode, isAdmin } = useAdmin();
 
   const [items, setItems] = useState(SAMPLE_ITEMS);
 
@@ -126,7 +126,7 @@ export default function Catalog() {
               </SelectContent>
             </Select>
 
-            {isAdminMode && (
+            {isAdmin && isAdminMode && (
               <Button 
                 onClick={handleAddItem}
                 className="bg-gaming-success hover:bg-gaming-success/80 text-black"

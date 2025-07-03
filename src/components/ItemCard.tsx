@@ -27,7 +27,7 @@ interface ItemCardProps {
 }
 
 export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemCardProps) => {
-  const { isAdminMode } = useAdmin();
+  const { isAdminMode, isAdmin } = useAdmin();
 
   const handleItemUpdate = (value: string) => {
     if (onUpdateItem) {
@@ -59,7 +59,7 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
           )}
           {item.image.startsWith('http') && <span className="hidden">🎁</span>}
         </div>
-        {isAdminMode && onUpdateItem ? (
+        {isAdmin && isAdminMode && onUpdateItem ? (
           <AdminEditOverlay 
             type="catalog" 
             currentValue={`${item.name}|${item.price}|${item.image}`} 
@@ -97,7 +97,7 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
             Purchase Now
           </Button>
           
-          {isAdminMode && onDeleteItem && (
+          {isAdmin && isAdminMode && onDeleteItem && (
             <Button 
               onClick={() => onDeleteItem(item.id)}
               variant="destructive"

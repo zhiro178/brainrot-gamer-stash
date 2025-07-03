@@ -22,11 +22,11 @@ export const GameCard = ({
   onClick, 
   onUpdateGame
 }: GameCardProps) => {
-  const { isAdminMode } = useAdmin();
+  const { isAdminMode, isAdmin } = useAdmin();
   return (
     <Card className="group hover:shadow-gaming transition-all duration-300 cursor-pointer bg-gradient-card border-primary/20 overflow-hidden">
       <div className="relative">
-        {isAdminMode && onUpdateGame ? (
+        {isAdmin && isAdminMode && onUpdateGame ? (
           <div className="relative">
             <img 
               src={imageUrl} 
