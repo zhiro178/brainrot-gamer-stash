@@ -34,20 +34,52 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
     
     // Create a support ticket for crypto top-up
     try {
-      await onTopUp(amount, "crypto_ticket", { 
-        type: "crypto_topup",
-        amount,
-        message: `Crypto top-up request for $${amount} USD (LTC/SOL)`
-      });
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
+      const supabase = createClient(supabaseUrl, supabaseKey);
       
-      setCryptoAmount("");
-      setIsOpen(false);
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
       
-      toast({
-        title: "Top-up Request Submitted",
-        description: "A support ticket has been created. You'll receive payment instructions shortly.",
-      });
+      if (user) {
+        // Create support ticket
+        const { data: ticketData, error } = await supabase
+          .from('support_tickets')
+          .insert({
+            user_id: user.id,
+            subject: `Crypto Top-up Request - $${amount}`,
+            message: `Crypto top-up request for $${amount} USD (LTC/SOL). Please provide payment instructions.`,
+            status: 'open',
+            category: 'crypto_topup'
+          })
+          .select('id')
+          .single();
+        
+        if (!error && ticketData) {
+          // Add initial user message
+          await supabase
+            .from('ticket_messages')
+            .insert({
+              ticket_id: ticketData.id,
+              user_id: user.id,
+              message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
+              is_admin: false
+            });
+          
+          setCryptoAmount("");
+          setIsOpen(false);
+          
+          toast({
+            title: "Top-up Request Submitted",
+            description: "A support ticket has been created. You'll receive payment instructions shortly.",
+          });
+        } else {
+          throw new Error('Failed to create ticket');
+        }
+      }
     } catch (error) {
+      console.error('Top-up error:', error);
       toast({
         title: "Error",
         description: "Failed to create support ticket. Please try again.",
@@ -79,22 +111,53 @@ export const TopUpModal = ({ user, onTopUp }: TopUpModalProps) => {
     
     // Create a support ticket for gift card top-up
     try {
-      await onTopUp(amount, "giftcard_ticket", { 
-        type: "giftcard_topup",
-        code: giftCardCode, 
-        amount,
-        message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`
-      });
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
+      const supabase = createClient(supabaseUrl, supabaseKey);
       
-      setGiftCardCode("");
-      setGiftCardAmount("");
-      setIsOpen(false);
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
       
-      toast({
-        title: "Gift Card Submitted",
-        description: "A support ticket has been created. Your gift card will be verified within 24 hours.",
-      });
+      if (user) {
+        // Create support ticket
+        const { data: ticketData, error } = await supabase
+          .from('support_tickets')
+          .insert({
+            user_id: user.id,
+            subject: `Gift Card Top-up - $${amount}`,
+            message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
+            status: 'open',
+            category: 'giftcard_topup'
+          })
+          .select('id')
+          .single();
+        
+        if (!error && ticketData) {
+          // Add initial user message
+          await supabase
+            .from('ticket_messages')
+            .insert({
+              ticket_id: ticketData.id,
+              user_id: user.id,
+              message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
+              is_admin: false
+            });
+          
+          setGiftCardCode("");
+          setGiftCardAmount("");
+          setIsOpen(false);
+          
+          toast({
+            title: "Gift Card Submitted",
+            description: "A support ticket has been created. Your gift card will be verified within 24 hours.",
+          });
+        } else {
+          throw new Error('Failed to create ticket');
+        }
+      }
     } catch (error) {
+      console.error('Gift card error:', error);
       toast({
         title: "Error",
         description: "Failed to create support ticket. Please try again.",

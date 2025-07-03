@@ -80,15 +80,17 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                   <span className="text-sm">{user.email}</span>
                 </div>
                 
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/tickets')}
-                  className="border-primary/20 hover:bg-primary/10"
-                >
-                  <Ticket className="h-4 w-4 mr-2" />
-                  My Tickets
-                </Button>
+                {(!isUserAdmin || isAdminMode) && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/tickets')}
+                    className="border-primary/20 hover:bg-primary/10"
+                  >
+                    <Ticket className="h-4 w-4 mr-2" />
+                    My Tickets
+                  </Button>
+                )}
 
                 {isUserAdmin && (
                   <>
