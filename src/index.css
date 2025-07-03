@@ -6,15 +6,15 @@
 
 @layer base {
   :root {
-    /* Gaming-themed color palette */
-    --background: 210 30% 8%;
-    --foreground: 210 40% 98%;
+    /* Gaming-themed color palette - Light theme */
+    --background: 210 40% 98%;
+    --foreground: 210 30% 8%;
 
-    --card: 210 25% 12%;
-    --card-foreground: 210 40% 98%;
+    --card: 210 40% 96%;
+    --card-foreground: 210 30% 8%;
 
-    --popover: 210 25% 12%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 210 40% 96%;
+    --popover-foreground: 210 30% 8%;
 
     --primary: 280 85% 60%;
     --primary-foreground: 210 40% 98%;
@@ -24,20 +24,20 @@
     --gaming-warning: 45 90% 60%;
     --gaming-success: 140 65% 50%;
 
-    --secondary: 210 25% 18%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 40% 85%;
+    --secondary-foreground: 210 30% 8%;
 
-    --muted: 210 25% 16%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 210 40% 90%;
+    --muted-foreground: 215 20% 35%;
 
-    --accent: 280 60% 25%;
-    --accent-foreground: 280 85% 85%;
+    --accent: 280 60% 75%;
+    --accent-foreground: 280 85% 15%;
 
     --destructive: 0 85% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 210 25% 20%;
-    --input: 210 25% 16%;
+    --border: 210 25% 80%;
+    --input: 210 40% 94%;
     --ring: 280 85% 60%;
 
     /* Gaming gradients */
