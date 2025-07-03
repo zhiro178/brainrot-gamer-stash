@@ -15,14 +15,13 @@ import gardenBanner from "@/assets/garden-banner.jpg";
 import mm2Banner from "@/assets/mm2-banner.jpg";
 import brainrotBanner from "@/assets/brainrot-banner.jpg";
 
-// Debug: Check if env variables are loaded
-console.log('SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'LOADED' : 'MISSING');
+// Temporary hardcoded values to bypass env issues
+const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+console.log('Using hardcoded Supabase credentials');
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const GAMES = [
   {
