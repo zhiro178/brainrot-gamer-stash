@@ -73,15 +73,15 @@ export const AdminEditOverlay = ({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="edit-value">
-                  {type === "game" ? "Game (title|imageUrl)" : 
-                   type === "catalog" ? "Item Name" :
+                  {type === "game" ? "Game (imageUrl|description)" : 
+                   type === "catalog" ? "Item/Category Details" :
                    type === "price" ? "Price ($)" : "Value"}
                 </Label>
                 <Input
                   id="edit-value"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
-                  placeholder={placeholder || (type === "game" ? "Game Title|Image URL" : "Enter value")}
+                  placeholder={placeholder || (type === "game" ? "Image URL|Description" : "Enter value")}
                   type={type === "price" ? "number" : "text"}
                   step={type === "price" ? "0.01" : undefined}
                   className="bg-background border-primary/20"

@@ -222,26 +222,10 @@ const Index = () => {
     navigate(`/game/${gameId}`);
   };
 
-  const handleUpdateGameTitle = (gameId: string, newTitle: string) => {
+  const handleUpdateGame = (gameId: string, newImageUrl: string, newDescription: string) => {
     setGames(prevGames => 
       prevGames.map(game => 
-        game.id === gameId ? { ...game, title: newTitle } : game
-      )
-    );
-  };
-
-  const handleUpdateGameImage = (gameId: string, newImageUrl: string) => {
-    setGames(prevGames => 
-      prevGames.map(game => 
-        game.id === gameId ? { ...game, imageUrl: newImageUrl } : game
-      )
-    );
-  };
-
-  const handleUpdateGameCount = (gameId: string, newCount: number) => {
-    setGames(prevGames => 
-      prevGames.map(game => 
-        game.id === gameId ? { ...game, itemCount: newCount } : game
+        game.id === gameId ? { ...game, imageUrl: newImageUrl, description: newDescription } : game
       )
     );
   };
@@ -313,9 +297,7 @@ const Index = () => {
                 imageUrl={game.imageUrl}
                 itemCount={game.itemCount}
                 onClick={() => handleGameClick(game.id)}
-                onUpdateTitle={(newTitle) => handleUpdateGameTitle(game.id, newTitle)}
-                onUpdateImage={(newImageUrl) => handleUpdateGameImage(game.id, newImageUrl)}
-                onUpdateCount={(newCount) => handleUpdateGameCount(game.id, newCount)}
+                onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
               />
             ))}
           </div>
