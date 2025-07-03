@@ -29,23 +29,32 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem }: ItemCardProps) => {
 
   const handleItemUpdate = (value: string) => {
     if (onUpdateItem) {
-      const [newName, newPrice, newRarity, newImage] = value.split('|');
-      const updates: any = {};
-      if (newName) updates.name = newName;
-      if (newPrice && !isNaN(parseFloat(newPrice))) updates.price = parseFloat(newPrice);
-      if (newRarity) updates.rarity = newRarity;
-      if (newImage) updates.image = newImage;
+      // Only update the name/text of the item
+      const updates: any = { name: value };
       onUpdateItem(item.id, updates);
     }
   };
 
   return (
     <Card className="group hover:shadow-gaming transition-all duration-300 bg-gradient-card border-primary/20">
-      <CardHeader className="text-center">
+      <CardHeader className="text-center relative">
         <div className="text-4xl mb-2">{item.image}</div>
-        <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
-          {item.name}
-        </CardTitle>
+        {isAdminMode && onUpdateItem ? (
+          <AdminEditOverlay 
+            type="catalog" 
+            currentValue={item.name} 
+            onSave={handleItemUpdate}
+            placeholder="Enter item name"
+          >
+            <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+              {item.name}
+            </CardTitle>
+          </AdminEditOverlay>
+        ) : (
+          <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+            {item.name}
+          </CardTitle>
+        )}
         <CardDescription className="flex items-center justify-center gap-2">
           <Badge className={`${RARITY_COLORS[item.rarity as keyof typeof RARITY_COLORS]} text-white`}>
             {item.rarity}
@@ -60,28 +69,12 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem }: ItemCardProps) => {
           </span>
         </div>
         
-        {isAdminMode && onUpdateItem ? (
-          <AdminEditOverlay 
-            type="catalog" 
-            currentValue={`${item.name}|${item.price}|${item.rarity}|${item.image}`} 
-            onSave={handleItemUpdate}
-            placeholder="name|price|rarity|emoji"
-          >
-            <Button 
-              onClick={() => onPurchase(item)}
-              className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
-            >
-              Purchase Now
-            </Button>
-          </AdminEditOverlay>
-        ) : (
-          <Button 
-            onClick={() => onPurchase(item)}
-            className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
-          >
-            Purchase Now
-          </Button>
-        )}
+        <Button 
+          onClick={() => onPurchase(item)}
+          className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
+        >
+          Purchase Now
+        </Button>
       </CardContent>
     </Card>
   );
