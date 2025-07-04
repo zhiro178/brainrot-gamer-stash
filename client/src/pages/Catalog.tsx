@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useRoute, useLocation } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +20,9 @@ const SAMPLE_ITEMS = [
 ];
 
 export default function Catalog() {
-  const { gameId, categoryId } = useParams<{ gameId: string; categoryId: string }>();
-  const navigate = useNavigate();
+  const [match, params] = useRoute("/game/:gameId/category/:categoryId");
+  const [, setLocation] = useLocation();
+  const { gameId, categoryId } = params || {};
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [filterRarity, setFilterRarity] = useState("all");
@@ -172,7 +173,7 @@ export default function Catalog() {
       <div className="relative bg-gradient-hero">
         <div className="container mx-auto px-4 py-8">
           <Button 
-            onClick={() => navigate(`/game/${gameId}`)} 
+            onClick={() => setLocation(`/game/${gameId}`)} 
             variant="outline" 
             className="mb-6 border-primary/20 hover:bg-primary/10"
           >

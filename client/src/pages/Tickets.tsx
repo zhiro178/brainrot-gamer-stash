@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,7 @@ interface Ticket {
 }
 
 export default function Tickets() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -113,7 +113,7 @@ export default function Tickets() {
           <CardContent className="p-8 text-center">
             <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
             <p className="text-muted-foreground mb-4">Please log in to view your tickets.</p>
-            <Button onClick={() => navigate("/")} variant="outline">
+            <Button onClick={() => setLocation("/")} variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Home
             </Button>
@@ -128,7 +128,7 @@ export default function Tickets() {
       <div className="relative bg-gradient-hero">
         <div className="container mx-auto px-4 py-12">
           <Button 
-            onClick={() => navigate("/")} 
+            onClick={() => setLocation("/")} 
             variant="outline" 
             className="mb-6 border-primary/20 hover:bg-primary/10"
           >

@@ -16,7 +16,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Your admin email
 const ADMIN_EMAIL = "zhirocomputer@gmail.com";
 
-export default function TopUpModal({ user }: { user?: any }) {
+export function TopUpModal({ user }: { user?: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [cryptoAmount, setCryptoAmount] = useState("");
   const [giftCardAmount, setGiftCardAmount] = useState("");

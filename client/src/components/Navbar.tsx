@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, Wallet, LogOut, Ticket, Settings, Edit } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { useAdmin } from "@/contexts/AdminContext";
 
 interface NavbarProps {
@@ -18,7 +18,7 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }: NavbarProps) => {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
   
   // Check if user is admin and set admin status
@@ -84,7 +84,7 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => navigate('/tickets')}
+                    onClick={() => setLocation('/tickets')}
                     className="border-primary/20 hover:bg-primary/10"
                   >
                     <Ticket className="h-4 w-4 mr-2" />
@@ -107,7 +107,7 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => navigate('/admin')}
+                      onClick={() => setLocation('/admin')}
                       className="border-primary/20 text-primary hover:bg-primary/10"
                     >
                       <Settings className="h-4 w-4 mr-2" />

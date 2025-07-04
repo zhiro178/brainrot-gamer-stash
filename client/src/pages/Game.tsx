@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useRoute, useLocation } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,9 +41,10 @@ const GAMES = {
 };
 
 export default function Game() {
-  const { gameId } = useParams<{ gameId: string }>();
-  const navigate = useNavigate();
+  const [match, params] = useRoute("/game/:gameId");
+  const [, setLocation] = useLocation();
   const [gameData, setGameData] = useState(GAMES);
+  const gameId = params?.gameId;
   
   const game = gameId ? gameData[gameId as keyof typeof gameData] : null;
 
@@ -54,7 +55,7 @@ export default function Game() {
           <CardContent className="p-8 text-center">
             <h1 className="text-2xl font-bold text-destructive mb-4">Game Not Found</h1>
             <p className="text-muted-foreground mb-4">The game you're looking for doesn't exist.</p>
-            <Button onClick={() => navigate("/")} variant="outline">
+            <Button onClick={() => setLocation("/")} variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Home
             </Button>
@@ -69,7 +70,7 @@ export default function Game() {
       <div className="relative bg-gradient-hero">
         <div className="container mx-auto px-4 py-12">
           <Button 
-            onClick={() => navigate("/")} 
+            onClick={() => setLocation("/")} 
             variant="outline" 
             className="mb-6 border-primary/20 hover:bg-primary/10"
           >
@@ -100,7 +101,7 @@ export default function Game() {
               key={category.id}
               category={category}
               gameId={gameId!}
-              onClick={() => navigate(`/game/${gameId}/category/${category.id}`)}
+              onClick={() => setLocation(`/game/${gameId}/category/${category.id}`)}
               onUpdateCategory={(categoryId, updates) => {
                 setGameData(prev => ({
                   ...prev,

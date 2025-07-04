@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TicketChat } from "@/components/TicketChat";
 import { CryptoTopupList } from "@/components/CryptoTopupList";
 import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
@@ -21,16 +21,17 @@ import { createClient } from "@supabase/supabase-js";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function Admin() {
-  const navigate = useNavigate();
-  const [giftCardSubmissions, setGiftCardSubmissions] = useState([]);
-  const [supportTickets, setSupportTickets] = useState([]);
-  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [, setLocation] = useLocation();
+  const [giftCardSubmissions, setGiftCardSubmissions] = useState<any[]>([]);
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [cryptoPaymentInfo, setCryptoPaymentInfo] = useState({
     ltcAddress: "",
     solAddress: "",
     exchangeRate: 1.0
   });
-  const [currentUser, setCurrentUser] = useState(null);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -178,7 +179,7 @@ export default function Admin() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => navigate('/')}
+            onClick={() => setLocation('/')}
             className="border-primary/20 hover:bg-primary/10"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />

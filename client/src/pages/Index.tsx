@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { createClient } from "@supabase/supabase-js";
 import { Navbar } from "@/components/Navbar";
 import { GameCard } from "@/components/GameCard";
@@ -60,7 +60,7 @@ const Index = () => {
   const [userBalance, setUserBalance] = useState(0);
   const [games, setGames] = useState(GAMES);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
 
@@ -274,7 +274,7 @@ const Index = () => {
   };
 
   const handleGameClick = (gameId: string) => {
-    navigate(`/game/${gameId}`);
+    setLocation(`/game/${gameId}`);
   };
 
   const handleUpdateGame = (gameId: string, newImageUrl: string, newDescription: string) => {
