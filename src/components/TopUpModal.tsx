@@ -34,75 +34,108 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
     
     // Create a support ticket for crypto top-up
     try {
+      console.log('=== CRYPTO TOP-UP DEBUG START ===');
+      console.log('Amount:', amount);
+      console.log('User from props:', user);
+      
       const { createClient } = await import("@supabase/supabase-js");
       const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
       const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
       const supabase = createClient(supabaseUrl, supabaseKey);
       
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log('Supabase client created');
       
-      if (userError) {
-        console.error('Auth error:', userError);
-        throw new Error('Authentication failed');
+      // Get current user - let's try using the user from props first
+      let currentUser = user;
+      if (!currentUser) {
+        console.log('No user in props, trying auth.getUser()');
+        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+        currentUser = authUser;
+        console.log('Auth user result:', { user: authUser, error: userError });
+        
+        if (userError) {
+          console.error('Auth error:', userError);
+          throw new Error(`Authentication failed: ${userError.message}`);
+        }
       }
       
-      if (!user) {
+      if (!currentUser) {
         throw new Error('Please log in to create a top-up request');
       }
       
-      console.log('Creating crypto ticket for user:', user.id);
+      console.log('Using user:', currentUser.id, currentUser.email);
       
-      // Create support ticket
-      const { data: ticketData, error: ticketError } = await supabase
+      // Try to create support ticket with minimal data first
+      const ticketData = {
+        user_id: currentUser.id,
+        subject: `Crypto Top-up Request - $${amount}`,
+        message: `Crypto top-up request for $${amount} USD (LTC/SOL). Please provide payment instructions.`,
+        status: 'open',
+        category: 'crypto_topup'
+      };
+      
+      console.log('Attempting to insert ticket with data:', ticketData);
+      
+      const { data: insertResult, error: ticketError } = await supabase
         .from('support_tickets')
-        .insert({
-          user_id: user.id,
-          subject: `Crypto Top-up Request - $${amount}`,
-          message: `Crypto top-up request for $${amount} USD (LTC/SOL). Please provide payment instructions.`,
-          status: 'open',
-          category: 'crypto_topup'
-        })
+        .insert(ticketData)
         .select('id')
         .single();
       
-      console.log('Crypto ticket result:', { data: ticketData, error: ticketError });
+      console.log('Insert result:', { data: insertResult, error: ticketError });
       
       if (ticketError) {
-        console.error('Ticket creation error:', ticketError);
-        throw new Error(`Database error: ${ticketError.message}`);
+        console.error('Detailed ticket error:', {
+          message: ticketError.message,
+          details: ticketError.details,
+          hint: ticketError.hint,
+          code: ticketError.code
+        });
+        throw new Error(`Failed to create ticket: ${ticketError.message}`);
       }
       
-      if (ticketData) {
-        // Add initial user message
-        const { error: messageError } = await supabase
-          .from('ticket_messages')
-          .insert({
-            ticket_id: ticketData.id,
-            user_id: user.id,
-            message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
-            is_admin: false
-          });
-        
-        if (messageError) {
-          console.error('Message creation error:', messageError);
-        }
-        
-        setCryptoAmount("");
-        setIsOpen(false);
-        
-        toast({
-          title: "Top-up Request Submitted",
-          description: "A support ticket has been created. You'll receive payment instructions shortly.",
-        });
-      } else {
-        throw new Error('Failed to create ticket - no data returned');
+      if (!insertResult) {
+        throw new Error('No ticket data returned from database');
       }
+      
+      console.log('Ticket created successfully with ID:', insertResult.id);
+      
+      // Add initial user message
+      const messageData = {
+        ticket_id: insertResult.id,
+        user_id: currentUser.id,
+        message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
+        is_admin: false
+      };
+      
+      console.log('Adding message with data:', messageData);
+      
+      const { error: messageError } = await supabase
+        .from('ticket_messages')
+        .insert(messageData);
+      
+      if (messageError) {
+        console.error('Message creation error:', messageError);
+        // Don't fail the whole process if message fails
+      }
+      
+      setCryptoAmount("");
+      setIsOpen(false);
+      
+      console.log('=== CRYPTO TOP-UP SUCCESS ===');
+      
+      toast({
+        title: "Top-up Request Submitted",
+        description: "A support ticket has been created. You'll receive payment instructions shortly.",
+      });
     } catch (error) {
-      console.error('Top-up error:', error);
+      console.error('=== CRYPTO TOP-UP ERROR ===');
+      console.error('Full error object:', error);
+      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       toast({
         title: "Error",
-        description: "Failed to create support ticket. Please try again.",
+        description: `Failed to create support ticket: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -131,76 +164,109 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
     
     // Create a support ticket for gift card top-up
     try {
+      console.log('=== GIFT CARD TOP-UP DEBUG START ===');
+      console.log('Amount:', amount, 'Code:', giftCardCode);
+      console.log('User from props:', user);
+      
       const { createClient } = await import("@supabase/supabase-js");
       const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
       const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
       const supabase = createClient(supabaseUrl, supabaseKey);
       
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log('Supabase client created');
       
-      if (userError) {
-        console.error('Auth error:', userError);
-        throw new Error('Authentication failed');
+      // Get current user - let's try using the user from props first
+      let currentUser = user;
+      if (!currentUser) {
+        console.log('No user in props, trying auth.getUser()');
+        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+        currentUser = authUser;
+        console.log('Auth user result:', { user: authUser, error: userError });
+        
+        if (userError) {
+          console.error('Auth error:', userError);
+          throw new Error(`Authentication failed: ${userError.message}`);
+        }
       }
       
-      if (!user) {
+      if (!currentUser) {
         throw new Error('Please log in to create a top-up request');
       }
       
-      console.log('Creating gift card ticket for user:', user.id);
+      console.log('Using user:', currentUser.id, currentUser.email);
       
-      // Create support ticket
-      const { data: ticketData, error: ticketError } = await supabase
+      // Try to create support ticket with minimal data first
+      const ticketData = {
+        user_id: currentUser.id,
+        subject: `Gift Card Top-up - $${amount}`,
+        message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
+        status: 'open',
+        category: 'giftcard_topup'
+      };
+      
+      console.log('Attempting to insert gift card ticket with data:', ticketData);
+      
+      const { data: insertResult, error: ticketError } = await supabase
         .from('support_tickets')
-        .insert({
-          user_id: user.id,
-          subject: `Gift Card Top-up - $${amount}`,
-          message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
-          status: 'open',
-          category: 'giftcard_topup'
-        })
+        .insert(ticketData)
         .select('id')
         .single();
       
-      console.log('Gift card ticket result:', { data: ticketData, error: ticketError });
+      console.log('Gift card insert result:', { data: insertResult, error: ticketError });
       
       if (ticketError) {
-        console.error('Ticket creation error:', ticketError);
-        throw new Error(`Database error: ${ticketError.message}`);
+        console.error('Detailed gift card ticket error:', {
+          message: ticketError.message,
+          details: ticketError.details,
+          hint: ticketError.hint,
+          code: ticketError.code
+        });
+        throw new Error(`Failed to create gift card ticket: ${ticketError.message}`);
       }
       
-      if (ticketData) {
-        // Add initial user message
-        const { error: messageError } = await supabase
-          .from('ticket_messages')
-          .insert({
-            ticket_id: ticketData.id,
-            user_id: user.id,
-            message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
-            is_admin: false
-          });
-        
-        if (messageError) {
-          console.error('Message creation error:', messageError);
-        }
-        
-        setGiftCardCode("");
-        setGiftCardAmount("");
-        setIsOpen(false);
-        
-        toast({
-          title: "Gift Card Submitted",
-          description: "A support ticket has been created. Your gift card will be verified within 24 hours.",
-        });
-      } else {
-        throw new Error('Failed to create ticket - no data returned');
+      if (!insertResult) {
+        throw new Error('No gift card ticket data returned from database');
       }
+      
+      console.log('Gift card ticket created successfully with ID:', insertResult.id);
+      
+      // Add initial user message
+      const messageData = {
+        ticket_id: insertResult.id,
+        user_id: currentUser.id,
+        message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
+        is_admin: false
+      };
+      
+      console.log('Adding gift card message with data:', messageData);
+      
+      const { error: messageError } = await supabase
+        .from('ticket_messages')
+        .insert(messageData);
+      
+      if (messageError) {
+        console.error('Gift card message creation error:', messageError);
+        // Don't fail the whole process if message fails
+      }
+      
+      setGiftCardCode("");
+      setGiftCardAmount("");
+      setIsOpen(false);
+      
+      console.log('=== GIFT CARD TOP-UP SUCCESS ===');
+      
+      toast({
+        title: "Gift Card Submitted",
+        description: "A support ticket has been created. Your gift card will be verified within 24 hours.",
+      });
     } catch (error) {
-      console.error('Gift card error:', error);
+      console.error('=== GIFT CARD TOP-UP ERROR ===');
+      console.error('Full error object:', error);
+      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       toast({
         title: "Error",
-        description: "Failed to create support ticket. Please try again.",
+        description: `Failed to create support ticket: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
