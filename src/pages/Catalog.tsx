@@ -139,28 +139,8 @@ export default function Catalog() {
           const { toast } = await import("@/hooks/use-toast");
           const shortfall = (item.price - currentBalance).toFixed(2);
           toast({
-            title: "💰 Insufficient Balance",
-            description: (
-              <div className="space-y-3 p-4 bg-gradient-to-br from-destructive/10 to-destructive/5 rounded-lg border border-destructive/20">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Item Cost:</span>
-                  <span className="font-bold text-gaming-warning">${item.price}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Your Balance:</span>
-                  <span className="font-bold text-primary">${currentBalance.toFixed(2)}</span>
-                </div>
-                <div className="border-t border-destructive/20 pt-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Need to Add:</span>
-                    <span className="font-bold text-destructive text-lg">${shortfall}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-center text-muted-foreground mt-3 italic">
-                  💳 Top up your balance to complete this purchase
-                </p>
-              </div>
-            ),
+            title: "Insufficient Balance",
+            description: `You need $${shortfall} more to purchase this item. Current balance: $${currentBalance.toFixed(2)}`,
             variant: "destructive",
           });
         }

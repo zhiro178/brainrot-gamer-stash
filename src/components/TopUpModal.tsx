@@ -39,46 +39,63 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
       const supabase = createClient(supabaseUrl, supabaseKey);
       
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      if (user) {
-        console.log('Creating crypto ticket for user:', user.id);
-        // Create support ticket
-        const { data: ticketData, error } = await supabase
-          .from('support_tickets')
+      if (userError) {
+        console.error('Auth error:', userError);
+        throw new Error('Authentication failed');
+      }
+      
+      if (!user) {
+        throw new Error('Please log in to create a top-up request');
+      }
+      
+      console.log('Creating crypto ticket for user:', user.id);
+      
+      // Create support ticket
+      const { data: ticketData, error: ticketError } = await supabase
+        .from('support_tickets')
+        .insert({
+          user_id: user.id,
+          subject: `Crypto Top-up Request - $${amount}`,
+          message: `Crypto top-up request for $${amount} USD (LTC/SOL). Please provide payment instructions.`,
+          status: 'open',
+          category: 'crypto_topup'
+        })
+        .select('id')
+        .single();
+      
+      console.log('Crypto ticket result:', { data: ticketData, error: ticketError });
+      
+      if (ticketError) {
+        console.error('Ticket creation error:', ticketError);
+        throw new Error(`Database error: ${ticketError.message}`);
+      }
+      
+      if (ticketData) {
+        // Add initial user message
+        const { error: messageError } = await supabase
+          .from('ticket_messages')
           .insert({
+            ticket_id: ticketData.id,
             user_id: user.id,
-            subject: `Crypto Top-up Request - $${amount}`,
-            message: `Crypto top-up request for $${amount} USD (LTC/SOL). Please provide payment instructions.`,
-            status: 'open',
-            category: 'crypto_topup'
-          })
-          .select('id')
-          .single();
-        
-        console.log('Crypto ticket result:', { data: ticketData, error });
-        
-        if (!error && ticketData) {
-          // Add initial user message
-          await supabase
-            .from('ticket_messages')
-            .insert({
-              ticket_id: ticketData.id,
-              user_id: user.id,
-              message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
-              is_admin: false
-            });
-          
-          setCryptoAmount("");
-          setIsOpen(false);
-          
-          toast({
-            title: "Top-up Request Submitted",
-            description: "A support ticket has been created. You'll receive payment instructions shortly.",
+            message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
+            is_admin: false
           });
-        } else {
-          throw new Error('Failed to create ticket');
+        
+        if (messageError) {
+          console.error('Message creation error:', messageError);
         }
+        
+        setCryptoAmount("");
+        setIsOpen(false);
+        
+        toast({
+          title: "Top-up Request Submitted",
+          description: "A support ticket has been created. You'll receive payment instructions shortly.",
+        });
+      } else {
+        throw new Error('Failed to create ticket - no data returned');
       }
     } catch (error) {
       console.error('Top-up error:', error);
@@ -119,47 +136,64 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
       const supabase = createClient(supabaseUrl, supabaseKey);
       
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      if (user) {
-        console.log('Creating gift card ticket for user:', user.id);
-        // Create support ticket
-        const { data: ticketData, error } = await supabase
-          .from('support_tickets')
+      if (userError) {
+        console.error('Auth error:', userError);
+        throw new Error('Authentication failed');
+      }
+      
+      if (!user) {
+        throw new Error('Please log in to create a top-up request');
+      }
+      
+      console.log('Creating gift card ticket for user:', user.id);
+      
+      // Create support ticket
+      const { data: ticketData, error: ticketError } = await supabase
+        .from('support_tickets')
+        .insert({
+          user_id: user.id,
+          subject: `Gift Card Top-up - $${amount}`,
+          message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
+          status: 'open',
+          category: 'giftcard_topup'
+        })
+        .select('id')
+        .single();
+      
+      console.log('Gift card ticket result:', { data: ticketData, error: ticketError });
+      
+      if (ticketError) {
+        console.error('Ticket creation error:', ticketError);
+        throw new Error(`Database error: ${ticketError.message}`);
+      }
+      
+      if (ticketData) {
+        // Add initial user message
+        const { error: messageError } = await supabase
+          .from('ticket_messages')
           .insert({
+            ticket_id: ticketData.id,
             user_id: user.id,
-            subject: `Gift Card Top-up - $${amount}`,
-            message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
-            status: 'open',
-            category: 'giftcard_topup'
-          })
-          .select('id')
-          .single();
-        
-        console.log('Gift card ticket result:', { data: ticketData, error });
-        
-        if (!error && ticketData) {
-          // Add initial user message
-          await supabase
-            .from('ticket_messages')
-            .insert({
-              ticket_id: ticketData.id,
-              user_id: user.id,
-              message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
-              is_admin: false
-            });
-          
-          setGiftCardCode("");
-          setGiftCardAmount("");
-          setIsOpen(false);
-          
-          toast({
-            title: "Gift Card Submitted",
-            description: "A support ticket has been created. Your gift card will be verified within 24 hours.",
+            message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
+            is_admin: false
           });
-        } else {
-          throw new Error('Failed to create ticket');
+        
+        if (messageError) {
+          console.error('Message creation error:', messageError);
         }
+        
+        setGiftCardCode("");
+        setGiftCardAmount("");
+        setIsOpen(false);
+        
+        toast({
+          title: "Gift Card Submitted",
+          description: "A support ticket has been created. Your gift card will be verified within 24 hours.",
+        });
+      } else {
+        throw new Error('Failed to create ticket - no data returned');
       }
     } catch (error) {
       console.error('Gift card error:', error);
@@ -183,14 +217,9 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-gaming hover:shadow-glow relative">
+        <Button className="bg-gradient-gaming hover:shadow-glow">
           <Wallet className="h-4 w-4 mr-2" />
           Top Up Balance
-          <div className="flex gap-1 ml-2">
-            <span className="text-xs bg-primary/20 px-1 rounded">Most Popular</span>
-            <span className="text-xs bg-gaming-success/20 px-1 rounded">Guaranteed</span>
-            <span className="text-xs bg-gaming-warning/20 px-1 rounded">Secured</span>
-          </div>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md bg-gradient-card border-primary/20">
