@@ -1,290 +1,239 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, CreditCard, Gift, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
+import { Wallet, AlertTriangle } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
-interface TopUpModalProps {
-  user?: any;
-}
+// Supabase config (your actual credentials)
+const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
+const supabaseKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-export const TopUpModal = ({ user }: TopUpModalProps) => {
+// Your admin email
+const ADMIN_EMAIL = "zhirocomputer@gmail.com";
+
+export default function TopUpModal({ user }: { user?: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [cryptoAmount, setCryptoAmount] = useState("");
-  const [giftCardCode, setGiftCardCode] = useState("");
   const [giftCardAmount, setGiftCardAmount] = useState("");
+  const [giftCardCode, setGiftCardCode] = useState("");
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Helper: ensure current user
+  const ensureUser = async () => {
+    let currentUser = user;
+    if (!currentUser) {
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      if (userError || !authUser) return null;
+      currentUser = authUser;
+    }
+    return currentUser;
+  };
+
+  // Helper: get admin user by email
+  const getAdminUser = async () => {
+    const { data: adminUser, error: adminError } = await supabase
+      .from("auth.users")
+      .select("id")
+      .eq("email", ADMIN_EMAIL)
+      .single();
+    if (!adminUser || adminError) return null;
+    return adminUser;
+  };
+
+  // Crypto top-up
   const handleCryptoTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Starting crypto top-up process...');
-    const amount = parseFloat(cryptoAmount);
-    if (amount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Create a support ticket for crypto top-up
+    setLoading(true);
     try {
-      console.log('=== CRYPTO TOP-UP DEBUG START ===');
-      console.log('Amount:', amount);
-      console.log('User from props:', user);
-      
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
-      console.log('Supabase client created');
-      
-      // Get current user - let's try using the user from props first
-      let currentUser = user;
-      if (!currentUser) {
-        console.log('No user in props, trying auth.getUser()');
-        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
-        currentUser = authUser;
-        console.log('Auth user result:', { user: authUser, error: userError });
-        
-        if (userError) {
-          console.error('Auth error:', userError);
-          throw new Error(`Authentication failed: ${userError.message}`);
-        }
+      const amount = parseFloat(cryptoAmount);
+      if (isNaN(amount) || amount <= 0) {
+        toast({
+          title: "Invalid Amount",
+          description: "Please enter a valid amount",
+          variant: "destructive",
+        });
+        return;
       }
-      
+      const currentUser = await ensureUser();
       if (!currentUser) {
-        throw new Error('Please log in to create a top-up request');
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create a top-up ticket.",
+          variant: "destructive",
+        });
+        return;
       }
-      
-      console.log('Using user:', currentUser.id, currentUser.email);
-      
-      // Try to create support ticket with minimal data first
+      // Create ticket
       const ticketData = {
         user_id: currentUser.id,
         subject: `Crypto Top-up Request - $${amount}`,
-        message: `Crypto top-up request for $${amount} USD (LTC/SOL). Please provide payment instructions.`,
-        status: 'open',
-        category: 'crypto_topup'
+        message: `Crypto top-up request for $${amount} USD (LTC/SOL).`,
+        status: "open",
+        category: "crypto_topup",
       };
-      
-      console.log('Attempting to insert ticket with data:', ticketData);
-      
       const { data: insertResult, error: ticketError } = await supabase
-        .from('support_tickets')
+        .from("support_tickets")
         .insert(ticketData)
-        .select('id')
+        .select("id")
         .single();
-      
-      console.log('Insert result:', { data: insertResult, error: ticketError });
-      
-      if (ticketError) {
-        console.error('Detailed ticket error:', {
-          message: ticketError.message,
-          details: ticketError.details,
-          hint: ticketError.hint,
-          code: ticketError.code
+      if (!insertResult || ticketError) {
+        throw new Error(ticketError?.message || "Failed to create ticket.");
+      }
+      // Get admin
+      const adminUser = await getAdminUser();
+      if (!adminUser) {
+        toast({
+          title: "Admin Error",
+          description: "Admin user not found. Please contact support.",
+          variant: "destructive",
         });
-        throw new Error(`Failed to create ticket: ${ticketError.message}`);
+        return;
       }
-      
-      if (!insertResult) {
-        throw new Error('No ticket data returned from database');
-      }
-      
-      console.log('Ticket created successfully with ID:', insertResult.id);
-      
-      // Add initial user message and admin welcome message
+      // Add user & admin messages
       const messageData = [
         {
           ticket_id: insertResult.id,
           user_id: currentUser.id,
-          message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
-          is_admin: false
+          message: `I would like to top up my account with $${amount} USD using cryptocurrency.`,
+          is_admin: false,
         },
         {
           ticket_id: insertResult.id,
-          user_id: 'admin',
-          message: `Hello! I've received your crypto top-up request for $${amount} USD. I'll provide you with payment instructions shortly. Admin: zhirocomputer@gmail.com`,
-          is_admin: true
-        }
+          user_id: adminUser.id,
+          message: `Hello! We've received your crypto top-up request. We'll process this shortly.`,
+          is_admin: true,
+        },
       ];
-      
-      console.log('Adding messages with data:', messageData);
-      
       const { error: messageError } = await supabase
-        .from('ticket_messages')
+        .from("ticket_messages")
         .insert(messageData);
-      
       if (messageError) {
-        console.error('Message creation error:', messageError);
-        // Don't fail the whole process if message fails
+        throw new Error(messageError.message);
       }
-      
       setCryptoAmount("");
       setIsOpen(false);
-      
-      console.log('=== CRYPTO TOP-UP SUCCESS ===');
-      
       toast({
         title: "Top-up Request Submitted",
-        description: "A support ticket has been created. You'll receive payment instructions shortly.",
+        description:
+          "A support ticket has been created. You'll receive payment instructions shortly.",
       });
     } catch (error) {
-      console.error('=== CRYPTO TOP-UP ERROR ===');
-      console.error('Full error object:', error);
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
       toast({
-        title: "Error",
-        description: `Failed to create support ticket: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        title: "Ticket Creation Error",
+        description: errorMessage,
         variant: "destructive",
       });
+      console.error("Ticket creation failed:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Gift card top-up
   const handleGiftCardTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!giftCardCode.trim() || !giftCardAmount.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please enter both gift card code and amount",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const amount = parseFloat(giftCardAmount);
-    if (amount < 1) {
-      toast({
-        title: "Invalid Amount",
-        description: "Minimum gift card amount is $1.00",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Create a support ticket for gift card top-up
+    setLoading(true);
     try {
-      console.log('=== GIFT CARD TOP-UP DEBUG START ===');
-      console.log('Amount:', amount, 'Code:', giftCardCode);
-      console.log('User from props:', user);
-      
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
-      console.log('Supabase client created');
-      
-      // Get current user - let's try using the user from props first
-      let currentUser = user;
-      if (!currentUser) {
-        console.log('No user in props, trying auth.getUser()');
-        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
-        currentUser = authUser;
-        console.log('Auth user result:', { user: authUser, error: userError });
-        
-        if (userError) {
-          console.error('Auth error:', userError);
-          throw new Error(`Authentication failed: ${userError.message}`);
-        }
+      if (!giftCardCode.trim() || !giftCardAmount.trim()) {
+        toast({
+          title: "Missing Information",
+          description: "Please enter both gift card code and amount",
+          variant: "destructive",
+        });
+        return;
       }
-      
-      if (!currentUser) {
-        throw new Error('Please log in to create a top-up request');
+      const amount = parseFloat(giftCardAmount);
+      if (isNaN(amount) || amount < 1) {
+        toast({
+          title: "Invalid Amount",
+          description: "Minimum gift card amount is $1.00",
+          variant: "destructive",
+        });
+        return;
       }
-      
-      console.log('Using user:', currentUser.id, currentUser.email);
-      
-      // Try to create support ticket with minimal data first
+      const currentUser = await ensureUser();
+      if (!currentUser) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create a top-up ticket.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Create ticket
       const ticketData = {
         user_id: currentUser.id,
         subject: `Gift Card Top-up - $${amount}`,
         message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
-        status: 'open',
-        category: 'giftcard_topup'
+        status: "open",
+        category: "giftcard_topup",
       };
-      
-      console.log('Attempting to insert gift card ticket with data:', ticketData);
-      
       const { data: insertResult, error: ticketError } = await supabase
-        .from('support_tickets')
+        .from("support_tickets")
         .insert(ticketData)
-        .select('id')
+        .select("id")
         .single();
-      
-      console.log('Gift card insert result:', { data: insertResult, error: ticketError });
-      
-      if (ticketError) {
-        console.error('Detailed gift card ticket error:', {
-          message: ticketError.message,
-          details: ticketError.details,
-          hint: ticketError.hint,
-          code: ticketError.code
+      if (!insertResult || ticketError) {
+        throw new Error(ticketError?.message || "Failed to create ticket.");
+      }
+      // Get admin
+      const adminUser = await getAdminUser();
+      if (!adminUser) {
+        toast({
+          title: "Admin Error",
+          description: "Admin user not found. Please contact support.",
+          variant: "destructive",
         });
-        throw new Error(`Failed to create gift card ticket: ${ticketError.message}`);
+        return;
       }
-      
-      if (!insertResult) {
-        throw new Error('No gift card ticket data returned from database');
-      }
-      
-      console.log('Gift card ticket created successfully with ID:', insertResult.id);
-      
-      // Add initial user message and admin welcome message
+      // Add user & admin messages
       const messageData = [
         {
           ticket_id: insertResult.id,
           user_id: currentUser.id,
           message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
-          is_admin: false
+          is_admin: false,
         },
         {
           ticket_id: insertResult.id,
-          user_id: 'admin',
-          message: `Hello! I've received your gift card top-up request for $${amount} USD. I'll verify your Amazon gift card within 24 hours. Admin: zhirocomputer@gmail.com`,
-          is_admin: true
-        }
+          user_id: adminUser.id,
+          message: `Hello! I've received your gift card top-up request for $${amount} USD. I'll verify your Amazon gift card within 24 hours.`,
+          is_admin: true,
+        },
       ];
-      
-      console.log('Adding gift card messages with data:', messageData);
-      
       const { error: messageError } = await supabase
-        .from('ticket_messages')
+        .from("ticket_messages")
         .insert(messageData);
-      
       if (messageError) {
-        console.error('Gift card message creation error:', messageError);
-        // Don't fail the whole process if message fails
+        throw new Error(messageError.message);
       }
-      
       setGiftCardCode("");
       setGiftCardAmount("");
       setIsOpen(false);
-      
-      console.log('=== GIFT CARD TOP-UP SUCCESS ===');
-      
       toast({
         title: "Gift Card Submitted",
-        description: "A support ticket has been created. Your gift card will be verified within 24 hours.",
+        description:
+          "A support ticket has been created. Your gift card will be verified within 24 hours.",
       });
     } catch (error) {
-      console.error('=== GIFT CARD TOP-UP ERROR ===');
-      console.error('Full error object:', error);
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
       toast({
-        title: "Error",
-        description: `Failed to create support ticket: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        title: "Ticket Creation Error",
+        description: errorMessage,
         variant: "destructive",
       });
+      console.error("Gift card ticket creation failed:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -302,126 +251,78 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
       <DialogTrigger asChild>
         <Button className="bg-gradient-gaming hover:shadow-glow">
           <Wallet className="h-4 w-4 mr-2" />
-          Top Up Balance
+          Top Up
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md bg-gradient-card border-primary/20">
-        <DialogHeader>
-          <DialogTitle className="text-primary">Add Funds to Your Account</DialogTitle>
-          <DialogDescription>
-            Choose your preferred payment method to add funds
-          </DialogDescription>
-        </DialogHeader>
-
-        <Tabs defaultValue="crypto" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-background">
-            <TabsTrigger value="crypto" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Crypto
-              <CreditCard className="h-4 w-4 ml-2" />
-            </TabsTrigger>
-            <TabsTrigger value="giftcard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Gift Card
-              <Gift className="h-4 w-4 ml-2" />
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="crypto" className="space-y-4">
-            <div className="bg-gaming-warning/10 border border-gaming-warning/20 rounded-lg p-3 mb-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-gaming-warning">Payment Notice</span>
-                <AlertTriangle className="h-4 w-4 text-gaming-warning" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Only LTC (Litecoin) and SOL (Solana) payments accepted. No minimum amount required.
-              </p>
+      <DialogContent>
+        <div>
+          <h2 className="text-xl font-bold mb-3">Top Up Your Account</h2>
+          <form onSubmit={handleCryptoTopUp} className="space-y-4">
+            <Label htmlFor="crypto-amount">Amount (USD)</Label>
+            <Input
+              id="crypto-amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="25.00"
+              value={cryptoAmount}
+              onChange={(e) => setCryptoAmount(e.target.value)}
+              required
+              className="bg-muted border-primary/20"
+            />
+            <Button
+              type="submit"
+              className="w-full bg-gradient-primary hover:shadow-glow"
+              disabled={loading}
+            >
+              Create Crypto Top-up Ticket
+            </Button>
+          </form>
+          <hr className="my-4" />
+          <form onSubmit={handleGiftCardTopUp} className="space-y-4">
+            <Label htmlFor="giftcard-amount">Gift Card Amount (USD)</Label>
+            <Input
+              id="giftcard-amount"
+              type="number"
+              min="1"
+              step="0.01"
+              placeholder="25.00"
+              value={giftCardAmount}
+              onChange={(e) => setGiftCardAmount(e.target.value)}
+              required
+              className="bg-muted border-primary/20"
+            />
+            <Label htmlFor="giftcard-code">Gift Card Code</Label>
+            <Input
+              id="giftcard-code"
+              type="text"
+              placeholder="XXXX-XXXX-XXXX"
+              value={giftCardCode}
+              onChange={(e) => setGiftCardCode(e.target.value)}
+              required
+              className="bg-muted border-primary/20"
+            />
+            <Button
+              type="submit"
+              className="w-full bg-gradient-primary hover:shadow-glow"
+              disabled={loading}
+            >
+              Create Gift Card Top-up Ticket
+            </Button>
+          </form>
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mt-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-destructive">
+                Important Notice
+              </span>
+              <AlertTriangle className="h-4 w-4 text-destructive" />
             </div>
-            
-            <Card className="bg-background border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-sm">Crypto Payment</CardTitle>
-                <CardDescription>
-                  Instant processing • LTC & SOL only • No minimum
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCryptoTopUp} className="space-y-4">
-                  <div>
-                    <Label htmlFor="crypto-amount">Amount (USD)</Label>
-                    <Input
-                      id="crypto-amount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      placeholder="25.00"
-                      value={cryptoAmount}
-                      onChange={(e) => setCryptoAmount(e.target.value)}
-                      required
-                      className="bg-muted border-primary/20"
-                    />
-                  </div>
-                  <Button type="submit" className="w-full bg-gradient-primary hover:shadow-glow">
-                    Create Top-up Ticket
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="giftcard" className="space-y-4">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-destructive">Important Notice</span>
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Only US Amazon gift cards are accepted. Other gift cards will be rejected.
-              </p>
-            </div>
-            
-            <Card className="bg-background border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-sm">US Amazon Gift Card</CardTitle>
-                <CardDescription>
-                  Manual verification • 24h processing time • US cards only
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleGiftCardTopUp} className="space-y-4">
-                  <div>
-                    <Label htmlFor="gift-amount">Gift Card Amount (USD)</Label>
-                    <Input
-                      id="gift-amount"
-                      type="number"
-                      min="1"
-                      step="0.01"
-                      placeholder="25.00"
-                      value={giftCardAmount}
-                      onChange={(e) => setGiftCardAmount(e.target.value)}
-                      required
-                      className="bg-muted border-primary/20"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="gift-code">Gift Card Code</Label>
-                    <Input
-                      id="gift-code"
-                      type="text"
-                      placeholder="Enter your US Amazon gift card code"
-                      value={giftCardCode}
-                      onChange={(e) => setGiftCardCode(e.target.value)}
-                      required
-                      className="bg-muted border-primary/20"
-                    />
-                  </div>
-                  <Button type="submit" className="w-full bg-gaming-warning text-black hover:shadow-glow">
-                    Create Gift Card Ticket
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            <p className="text-xs mt-2">
+              Do not share your gift card code anywhere except in this ticket chat. Only admins with email {ADMIN_EMAIL} will contact you.
+            </p>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
-};
+}
