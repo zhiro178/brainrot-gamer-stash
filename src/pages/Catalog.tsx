@@ -113,8 +113,26 @@ export default function Catalog() {
             
             const { toast } = await import("@/hooks/use-toast");
             toast({
-              title: "Purchase Successful!",
-              description: `${item.name} purchased for $${item.price}. Check 'My Tickets' for delivery updates.`,
+              title: "🎉 Purchase Successful!",
+              description: (
+                <div className="space-y-3 p-4 bg-gradient-to-br from-gaming-success/20 to-gaming-success/10 rounded-lg border border-gaming-success/30">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Item:</span>
+                    <span className="font-bold text-primary">{item.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Amount Paid:</span>
+                    <span className="font-bold text-destructive">${item.price}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">New Balance:</span>
+                    <span className="font-bold text-gaming-success">${(currentBalance - item.price).toFixed(2)}</span>
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground mt-3 italic">
+                    🎫 Check 'My Tickets' for delivery updates
+                  </p>
+                </div>
+              ),
             });
           }
         } else {
@@ -123,21 +141,23 @@ export default function Catalog() {
           toast({
             title: "💰 Insufficient Balance",
             description: (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Item cost:</span>
-                  <span className="font-semibold">${item.price}</span>
+              <div className="space-y-3 p-4 bg-gradient-to-br from-destructive/10 to-destructive/5 rounded-lg border border-destructive/20">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Item Cost:</span>
+                  <span className="font-bold text-gaming-warning">${item.price}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Your balance:</span>
-                  <span className="font-semibold">${currentBalance.toFixed(2)}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Your Balance:</span>
+                  <span className="font-bold text-primary">${currentBalance.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span>Need to add:</span>
-                  <span className="font-semibold text-destructive">${shortfall}</span>
+                <div className="border-t border-destructive/20 pt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Need to Add:</span>
+                    <span className="font-bold text-destructive text-lg">${shortfall}</span>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Please top up your balance to complete this purchase.
+                <p className="text-xs text-center text-muted-foreground mt-3 italic">
+                  💳 Top up your balance to complete this purchase
                 </p>
               </div>
             ),

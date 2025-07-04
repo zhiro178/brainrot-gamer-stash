@@ -42,6 +42,7 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
+        console.log('Creating crypto ticket for user:', user.id);
         // Create support ticket
         const { data: ticketData, error } = await supabase
           .from('support_tickets')
@@ -54,6 +55,8 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
           })
           .select('id')
           .single();
+        
+        console.log('Crypto ticket result:', { data: ticketData, error });
         
         if (!error && ticketData) {
           // Add initial user message
@@ -119,6 +122,7 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
+        console.log('Creating gift card ticket for user:', user.id);
         // Create support ticket
         const { data: ticketData, error } = await supabase
           .from('support_tickets')
@@ -131,6 +135,8 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
           })
           .select('id')
           .single();
+        
+        console.log('Gift card ticket result:', { data: ticketData, error });
         
         if (!error && ticketData) {
           // Add initial user message
@@ -177,9 +183,14 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-gaming hover:shadow-glow">
+        <Button className="bg-gradient-gaming hover:shadow-glow relative">
           <Wallet className="h-4 w-4 mr-2" />
           Top Up Balance
+          <div className="flex gap-1 ml-2">
+            <span className="text-xs bg-primary/20 px-1 rounded">Most Popular</span>
+            <span className="text-xs bg-gaming-success/20 px-1 rounded">Guaranteed</span>
+            <span className="text-xs bg-gaming-warning/20 px-1 rounded">Secured</span>
+          </div>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md bg-gradient-card border-primary/20">
@@ -193,20 +204,20 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
         <Tabs defaultValue="crypto" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-background">
             <TabsTrigger value="crypto" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <CreditCard className="h-4 w-4 mr-2" />
               Crypto
+              <CreditCard className="h-4 w-4 ml-2" />
             </TabsTrigger>
             <TabsTrigger value="giftcard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Gift className="h-4 w-4 mr-2" />
               Gift Card
+              <Gift className="h-4 w-4 ml-2" />
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="crypto" className="space-y-4">
             <div className="bg-gaming-warning/10 border border-gaming-warning/20 rounded-lg p-3 mb-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-gaming-warning" />
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium text-gaming-warning">Payment Notice</span>
+                <AlertTriangle className="h-4 w-4 text-gaming-warning" />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Only LTC (Litecoin) and SOL (Solana) payments accepted. No minimum amount required.
@@ -246,9 +257,9 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
 
           <TabsContent value="giftcard" className="space-y-4">
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium text-destructive">Important Notice</span>
+                <AlertTriangle className="h-4 w-4 text-destructive" />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Only US Amazon gift cards are accepted. Other gift cards will be rejected.
