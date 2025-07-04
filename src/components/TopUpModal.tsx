@@ -21,6 +21,7 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
 
   const handleCryptoTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Starting crypto top-up process...');
     const amount = parseFloat(cryptoAmount);
     if (amount <= 0) {
       toast({

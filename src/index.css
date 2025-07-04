@@ -16,11 +16,11 @@
     --popover: 210 25% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 280 85% 60%;
+    --primary: 200 100% 70%;
     --primary-foreground: 210 40% 98%;
     
-    --primary-glow: 280 85% 70%;
-    --gaming-accent: 120 60% 50%;
+    --primary-glow: 180 100% 80%;
+    --gaming-accent: 190 90% 60%;
     --gaming-warning: 45 90% 60%;
     --gaming-success: 140 65% 50%;
 
@@ -44,7 +44,7 @@
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-gaming: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--gaming-accent)));
     --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(var(--muted)));
-    --gradient-hero: radial-gradient(ellipse at center, hsl(var(--primary) / 0.2), transparent 70%);
+    --gradient-hero: radial-gradient(ellipse at center, hsl(var(--primary) / 0.3), transparent 70%);
     
     /* Gaming shadows and effects */
     --shadow-gaming: 0 0 30px hsl(var(--primary) / 0.3);
