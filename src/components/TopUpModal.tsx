@@ -100,15 +100,23 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
       
       console.log('Ticket created successfully with ID:', insertResult.id);
       
-      // Add initial user message
-      const messageData = {
-        ticket_id: insertResult.id,
-        user_id: currentUser.id,
-        message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
-        is_admin: false
-      };
+      // Add initial user message and admin welcome message
+      const messageData = [
+        {
+          ticket_id: insertResult.id,
+          user_id: currentUser.id,
+          message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
+          is_admin: false
+        },
+        {
+          ticket_id: insertResult.id,
+          user_id: 'admin',
+          message: `Hello! I've received your crypto top-up request for $${amount} USD. I'll provide you with payment instructions shortly. Admin: zhirocomputer@gmail.com`,
+          is_admin: true
+        }
+      ];
       
-      console.log('Adding message with data:', messageData);
+      console.log('Adding messages with data:', messageData);
       
       const { error: messageError } = await supabase
         .from('ticket_messages')
@@ -230,15 +238,23 @@ export const TopUpModal = ({ user }: TopUpModalProps) => {
       
       console.log('Gift card ticket created successfully with ID:', insertResult.id);
       
-      // Add initial user message
-      const messageData = {
-        ticket_id: insertResult.id,
-        user_id: currentUser.id,
-        message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
-        is_admin: false
-      };
+      // Add initial user message and admin welcome message
+      const messageData = [
+        {
+          ticket_id: insertResult.id,
+          user_id: currentUser.id,
+          message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
+          is_admin: false
+        },
+        {
+          ticket_id: insertResult.id,
+          user_id: 'admin',
+          message: `Hello! I've received your gift card top-up request for $${amount} USD. I'll verify your Amazon gift card within 24 hours. Admin: zhirocomputer@gmail.com`,
+          is_admin: true
+        }
+      ];
       
-      console.log('Adding gift card message with data:', messageData);
+      console.log('Adding gift card messages with data:', messageData);
       
       const { error: messageError } = await supabase
         .from('ticket_messages')
