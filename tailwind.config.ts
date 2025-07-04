@@ -44,6 +44,9 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        "gaming-accent": "hsl(var(--gaming-accent))",
+        "gaming-warning": "hsl(var(--gaming-warning))",
+        "gaming-success": "hsl(var(--gaming-success))",
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
@@ -61,6 +64,17 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      backgroundImage: {
+        "gradient-primary": "var(--gradient-primary)",
+        "gradient-gaming": "var(--gradient-gaming)",
+        "gradient-card": "var(--gradient-card)",
+        "gradient-hero": "var(--gradient-hero)",
+      },
+      boxShadow: {
+        "gaming": "var(--shadow-gaming)",
+        "glow": "var(--shadow-glow)",
+        "card": "var(--shadow-card)",
       },
       keyframes: {
         "accordion-down": {

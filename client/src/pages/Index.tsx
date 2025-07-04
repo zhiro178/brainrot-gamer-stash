@@ -112,7 +112,8 @@ const Index = () => {
         .eq('user_id', userId)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
+      // Handle expected errors gracefully (table doesn't exist, no records found)
+      if (error && !['PGRST116', '42703', '42P01'].includes(error.code)) {
         console.error('Error fetching balance:', error);
         return;
       }
@@ -120,6 +121,7 @@ const Index = () => {
       setUserBalance(data?.balance || 0);
     } catch (error) {
       console.error('Error:', error);
+      setUserBalance(0); // Set default balance if any error occurs
     }
   };
 

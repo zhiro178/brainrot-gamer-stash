@@ -52,10 +52,14 @@ export default function Admin() {
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      // Handle expected errors gracefully (table doesn't exist)
+      if (error && !['42703', '42P01'].includes(error.code)) {
+        console.error('Error fetching gift cards:', error);
+      }
       setGiftCardSubmissions(data || []);
     } catch (error) {
       console.error('Error fetching gift cards:', error);
+      setGiftCardSubmissions([]);
     }
   };
 
@@ -66,10 +70,14 @@ export default function Admin() {
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      // Handle expected errors gracefully (table doesn't exist)
+      if (error && !['42703', '42P01'].includes(error.code)) {
+        console.error('Error fetching support tickets:', error);
+      }
       setSupportTickets(data || []);
     } catch (error) {
       console.error('Error fetching support tickets:', error);
+      setSupportTickets([]);
     }
   };
 

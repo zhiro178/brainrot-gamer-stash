@@ -56,12 +56,15 @@ export default function Tickets() {
         
         const { data, error } = await query;
         
-        if (error) throw error;
+        // Handle expected errors gracefully (table doesn't exist)
+        if (error && !['42703', '42P01'].includes(error.code)) {
+          console.error('Error fetching tickets:', error);
+        }
         setTickets(data || []);
       }
     } catch (error) {
       console.error('Error fetching tickets:', error);
-      // Don't show error toast for no tickets - it's normal
+      setTickets([]);
     } finally {
       setLoading(false);
     }
