@@ -141,7 +141,7 @@ export default function Catalog() {
           toast({
             title: "Insufficient Balance",
             description: `You need $${shortfall} more to purchase this item. Current balance: $${currentBalance.toFixed(2)}`,
-            variant: "destructive",
+            className: "bg-gradient-to-br from-cyan-500/20 to-blue-400/20 border border-cyan-400/30 text-cyan-100",
           });
         }
       }
