@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Wallet, LogOut, Ticket, Settings, Edit } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAdmin } from "@/contexts/AdminContext";
+import { AdminPanel } from "@/components/AdminPanel";
 
 interface NavbarProps {
   user?: any;
@@ -17,9 +18,10 @@ interface NavbarProps {
   onLogin: (email: string, password: string) => void;
   onRegister: (email: string, password: string) => void;
   onLogout: () => void;
+  onResetGames?: () => void;
 }
 
-export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }: NavbarProps) => {
+export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout, onResetGames }: NavbarProps) => {
   const [, setLocation] = useLocation();
   const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
   
@@ -180,6 +182,10 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                       <Edit className="h-4 w-4 mr-2" />
                       {isAdminMode ? "Exit Admin Mode" : "Admin Mode"}
                     </Button>
+                    
+                    {isAdminMode && (
+                      <AdminPanel onResetGames={onResetGames} />
+                    )}
                     
                     <Button 
                       variant="outline" 

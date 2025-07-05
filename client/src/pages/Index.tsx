@@ -5,10 +5,13 @@ import { Navbar } from "@/components/Navbar";
 import { GameCard } from "@/components/GameCard";
 import { TopUpModal } from "@/components/TopUpModal";
 import { LiveChat } from "@/components/LiveChat";
+import { AdminGameEditor } from "@/components/AdminGameEditor";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
+import { Settings } from "lucide-react";
 
 // Import game banners
 import adoptMeBanner from "@/assets/adopt-me-banner.jpg";
@@ -65,6 +68,17 @@ const Index = () => {
   const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
 
   useEffect(() => {
+    // Load saved games from localStorage or use defaults
+    const savedGames = localStorage.getItem('admin_games');
+    if (savedGames) {
+      try {
+        setGames(JSON.parse(savedGames));
+      } catch (error) {
+        console.error('Error loading saved games:', error);
+        setGames(GAMES);
+      }
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -280,11 +294,20 @@ const Index = () => {
   };
 
   const handleUpdateGame = (gameId: string, newImageUrl: string, newDescription: string) => {
-    setGames(prevGames => 
-      prevGames.map(game => 
-        game.id === gameId ? { ...game, imageUrl: newImageUrl, description: newDescription } : game
-      )
+    const updatedGames = games.map(game => 
+      game.id === gameId ? { ...game, imageUrl: newImageUrl, description: newDescription } : game
     );
+    setGames(updatedGames);
+    // Save to localStorage for persistence
+    localStorage.setItem('admin_games', JSON.stringify(updatedGames));
+  };
+
+  const handleGamesUpdate = (updatedGames: typeof GAMES) => {
+    setGames(updatedGames);
+  };
+
+  const handleResetGames = () => {
+    setGames(GAMES);
   };
 
 
@@ -307,6 +330,7 @@ const Index = () => {
         onLogin={handleLogin}
         onRegister={handleRegister}
         onLogout={handleLogout}
+        onResetGames={handleResetGames}
       />
       
       {/* Hero Section */}
@@ -342,25 +366,34 @@ const Index = () => {
       {/* Games Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-primary">Browse Games</h2>
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
+            {isAdminMode && (
+              <AdminGameEditor 
+                games={games}
+                defaultGames={GAMES}
+                onGamesUpdate={handleGamesUpdate}
+              />
+            )}
+          </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Select your favorite game to explore available items and start trading
           </p>
         </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {games.map((game) => (
-              <GameCard
-                key={game.id}
-                title={game.title}
-                description={game.description}
-                imageUrl={game.imageUrl}
-                itemCount={game.itemCount}
-                onClick={() => handleGameClick(game.id)}
-                onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
-              />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {games.map((game) => (
+            <GameCard
+              key={game.id}
+              title={game.title}
+              description={game.description}
+              imageUrl={game.imageUrl}
+              itemCount={game.itemCount}
+              onClick={() => handleGameClick(game.id)}
+              onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Features Section */}
