@@ -6,6 +6,8 @@ import { GameCard } from "@/components/GameCard";
 import { TopUpModal } from "@/components/TopUpModal";
 import { LiveChat } from "@/components/LiveChat";
 import { AdminGameEditor } from "@/components/AdminGameEditor";
+import { AdminHomepageEditor } from "@/components/AdminHomepageEditor";
+import { AdminCatalogEditor } from "@/components/AdminCatalogEditor";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,6 +68,43 @@ const Index = () => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
+  
+  // Homepage content state
+  const [homepageContent, setHomepageContent] = useState({
+    hero: {
+      title: "Welcome to 592 Stock",
+      subtitle: "Your ultimate destination for gaming items across Adopt Me, Grow a Garden, MM2, and Steal a Brainrot",
+      badges: [
+        { id: "1", text: "Most Popular", color: "bg-gaming-success", emoji: "🎮" },
+        { id: "2", text: "Guaranteed Items", color: "bg-gaming-accent", emoji: "📦" },
+        { id: "3", text: "Secure Payments", color: "bg-gaming-warning", emoji: "💰" }
+      ]
+    },
+    features: {
+      title: "Why Choose 592 Stock?",
+      subtitle: "The most trusted gaming marketplace",
+      items: [
+        {
+          id: "1",
+          emoji: "🔒",
+          title: "Secure Payments",
+          description: "Multiple payment options including crypto and gift cards with secure processing"
+        },
+        {
+          id: "2",
+          emoji: "⚡",
+          title: "Instant Delivery",
+          description: "Get your gaming items delivered instantly after successful payment"
+        },
+        {
+          id: "3",
+          emoji: "💬",
+          title: "24/7 Support",
+          description: "Our AI-powered support mascot is always here to help with your questions"
+        }
+      ]
+    }
+  });
 
   useEffect(() => {
     // Load saved games from localStorage or use defaults
@@ -76,6 +115,16 @@ const Index = () => {
       } catch (error) {
         console.error('Error loading saved games:', error);
         setGames(GAMES);
+      }
+    }
+    
+    // Load saved homepage content from localStorage
+    const savedHomepageContent = localStorage.getItem('admin_homepage_content');
+    if (savedHomepageContent) {
+      try {
+        setHomepageContent(JSON.parse(savedHomepageContent));
+      } catch (error) {
+        console.error('Error loading saved homepage content:', error);
       }
     }
 
@@ -310,6 +359,10 @@ const Index = () => {
     setGames(GAMES);
   };
 
+  const handleHomepageContentUpdate = (newContent: any) => {
+    setHomepageContent(newContent);
+  };
+
 
   if (loading) {
     return (
@@ -336,24 +389,29 @@ const Index = () => {
       {/* Hero Section */}
       <div className="relative bg-gradient-hero">
         <div className="container mx-auto px-4 py-16 text-center">
+          <div className="flex justify-center mb-4">
+            {isAdminMode && (
+              <AdminHomepageEditor 
+                content={homepageContent}
+                onContentUpdate={handleHomepageContentUpdate}
+              />
+            )}
+          </div>
+          
           <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
-            Welcome to 592 Stock
+            {homepageContent.hero.title}
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Your ultimate destination for gaming items across Adopt Me, Grow a Garden, MM2, and Steal a Brainrot
+            {homepageContent.hero.subtitle}
           </p>
           
           <div className="flex flex-col gap-6 justify-center items-center">
             <div className="flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-gaming-success text-black">
-                🎮 Most Popular
-              </Badge>
-              <Badge variant="secondary" className="bg-gaming-accent text-black">
-                📦 Guaranteed Items
-              </Badge>
-              <Badge variant="secondary" className="bg-gaming-warning text-black">
-                💰 Secure Payments
-              </Badge>
+              {homepageContent.hero.badges.map((badge) => (
+                <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black`}>
+                  {badge.emoji} {badge.text}
+                </Badge>
+              ))}
             </div>
             
             <div className="flex flex-col items-center space-y-3">
@@ -369,11 +427,14 @@ const Index = () => {
           <div className="flex items-center justify-center space-x-4 mb-4">
             <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
             {isAdminMode && (
-              <AdminGameEditor 
-                games={games}
-                defaultGames={GAMES}
-                onGamesUpdate={handleGamesUpdate}
-              />
+              <div className="flex items-center space-x-2">
+                <AdminGameEditor 
+                  games={games}
+                  defaultGames={GAMES}
+                  onGamesUpdate={handleGamesUpdate}
+                />
+                <AdminCatalogEditor games={games} />
+              </div>
             )}
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -400,46 +461,24 @@ const Index = () => {
       <div className="bg-gradient-card py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-primary">Why Choose 592 Stock?</h2>
-            <p className="text-muted-foreground">The most trusted gaming marketplace</p>
+            <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
+            <p className="text-muted-foreground">{homepageContent.features.subtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-background border-primary/20">
-              <CardHeader className="text-center">
-                <div className="text-4xl mb-2">🔒</div>
-                <CardTitle className="text-primary">Secure Payments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-center">
-                  Multiple payment options including crypto and gift cards with secure processing
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-background border-primary/20">
-              <CardHeader className="text-center">
-                <div className="text-4xl mb-2">⚡</div>
-                <CardTitle className="text-primary">Instant Delivery</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-center">
-                  Get your gaming items delivered instantly after successful payment
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-background border-primary/20">
-              <CardHeader className="text-center">
-                <div className="text-4xl mb-2">💬</div>
-                <CardTitle className="text-primary">24/7 Support</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-center">
-                  Our AI-powered support mascot is always here to help with your questions
-                </CardDescription>
-              </CardContent>
-            </Card>
+            {homepageContent.features.items.map((feature) => (
+              <Card key={feature.id} className="bg-background border-primary/20">
+                <CardHeader className="text-center">
+                  <div className="text-4xl mb-2">{feature.emoji}</div>
+                  <CardTitle className="text-primary">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-center">
+                    {feature.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
