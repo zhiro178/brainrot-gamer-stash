@@ -160,6 +160,11 @@ export const CryptoTopupList = () => {
       // Refresh tickets
       fetchCryptoTickets();
       
+      // Force page reload to update balance in navbar
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
     } catch (error) {
       console.error('Error verifying ticket:', error);
       toast({

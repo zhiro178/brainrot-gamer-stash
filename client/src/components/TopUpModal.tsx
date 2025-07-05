@@ -62,7 +62,7 @@ export function TopUpModal({ user }: { user?: any }) {
       
       // Create ticket
       const ticketData = {
-        user_id: String(currentUser.id), // Ensure it's a string
+        user_id: currentUser.id,
         subject: `Crypto Top-up Request - $${amount}`,
         message: `Crypto top-up request for $${amount} USD (LTC/SOL).`,
         status: "open",
@@ -140,7 +140,7 @@ export function TopUpModal({ user }: { user?: any }) {
       
       // Create ticket
       const ticketData = {
-        user_id: String(currentUser.id), // Ensure it's a string
+        user_id: currentUser.id,
         subject: `Gift Card Top-up - $${amount}`,
         message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
         status: "open",
