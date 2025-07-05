@@ -22,45 +22,20 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function Admin() {
   const [, setLocation] = useLocation();
-  const [giftCardSubmissions, setGiftCardSubmissions] = useState<any[]>([]);
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [cryptoPaymentInfo, setCryptoPaymentInfo] = useState({
-    ltcAddress: "",
-    solAddress: "",
-    exchangeRate: 1.0
-  });
 
   const { toast } = useToast();
 
   useEffect(() => {
     fetchCurrentUser();
-    fetchGiftCardSubmissions();
     fetchSupportTickets();
   }, []);
 
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
-  };
-
-  const fetchGiftCardSubmissions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('gift_card_submissions')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      // Handle expected errors gracefully (table doesn't exist)
-      if (error && !['42703', '42P01'].includes(error.code)) {
-        console.error('Error fetching gift cards:', error);
-      }
-      setGiftCardSubmissions(data || []);
-    } catch (error) {
-      console.error('Error fetching gift cards:', error);
-      setGiftCardSubmissions([]);
-    }
   };
 
   const fetchSupportTickets = async () => {
@@ -78,67 +53,6 @@ export default function Admin() {
     } catch (error) {
       console.error('Error fetching support tickets:', error);
       setSupportTickets([]);
-    }
-  };
-
-  const approveGiftCard = async (id: string, amount: number, userId: string) => {
-    try {
-      await supabase
-        .from('gift_card_submissions')
-        .update({ status: 'approved' })
-        .eq('id', id);
-
-      const { data: existingBalance } = await supabase
-        .from('user_balances')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
-
-      const currentBalance = existingBalance?.balance || 0;
-      
-      await supabase
-        .from('user_balances')
-        .upsert({
-          user_id: userId,
-          balance: currentBalance + amount
-        });
-
-      toast({
-        title: "Gift Card Approved",
-        description: `Added $${amount} to user balance`,
-      });
-
-      fetchGiftCardSubmissions();
-    } catch (error) {
-      console.error('Error approving gift card:', error);
-      toast({
-        title: "Error",
-        description: "Failed to approve gift card",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteGiftCard = async (id: string) => {
-    try {
-      await supabase
-        .from('gift_card_submissions')
-        .delete()
-        .eq('id', id);
-
-      toast({
-        title: "Gift Card Deleted",
-        description: "Gift card submission has been deleted",
-      });
-
-      fetchGiftCardSubmissions();
-    } catch (error) {
-      console.error('Error deleting gift card:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete gift card",
-        variant: "destructive",
-      });
     }
   };
 
@@ -207,7 +121,7 @@ export default function Admin() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="bg-gradient-card border-primary/20">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -216,18 +130,6 @@ export default function Admin() {
                   <p className="text-3xl font-bold text-primary">{supportTickets.length}</p>
                 </div>
                 <Ticket className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-card border-primary/20">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Gift Cards</p>
-                  <p className="text-3xl font-bold text-gaming-success">{giftCardSubmissions.length}</p>
-                </div>
-                <DollarSign className="h-8 w-8 text-gaming-success" />
               </div>
             </CardContent>
           </Card>
@@ -247,13 +149,10 @@ export default function Admin() {
           </Card>
         </div>
 
-        <Tabs defaultValue="gift-cards" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-background border border-primary/20">
-            <TabsTrigger value="gift-cards" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Gift Cards
-            </TabsTrigger>
-            <TabsTrigger value="crypto-settings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Crypto Top-ups
+        <Tabs defaultValue="topup-management" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-background border border-primary/20">
+            <TabsTrigger value="topup-management" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Top-up Management
             </TabsTrigger>
             <TabsTrigger value="support-tickets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Support Tickets
@@ -344,91 +243,18 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          {/* Gift Cards Tab */}
-          <TabsContent value="gift-cards" className="space-y-4">
-            <Card className="bg-gradient-card border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Gift Card Submissions
-                </CardTitle>
-                <CardDescription>
-                  Review and approve gift card top-up requests
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User ID</TableHead>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {giftCardSubmissions.map((submission: any) => (
-                      <TableRow key={submission.id}>
-                        <TableCell className="font-mono text-sm">
-                          {submission.user_id?.slice(0, 8)}...
-                        </TableCell>
-                        <TableCell className="font-mono">
-                          {submission.gift_card_code}
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          ${submission.amount || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={
-                            submission.status === 'approved' ? 'default' :
-                            submission.status === 'rejected' ? 'destructive' : 'secondary'
-                          }>
-                            {submission.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(submission.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          {submission.status === 'pending' && (
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                onClick={() => approveGiftCard(submission.id, submission.amount, submission.user_id)}
-                                className="bg-gaming-success hover:bg-gaming-success/80"
-                              >
-                                Verify & Add Balance
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => deleteGiftCard(submission.id)}
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Crypto Top-ups Tab */}
-          <TabsContent value="crypto-settings" className="space-y-6">
+
+          {/* Top-ups Management Tab */}
+          <TabsContent value="topup-management" className="space-y-6">
             <Card className="bg-gradient-card border-primary/20">
               <CardHeader>
                 <CardTitle className="text-primary flex items-center gap-2">
                   <CreditCard className="h-5 w-5" />
-                  Crypto Top-up Submissions
+                  Top-up Requests Management
                 </CardTitle>
                 <CardDescription>
-                  Manage cryptocurrency top-up requests from users
+                  Manage all cryptocurrency and gift card top-up requests from users
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -75,24 +75,15 @@ export function TopUpModal({ user }: { user?: any }) {
       if (!insertResult || ticketError) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
-      // Add user & admin messages
-      const messageData = [
-        {
-          ticket_id: insertResult.id,
-          user_id: currentUser.id,
-          message: `I would like to top up my account with $${amount} USD using cryptocurrency.`,
-          is_admin: false,
-        },
-        {
-          ticket_id: insertResult.id,
-          user_id: currentUser.id, // Use current user ID but mark as admin message
-          message: `Hello! We've received your crypto top-up request. We'll process this shortly.`,
-          is_admin: true,
-        },
-      ];
+      // Add initial user message
       const { error: messageError } = await supabase
         .from("ticket_messages")
-        .insert(messageData);
+        .insert({
+          ticket_id: insertResult.id,
+          user_id: currentUser.id,
+          message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
+          is_admin: false,
+        });
       if (messageError) {
         throw new Error(messageError.message);
       }
@@ -164,24 +155,15 @@ export function TopUpModal({ user }: { user?: any }) {
       if (!insertResult || ticketError) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
-      // Add user & admin messages
-      const messageData = [
-        {
-          ticket_id: insertResult.id,
-          user_id: currentUser.id,
-          message: `I would like to top up my account using an Amazon gift card. Amount: $${amount} USD, Code: ${giftCardCode}`,
-          is_admin: false,
-        },
-        {
-          ticket_id: insertResult.id,
-          user_id: currentUser.id, // Use current user ID but mark as admin message
-          message: `Hello! I've received your gift card top-up request for $${amount} USD. I'll verify your Amazon gift card within 24 hours.`,
-          is_admin: true,
-        },
-      ];
+      // Add initial user message
       const { error: messageError } = await supabase
         .from("ticket_messages")
-        .insert(messageData);
+        .insert({
+          ticket_id: insertResult.id,
+          user_id: currentUser.id,
+          message: `I would like to top up my account using an Amazon gift card.\n\nAmount: $${amount} USD\nGift Card Code: ${giftCardCode}\n\nPlease verify and add the funds to my account.`,
+          is_admin: false,
+        });
       if (messageError) {
         throw new Error(messageError.message);
       }
