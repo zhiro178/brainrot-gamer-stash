@@ -111,7 +111,7 @@ export const CryptoTopupList = () => {
       const { data: existingBalance } = await supabase
         .from('user_balances')
         .select('balance')
-        .eq('user_id', userId)
+        .eq('user_id', String(userId)) // Ensure it's a string
         .single();
 
       const currentBalance = existingBalance?.balance || 0;
@@ -120,7 +120,7 @@ export const CryptoTopupList = () => {
       await supabase
         .from('user_balances')
         .upsert({
-          user_id: userId,
+          user_id: String(userId), // Ensure it's a string
           balance: currentBalance + amountNum
         });
 
@@ -128,8 +128,8 @@ export const CryptoTopupList = () => {
       await supabase
         .from('ticket_messages')
         .insert({
-          ticket_id: ticketId,
-          user_id: currentUser.id,
+          ticket_id: parseInt(ticketId), // Convert to integer
+          user_id: String(currentUser.id), // Ensure it's a string
           message: `✅ Payment verified and approved!\n\n💰 $${amountNum.toFixed(2)} has been added to your account.\n🏦 Your new balance: $${(currentBalance + amountNum).toFixed(2)}\n\nThank you for your top-up! You can now use these funds to purchase items.`,
           is_admin: true
         });

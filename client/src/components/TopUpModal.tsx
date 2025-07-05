@@ -59,9 +59,10 @@ export function TopUpModal({ user }: { user?: any }) {
         });
         return;
       }
+      
       // Create ticket
       const ticketData = {
-        user_id: currentUser.id,
+        user_id: String(currentUser.id), // Ensure it's a string
         subject: `Crypto Top-up Request - $${amount}`,
         message: `Crypto top-up request for $${amount} USD (LTC/SOL).`,
         status: "open",
@@ -79,8 +80,8 @@ export function TopUpModal({ user }: { user?: any }) {
       const { error: messageError } = await supabase
         .from("ticket_messages")
         .insert({
-          ticket_id: insertResult.id,
-          user_id: currentUser.id,
+          ticket_id: insertResult.id, // Keep as integer
+          user_id: String(currentUser.id), // Ensure it's a string
           message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
           is_admin: false,
         });
@@ -139,9 +140,10 @@ export function TopUpModal({ user }: { user?: any }) {
         });
         return;
       }
+      
       // Create ticket
       const ticketData = {
-        user_id: currentUser.id,
+        user_id: String(currentUser.id), // Ensure it's a string
         subject: `Gift Card Top-up - $${amount}`,
         message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
         status: "open",
@@ -159,8 +161,8 @@ export function TopUpModal({ user }: { user?: any }) {
       const { error: messageError } = await supabase
         .from("ticket_messages")
         .insert({
-          ticket_id: insertResult.id,
-          user_id: currentUser.id,
+          ticket_id: insertResult.id, // Keep as integer
+          user_id: String(currentUser.id), // Ensure it's a string
           message: `I would like to top up my account using an Amazon gift card.\n\nAmount: $${amount} USD\nGift Card Code: ${giftCardCode}\n\nPlease verify and add the funds to my account.`,
           is_admin: false,
         });
