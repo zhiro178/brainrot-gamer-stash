@@ -109,7 +109,7 @@ const Index = () => {
       const { data, error } = await supabase
         .from('user_balances')
         .select('balance')
-        .eq('user_id', String(userId)) // Ensure it's a string
+        .eq('user_id', userId)
         .single();
       
       // Handle expected errors gracefully (table doesn't exist, no records found)
@@ -118,7 +118,7 @@ const Index = () => {
         return;
       }
       
-      setUserBalance(data?.balance || 0);
+      setUserBalance(parseFloat(data?.balance || '0'));
     } catch (error) {
       console.error('Error:', error);
       setUserBalance(0); // Set default balance if any error occurs

@@ -66,27 +66,39 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
     if (!newMessage.trim()) return;
 
     try {
-      const { error } = await supabase
+      console.log("Sending message:", {
+        ticket_id: parseInt(ticketId),
+        user_id: currentUser.id,
+        message: newMessage.trim(),
+        is_admin: isAdmin
+      });
+
+      const { data, error } = await supabase
         .from('ticket_messages')
         .insert({
           ticket_id: parseInt(ticketId),
           user_id: currentUser.id,
           message: newMessage.trim(),
           is_admin: isAdmin
-        });
+        })
+        .select();
+
+      console.log("Message insert result:", data, error);
 
       if (error) {
         throw error;
       }
       
       setNewMessage("");
-      fetchMessages(); // Refresh messages immediately
+      
+      // Refresh messages immediately
+      await fetchMessages();
       
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: `Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -101,7 +113,7 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
       <div className="flex items-center gap-2 p-3 border-b bg-muted/20">
         <User className="h-4 w-4" />
         <span className="text-sm text-muted-foreground">Customer ID: {userEmail.slice(0, 8)}...</span>
-        <Badge className="ml-auto">
+        <Badge variant="secondary" className="ml-auto">
           {isAdmin ? 'Admin' : 'Customer'}
         </Badge>
       </div>
