@@ -66,20 +66,21 @@ export const CategoryCard = ({
         </Button>
         
         {isAdmin && isAdminMode && onUpdateCategory && (
-          <AdminEditOverlay 
-            type="catalog" 
-            currentValue={`${category.name}|${category.description}|${category.itemCount}`} 
-            onSave={handleCategoryUpdate}
-            placeholder="name|description|itemCount"
-          >
-            <Button 
-              variant="outline"
-              className="w-full border-gaming-warning text-gaming-warning hover:bg-gaming-warning hover:text-black"
-              onClick={(e) => e.stopPropagation()}
+          <div onClick={(e) => e.stopPropagation()}>
+            <AdminEditOverlay 
+              type="catalog" 
+              currentValue={`${category.name}|${category.description}|${category.itemCount}`} 
+              onSave={handleCategoryUpdate}
+              placeholder="name|description|itemCount"
             >
-              Edit Category
-            </Button>
-          </AdminEditOverlay>
+              <Button 
+                variant="outline"
+                className="w-full border-gaming-warning text-gaming-warning hover:bg-gaming-warning hover:text-black"
+              >
+                Edit Category
+              </Button>
+            </AdminEditOverlay>
+          </div>
         )}
       </CardContent>
     </Card>

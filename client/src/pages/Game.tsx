@@ -1,5 +1,5 @@
 import { useRoute, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CategoryCard } from "@/components/CategoryCard";
@@ -43,8 +43,17 @@ const GAMES = {
 export default function Game() {
   const [match, params] = useRoute("/game/:gameId");
   const [, setLocation] = useLocation();
-  const [gameData, setGameData] = useState(GAMES);
+  const [gameData, setGameData] = useState(() => {
+    // Try to load from localStorage first
+    const savedGames = localStorage.getItem('game-data');
+    return savedGames ? JSON.parse(savedGames) : GAMES;
+  });
   const gameId = params?.gameId;
+  
+  // Save game data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('game-data', JSON.stringify(gameData));
+  }, [gameData]);
   
   const game = gameId ? gameData[gameId as keyof typeof gameData] : null;
 

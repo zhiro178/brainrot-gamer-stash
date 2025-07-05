@@ -306,7 +306,6 @@ export default function Admin() {
                           <DialogTrigger asChild>
                             <Button 
                               size="sm"
-                              onClick={() => setSelectedTicket(ticket)}
                               className="bg-gradient-primary hover:shadow-glow"
                             >
                               <MessageCircle className="h-4 w-4 mr-2" />
@@ -320,10 +319,10 @@ export default function Admin() {
                                 Live chat with customer about their ticket
                               </DialogDescription>
                             </DialogHeader>
-                            {selectedTicket && currentUser && (
+                            {currentUser && (
                               <TicketChat 
-                                ticketId={selectedTicket.id}
-                                ticketSubject={selectedTicket.subject}
+                                ticketId={ticket.id}
+                                ticketSubject={ticket.subject}
                                 currentUser={currentUser}
                               />
                             )}

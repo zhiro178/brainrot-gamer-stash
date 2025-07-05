@@ -334,9 +334,6 @@ const Index = () => {
             
             <div className="flex flex-col items-center space-y-3">
               <TopUpModal user={user} />
-              <p className="text-sm text-muted-foreground text-center">
-                💳 Add funds to your account with crypto or gift cards
-              </p>
             </div>
           </div>
         </div>
