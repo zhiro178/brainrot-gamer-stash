@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,11 +30,63 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
   }
 
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
+
+  // Check for unread messages
+  useEffect(() => {
+    if (!user) return;
+
+    const checkUnreadMessages = async () => {
+      try {
+        // Get user's tickets
+        const { data: tickets, error: ticketsError } = await supabase
+          .from('support_tickets')
+          .select('id')
+          .eq('user_id', user.id);
+
+        if (ticketsError || !tickets) return;
+
+        // Count admin messages that came after the last user message in each ticket
+        let totalUnread = 0;
+        
+        for (const ticket of tickets) {
+          const { data: messages, error: messagesError } = await supabase
+            .from('ticket_messages')
+            .select('is_admin, created_at')
+            .eq('ticket_id', ticket.id)
+            .order('created_at', { ascending: false });
+
+          if (messagesError || !messages || messages.length === 0) continue;
+
+          // Find the most recent admin message and most recent user message
+          const latestAdminMessage = messages.find((m: any) => m.is_admin);
+          const latestUserMessage = messages.find((m: any) => !m.is_admin);
+
+          // If there's an admin message and it's newer than the latest user message, it's unread
+          if (latestAdminMessage && (!latestUserMessage || 
+              new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at))) {
+            totalUnread++;
+          }
+        }
+
+        setUnreadMessages(totalUnread);
+      } catch (error) {
+        console.error('Error checking unread messages:', error);
+      }
+    };
+
+    checkUnreadMessages();
+    
+    // Check every 30 seconds for new messages
+    const interval = setInterval(checkUnreadMessages, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogin = (e: any) => {
     e.preventDefault();
@@ -104,10 +157,15 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                     variant="outline" 
                     size="sm"
                     onClick={() => setLocation('/tickets')}
-                    className="border-primary/20 hover:bg-primary/10"
+                    className="border-primary/20 hover:bg-primary/10 relative"
                   >
                     <Ticket className="h-4 w-4 mr-2" />
                     My Tickets
+                    {unreadMessages > 0 && (
+                      <Badge className="absolute -top-2 -right-2 bg-destructive text-white text-xs min-w-[1.2rem] h-5 flex items-center justify-center rounded-full">
+                        {unreadMessages > 9 ? '9+' : unreadMessages}
+                      </Badge>
+                    )}
                   </Button>
                 )}
 

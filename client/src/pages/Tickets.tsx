@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TicketChat } from "@/components/TicketChat";
-import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 
@@ -94,6 +94,36 @@ export default function Tickets() {
     }
   };
 
+  const getTicketTypeInfo = (category: string, subject: string) => {
+    if (category === 'crypto_topup') {
+      const amount = subject.match(/\$(\d+(?:\.\d{2})?)/)?.[1] || '0.00';
+      return {
+        icon: Bitcoin,
+        title: 'Crypto Top-up Request',
+        amount: amount,
+        color: 'text-orange-500',
+        bgColor: 'bg-orange-500/10'
+      };
+    }
+    if (category === 'giftcard_topup') {
+      const amount = subject.match(/\$(\d+(?:\.\d{2})?)/)?.[1] || '0.00';
+      return {
+        icon: CreditCard,
+        title: 'Gift Card Top-up',
+        amount: amount,
+        color: 'text-blue-500',
+        bgColor: 'bg-blue-500/10'
+      };
+    }
+    return {
+      icon: MessageCircle,
+      title: 'Support Ticket',
+      amount: null,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10'
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -156,20 +186,34 @@ export default function Tickets() {
             </Card>
           ) : (
             <div className="grid gap-6">
-              {tickets.map((ticket) => (
-                <Card key={ticket.id} className="bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300">
+              {tickets.map((ticket) => {
+                const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                const IconComponent = typeInfo.icon;
+                
+                return (
+                <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-primary flex items-center gap-2">
-                        {getStatusIcon(ticket.status)}
-                        {ticket.subject}
+                      <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="h-5 w-5" />
+                          {typeInfo.title}
+                        </div>
+                        {typeInfo.amount && (
+                          <div className="flex items-center gap-1 text-gaming-success font-bold">
+                            <DollarSign className="h-4 w-4" />
+                            {parseFloat(typeInfo.amount).toFixed(2)}
+                          </div>
+                        )}
                       </CardTitle>
                       <div className="flex items-center gap-2">
                         <Badge className={`${getStatusColor(ticket.status)} text-white`}>
                           {ticket.status.replace('_', ' ').toUpperCase()}
                         </Badge>
                         <Badge variant="outline">
-                          {ticket.category || 'general'}
+                          {ticket.category === 'crypto_topup' ? 'Crypto' : 
+                           ticket.category === 'giftcard_topup' ? 'Gift Card' : 
+                           ticket.category || 'General'}
                         </Badge>
                       </div>
                     </div>
@@ -196,9 +240,22 @@ export default function Tickets() {
                         </DialogTrigger>
                         <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
                           <DialogHeader>
-                            <DialogTitle>Support Ticket Chat</DialogTitle>
+                            <DialogTitle className="flex items-center gap-2">
+                              <IconComponent className="h-5 w-5" />
+                              {typeInfo.title} Chat
+                              {typeInfo.amount && (
+                                <span className="text-gaming-success font-bold">
+                                  - ${parseFloat(typeInfo.amount).toFixed(2)}
+                                </span>
+                              )}
+                            </DialogTitle>
                             <DialogDescription>
-                              Communicate with {isAdmin ? 'the user' : 'our support team'} about your ticket
+                              {ticket.category === 'crypto_topup' ? 
+                                'Chat with our team about your crypto top-up request. You\'ll receive payment instructions and updates here.' :
+                                ticket.category === 'giftcard_topup' ? 
+                                'Chat with our team about your gift card top-up. We\'ll verify your card and update you on the process.' :
+                                `Communicate with ${isAdmin ? 'the user' : 'our support team'} about your ticket`
+                              }
                             </DialogDescription>
                           </DialogHeader>
                           {selectedTicket && user && (
@@ -213,7 +270,8 @@ export default function Tickets() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

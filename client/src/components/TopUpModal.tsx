@@ -85,12 +85,22 @@ export function TopUpModal({ user }: { user?: any }) {
           message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
           is_admin: false,
         });
+
+      // Add automatic admin response to start the conversation
+      await supabase
+        .from("ticket_messages")
+        .insert({
+          ticket_id: insertResult.id,
+          user_id: "system",
+          message: `Hello! Thank you for your crypto top-up request of $${amount} USD. An admin will review your request and provide payment instructions shortly. Please check back here for updates or wait for our response.`,
+          is_admin: true,
+        });
       setCryptoAmount("");
       setIsOpen(false);
       toast({
         title: "Top-up Request Submitted",
         description:
-          "A support ticket has been created. You'll receive payment instructions shortly.",
+          "A support ticket has been created. Check the 'My Tickets' section to chat with our team and receive payment instructions.",
       });
     } catch (error) {
       const errorMessage =
@@ -163,13 +173,23 @@ export function TopUpModal({ user }: { user?: any }) {
           message: `I would like to top up my account using an Amazon gift card.\n\nAmount: $${amount} USD\nGift Card Code: ${giftCardCode}\n\nPlease verify and add the funds to my account.`,
           is_admin: false,
         });
+
+      // Add automatic admin response to start the conversation
+      await supabase
+        .from("ticket_messages")
+        .insert({
+          ticket_id: insertResult.id,
+          user_id: "system",
+          message: `Hello! Thank you for submitting your Amazon gift card for $${amount} USD. We will verify your gift card and process your top-up request within 24 hours. You can chat with us here if you have any questions!`,
+          is_admin: true,
+        });
       setGiftCardCode("");
       setGiftCardAmount("");
       setIsOpen(false);
       toast({
         title: "Gift Card Submitted",
         description:
-          "A support ticket has been created. Your gift card will be verified within 24 hours.",
+          "A support ticket has been created. Visit 'My Tickets' to chat with our team. Your gift card will be verified within 24 hours.",
       });
     } catch (error) {
       const errorMessage =
