@@ -319,8 +319,7 @@ const Index = () => {
             Your ultimate destination for gaming items across Adopt Me, Grow a Garden, MM2, and Steal a Brainrot
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <TopUpModal user={user} />
+          <div className="flex flex-col gap-6 justify-center items-center">
             <div className="flex items-center space-x-2">
               <Badge variant="secondary" className="bg-gaming-success text-black">
                 🎮 Most Popular
@@ -331,6 +330,13 @@ const Index = () => {
               <Badge variant="secondary" className="bg-gaming-warning text-black">
                 💰 Secure Payments
               </Badge>
+            </div>
+            
+            <div className="flex flex-col items-center space-y-3">
+              <TopUpModal user={user} />
+              <p className="text-sm text-muted-foreground text-center">
+                💳 Add funds to your account with crypto or gift cards
+              </p>
             </div>
           </div>
         </div>

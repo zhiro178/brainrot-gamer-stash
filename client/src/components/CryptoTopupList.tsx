@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TicketChat } from "@/components/TicketChat";
-import { Bitcoin, Calendar, User, MessageCircle, DollarSign } from "lucide-react";
+import { Bitcoin, Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
@@ -27,6 +27,7 @@ export const CryptoTopupList = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<CryptoTicket | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [processingTicket, setProcessingTicket] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -93,6 +94,101 @@ export const CryptoTopupList = () => {
     }
   };
 
+  const handleVerifyTicket = async (ticketId: string, amount: string, userId: string) => {
+    if (processingTicket) return;
+    
+    setProcessingTicket(ticketId);
+    try {
+      const amountNum = parseFloat(amount);
+      
+      // Update ticket status to resolved
+      await supabase
+        .from('support_tickets')
+        .update({ status: 'resolved' })
+        .eq('id', ticketId);
+
+      // Get current user balance
+      const { data: existingBalance } = await supabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+
+      const currentBalance = existingBalance?.balance || 0;
+      
+      // Add amount to user balance
+      await supabase
+        .from('user_balances')
+        .upsert({
+          user_id: userId,
+          balance: currentBalance + amountNum
+        });
+
+      // Add admin message to ticket
+      await supabase
+        .from('ticket_messages')
+        .insert({
+          ticket_id: ticketId,
+          user_id: currentUser.id,
+          message: `✅ Payment verified! $${amount} has been added to your account. Your new balance is $${(currentBalance + amountNum).toFixed(2)}. Thank you for your top-up!`,
+          is_admin: true
+        });
+
+      toast({
+        title: "Ticket Verified",
+        description: `Added $${amount} to user balance. Ticket marked as resolved.`,
+      });
+
+      // Refresh tickets
+      fetchCryptoTickets();
+    } catch (error) {
+      console.error('Error verifying ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to verify ticket",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingTicket(null);
+    }
+  };
+
+  const handleDeleteTicket = async (ticketId: string) => {
+    if (processingTicket) return;
+    
+    setProcessingTicket(ticketId);
+    try {
+      // Delete associated messages first
+      await supabase
+        .from('ticket_messages')
+        .delete()
+        .eq('ticket_id', ticketId);
+
+      // Delete ticket
+      await supabase
+        .from('support_tickets')
+        .delete()
+        .eq('id', ticketId);
+
+      toast({
+        title: "Ticket Deleted",
+        description: "The crypto top-up ticket has been deleted.",
+      });
+
+      // Refresh tickets
+      fetchCryptoTickets();
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete ticket",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingTicket(null);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading crypto top-up requests...</div>;
   }
@@ -112,6 +208,7 @@ export const CryptoTopupList = () => {
       {tickets.map((ticket) => {
         const amount = extractAmountFromSubject(ticket.subject);
         const crypto = getCryptoType(ticket.message);
+        const isResolved = ticket.status === 'resolved' || ticket.status === 'closed';
         
         return (
           <Card key={ticket.id} className="bg-background border-primary/20 hover:shadow-gaming transition-all duration-300">
@@ -155,39 +252,80 @@ export const CryptoTopupList = () => {
                 {ticket.message}
               </p>
               
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedTicket(ticket)}
-                    className="border-primary/20 hover:bg-primary/10"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Open Chat
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <div className={`w-6 h-6 rounded-full ${crypto.color} flex items-center justify-center text-white text-xs font-bold`}>
-                        {crypto.icon}
-                      </div>
-                      {crypto.type} Top-up Chat - ${amount}
-                    </DialogTitle>
-                    <DialogDescription>
-                      Communicate with the user about their cryptocurrency top-up request
-                    </DialogDescription>
-                  </DialogHeader>
-                  {selectedTicket && currentUser && (
-                    <TicketChat 
-                      ticketId={selectedTicket.id}
-                      ticketSubject={selectedTicket.subject}
-                      currentUser={currentUser}
-                    />
-                  )}
-                </DialogContent>
-              </Dialog>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedTicket(ticket)}
+                      className="border-primary/20 hover:bg-primary/10"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Open Chat
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full ${crypto.color} flex items-center justify-center text-white text-xs font-bold`}>
+                          {crypto.icon}
+                        </div>
+                        {crypto.type} Top-up Chat - ${amount}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Communicate with the user about their cryptocurrency top-up request
+                      </DialogDescription>
+                    </DialogHeader>
+                    {selectedTicket && currentUser && (
+                      <TicketChat 
+                        ticketId={selectedTicket.id}
+                        ticketSubject={selectedTicket.subject}
+                        currentUser={currentUser}
+                      />
+                    )}
+                  </DialogContent>
+                </Dialog>
+
+                {!isResolved && (
+                  <>
+                    <Button 
+                      size="sm"
+                      onClick={() => handleVerifyTicket(ticket.id, amount, ticket.user_id)}
+                      disabled={processingTicket === ticket.id}
+                      className="bg-gaming-success hover:bg-gaming-success/80 text-black"
+                    >
+                      {processingTicket === ticket.id ? (
+                        <AlertCircle className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Verify & Add Balance
+                    </Button>
+                    
+                    <Button 
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteTicket(ticket.id)}
+                      disabled={processingTicket === ticket.id}
+                    >
+                      {processingTicket === ticket.id ? (
+                        <AlertCircle className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" />
+                      )}
+                      Delete
+                    </Button>
+                  </>
+                )}
+                
+                {isResolved && (
+                  <Badge className="bg-gaming-success text-black">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Resolved
+                  </Badge>
+                )}
+              </div>
             </CardContent>
           </Card>
         );

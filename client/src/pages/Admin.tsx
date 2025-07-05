@@ -119,21 +119,26 @@ export default function Admin() {
     }
   };
 
-  const rejectGiftCard = async (id: string) => {
+  const deleteGiftCard = async (id: string) => {
     try {
       await supabase
         .from('gift_card_submissions')
-        .update({ status: 'rejected' })
+        .delete()
         .eq('id', id);
 
       toast({
-        title: "Gift Card Rejected",
-        description: "Gift card submission has been rejected",
+        title: "Gift Card Deleted",
+        description: "Gift card submission has been deleted",
       });
 
       fetchGiftCardSubmissions();
     } catch (error) {
-      console.error('Error rejecting gift card:', error);
+      console.error('Error deleting gift card:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete gift card",
+        variant: "destructive",
+      });
     }
   };
 
@@ -395,14 +400,14 @@ export default function Admin() {
                                 onClick={() => approveGiftCard(submission.id, submission.amount, submission.user_id)}
                                 className="bg-gaming-success hover:bg-gaming-success/80"
                               >
-                                Approve
+                                Verify & Add Balance
                               </Button>
                               <Button 
                                 size="sm" 
                                 variant="destructive"
-                                onClick={() => rejectGiftCard(submission.id)}
+                                onClick={() => deleteGiftCard(submission.id)}
                               >
-                                Reject
+                                Delete
                               </Button>
                             </div>
                           )}

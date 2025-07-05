@@ -51,13 +51,17 @@ export const AdminEditOverlay = ({
       {children}
       
       {/* Admin Edit Overlay */}
-      <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+      <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center z-10">
         <Dialog open={isEditing} onOpenChange={setIsEditing}>
           <DialogTrigger asChild>
             <Button 
               size="sm" 
               className="bg-gaming-warning text-black hover:bg-gaming-warning/80"
-              onClick={() => setIsEditing(true)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsEditing(true);
+              }}
             >
               <Edit className="h-4 w-4 mr-1" />
               Edit {type}
