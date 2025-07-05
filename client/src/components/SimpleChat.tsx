@@ -42,11 +42,16 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
 
   const fetchMessages = async () => {
     try {
+      const ticketIdNum = parseInt(ticketId);
+      console.log("Fetching messages for ticket:", ticketIdNum);
+      
       const { data, error } = await supabase
         .from('ticket_messages')
         .select('*')
-        .eq('ticket_id', parseInt(ticketId))
+        .eq('ticket_id', ticketIdNum)
         .order('created_at', { ascending: true });
+
+      console.log("Messages fetch result:", { data, error, ticketId: ticketIdNum });
 
       if (error) {
         console.error('Error fetching messages:', error);
@@ -66,17 +71,21 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
     if (!newMessage.trim()) return;
 
     try {
+      // Ensure ticket_id is a number
+      const ticketIdNum = parseInt(ticketId);
+      
       console.log("Sending message:", {
-        ticket_id: parseInt(ticketId),
+        ticket_id: ticketIdNum,
         user_id: currentUser.id,
         message: newMessage.trim(),
-        is_admin: isAdmin
+        is_admin: isAdmin,
+        currentUser: currentUser
       });
 
       const { data, error } = await supabase
         .from('ticket_messages')
         .insert({
-          ticket_id: parseInt(ticketId),
+          ticket_id: ticketIdNum,
           user_id: currentUser.id,
           message: newMessage.trim(),
           is_admin: isAdmin
@@ -86,13 +95,20 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
       console.log("Message insert result:", data, error);
 
       if (error) {
-        throw error;
+        console.error('Database error:', error);
+        throw new Error(`Database error: ${error.message} (Code: ${error.code})`);
+      }
+      
+      if (!data || data.length === 0) {
+        throw new Error('No data returned from insert');
       }
       
       setNewMessage("");
       
       // Refresh messages immediately
-      await fetchMessages();
+      setTimeout(() => {
+        fetchMessages();
+      }, 500);
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -112,7 +128,9 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
     <div className="h-96 flex flex-col">
       <div className="flex items-center gap-2 p-3 border-b bg-muted/20">
         <User className="h-4 w-4" />
-        <span className="text-sm text-muted-foreground">Customer ID: {userEmail.slice(0, 8)}...</span>
+        <span className="text-sm text-muted-foreground">
+          Customer ID: {userEmail.slice(0, 8)}... | Ticket: {ticketId} | Messages: {messages.length}
+        </span>
         <Badge variant="secondary" className="ml-auto">
           {isAdmin ? 'Admin' : 'Customer'}
         </Badge>

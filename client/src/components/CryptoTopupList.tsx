@@ -101,11 +101,20 @@ export const CryptoTopupList = () => {
     try {
       const amountNum = parseFloat(amount);
       
+      console.log("Starting approval for:", { ticketId, amount, userId, amountNum });
+      
       // Update ticket status to resolved
-      await supabase
+      const { error: ticketError } = await supabase
         .from('support_tickets')
         .update({ status: 'resolved' })
         .eq('id', ticketId);
+        
+      if (ticketError) {
+        console.error('Error updating ticket:', ticketError);
+        throw new Error(`Failed to update ticket: ${ticketError.message}`);
+      }
+      
+      console.log("Ticket updated to resolved");
 
       // Get or create user balance
       let { data: existingBalance, error: balanceError } = await supabase
@@ -114,9 +123,12 @@ export const CryptoTopupList = () => {
         .eq('user_id', userId)
         .single();
 
+      console.log("Existing balance query:", { existingBalance, balanceError });
+
       // If no balance record exists, create one
       if (!existingBalance && balanceError?.code === 'PGRST116') {
-        const { data: newBalanceRecord } = await supabase
+        console.log("Creating new balance record for user:", userId);
+        const { data: newBalanceRecord, error: createError } = await supabase
           .from('user_balances')
           .insert({
             user_id: userId,
@@ -125,14 +137,22 @@ export const CryptoTopupList = () => {
           .select()
           .single();
           
+        if (createError) {
+          console.error('Error creating balance record:', createError);
+          throw new Error(`Failed to create balance record: ${createError.message}`);
+        }
+        
         existingBalance = newBalanceRecord;
+        console.log("Created new balance record:", newBalanceRecord);
       }
 
       const currentBalance = parseFloat(existingBalance?.balance || '0');
       const newBalance = currentBalance + amountNum;
       
+      console.log("Balance calculation:", { currentBalance, amountNum, newBalance });
+      
       // Update user balance
-      await supabase
+      const { data: balanceResult, error: balanceUpdateError } = await supabase
         .from('user_balances')
         .upsert({
           user_id: userId,
@@ -140,21 +160,37 @@ export const CryptoTopupList = () => {
         }, { 
           onConflict: 'user_id',
           ignoreDuplicates: false 
-        });
+        })
+        .select();
+        
+      console.log("Balance update result:", { balanceResult, balanceUpdateError });
+      
+      if (balanceUpdateError) {
+        console.error('Error updating balance:', balanceUpdateError);
+        throw new Error(`Failed to update balance: ${balanceUpdateError.message}`);
+      }
 
-      // Add admin confirmation message (simplified)
-      await supabase
+      // Add admin confirmation message
+      const { data: messageResult, error: messageError } = await supabase
         .from('ticket_messages')
         .insert({
           ticket_id: parseInt(ticketId),
           user_id: currentUser.id,
           message: `✅ Payment approved! $${amountNum.toFixed(2)} added to your account. New balance: $${newBalance.toFixed(2)}`,
           is_admin: true
-        });
+        })
+        .select();
+        
+      console.log("Admin message result:", { messageResult, messageError });
+      
+      if (messageError) {
+        console.error('Error creating admin message:', messageError);
+        // Don't throw error here, balance update is more important
+      }
 
       toast({
         title: "Top-up Approved",
-        description: `Added $${amountNum.toFixed(2)} to user balance`,
+        description: `Added $${amountNum.toFixed(2)} to user balance. New balance: $${newBalance.toFixed(2)}`,
       });
 
       // Refresh tickets
@@ -163,13 +199,13 @@ export const CryptoTopupList = () => {
       // Force page reload to update balance in navbar
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 2000);
       
     } catch (error) {
       console.error('Error verifying ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to approve top-up request",
+        description: `Failed to approve top-up request: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
