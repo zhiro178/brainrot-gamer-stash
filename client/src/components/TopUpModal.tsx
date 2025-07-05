@@ -36,19 +36,8 @@ export function TopUpModal({ user }: { user?: any }) {
     return currentUser;
   };
 
-  // Helper: get admin user by email
-  const getAdminUser = async () => {
-    const { data: adminUser, error: adminError } = await supabase
-      .from("auth.users")
-      .select("id")
-      .eq("email", ADMIN_EMAIL)
-      .single();
-    if (!adminUser || adminError) return null;
-    return adminUser;
-  };
-
   // Crypto top-up
-  const handleCryptoTopUp = async (e: React.FormEvent) => {
+  const handleCryptoTopUp = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -86,16 +75,6 @@ export function TopUpModal({ user }: { user?: any }) {
       if (!insertResult || ticketError) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
-      // Get admin
-      const adminUser = await getAdminUser();
-      if (!adminUser) {
-        toast({
-          title: "Admin Error",
-          description: "Admin user not found. Please contact support.",
-          variant: "destructive",
-        });
-        return;
-      }
       // Add user & admin messages
       const messageData = [
         {
@@ -106,7 +85,7 @@ export function TopUpModal({ user }: { user?: any }) {
         },
         {
           ticket_id: insertResult.id,
-          user_id: adminUser.id,
+          user_id: currentUser.id, // Use current user ID but mark as admin message
           message: `Hello! We've received your crypto top-up request. We'll process this shortly.`,
           is_admin: true,
         },
@@ -139,7 +118,7 @@ export function TopUpModal({ user }: { user?: any }) {
   };
 
   // Gift card top-up
-  const handleGiftCardTopUp = async (e: React.FormEvent) => {
+  const handleGiftCardTopUp = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -185,16 +164,6 @@ export function TopUpModal({ user }: { user?: any }) {
       if (!insertResult || ticketError) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
-      // Get admin
-      const adminUser = await getAdminUser();
-      if (!adminUser) {
-        toast({
-          title: "Admin Error",
-          description: "Admin user not found. Please contact support.",
-          variant: "destructive",
-        });
-        return;
-      }
       // Add user & admin messages
       const messageData = [
         {
@@ -205,7 +174,7 @@ export function TopUpModal({ user }: { user?: any }) {
         },
         {
           ticket_id: insertResult.id,
-          user_id: adminUser.id,
+          user_id: currentUser.id, // Use current user ID but mark as admin message
           message: `Hello! I've received your gift card top-up request for $${amount} USD. I'll verify your Amazon gift card within 24 hours.`,
           is_admin: true,
         },

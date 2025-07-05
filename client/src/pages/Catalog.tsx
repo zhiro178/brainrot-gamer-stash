@@ -1,5 +1,5 @@
 import { useRoute, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,7 +28,16 @@ export default function Catalog() {
   const [filterRarity, setFilterRarity] = useState("all");
   const { isAdminMode, isAdmin } = useAdmin();
 
-  const [items, setItems] = useState(SAMPLE_ITEMS);
+  const [items, setItems] = useState(() => {
+    // Try to load from localStorage first
+    const savedItems = localStorage.getItem(`catalog-items-${gameId}-${categoryId}`);
+    return savedItems ? JSON.parse(savedItems) : SAMPLE_ITEMS;
+  });
+
+  // Save items to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(`catalog-items-${gameId}-${categoryId}`, JSON.stringify(items));
+  }, [items, gameId, categoryId]);
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
