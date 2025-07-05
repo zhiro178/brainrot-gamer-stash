@@ -1,18 +1,14 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SimpleChat } from "@/components/SimpleChat";
+import { TicketChat } from "@/components/TicketChat";
 import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
-
-const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface Ticket {
   id: string;
@@ -206,10 +202,10 @@ export default function Tickets() {
                             </DialogDescription>
                           </DialogHeader>
                           {selectedTicket && user && (
-                            <SimpleChat 
+                            <TicketChat 
                               ticketId={selectedTicket.id}
+                              ticketSubject={selectedTicket.subject}
                               currentUser={user}
-                              userEmail={selectedTicket.user_id}
                             />
                           )}
                         </DialogContent>
