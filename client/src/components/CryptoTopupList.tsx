@@ -5,27 +5,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TicketChat } from "@/components/TicketChat";
-import { Bitcoin, Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle } from "lucide-react";
+import { Bitcoin, Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-interface CryptoTicket {
+interface TopUpTicket {
   id: string;
   subject: string;
   message: string;
   status: string;
   created_at: string;
   user_id: string;
-  user_email?: string;
+  category: string;
 }
 
 export const CryptoTopupList = () => {
-  const [tickets, setTickets] = useState<CryptoTicket[]>([]);
+  const [tickets, setTickets] = useState<TopUpTicket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTicket, setSelectedTicket] = useState<CryptoTicket | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<TopUpTicket | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [processingTicket, setProcessingTicket] = useState<string | null>(null);
   const { toast } = useToast();
@@ -44,20 +44,17 @@ export const CryptoTopupList = () => {
     try {
       const { data, error } = await supabase
         .from('support_tickets')
-        .select(`
-          *,
-          user_email:user_id(email)
-        `)
-        .eq('category', 'crypto_topup')
+        .select('*')
+        .in('category', ['crypto_topup', 'giftcard_topup'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setTickets(data || []);
     } catch (error) {
-      console.error('Error fetching crypto tickets:', error);
+      console.error('Error fetching topup tickets:', error);
       toast({
         title: "Error",
-        description: "Failed to load crypto top-up tickets",
+        description: "Failed to load top-up tickets",
         variant: "destructive",
       });
     } finally {
@@ -70,14 +67,17 @@ export const CryptoTopupList = () => {
     return match ? match[1] : "0.00";
   };
 
-  const getCryptoType = (message: string) => {
+  const getRequestType = (category: string, message: string) => {
+    if (category === 'giftcard_topup') {
+      return { type: 'Gift Card', icon: CreditCard, color: 'bg-blue-500' };
+    }
     if (message.toLowerCase().includes('ltc') || message.toLowerCase().includes('litecoin')) {
-      return { type: 'LTC', icon: '₿', color: 'bg-orange-500' };
+      return { type: 'LTC', icon: Bitcoin, color: 'bg-orange-500' };
     }
     if (message.toLowerCase().includes('sol') || message.toLowerCase().includes('solana')) {
-      return { type: 'SOL', icon: '◎', color: 'bg-purple-500' };
+      return { type: 'SOL', icon: Bitcoin, color: 'bg-purple-500' };
     }
-    return { type: 'CRYPTO', icon: '₿', color: 'bg-primary' };
+    return { type: 'Crypto', icon: Bitcoin, color: 'bg-primary' };
   };
 
   const getStatusColor = (status: string) => {
@@ -124,19 +124,19 @@ export const CryptoTopupList = () => {
           balance: currentBalance + amountNum
         });
 
-      // Add admin message to ticket
+      // Add admin confirmation message
       await supabase
         .from('ticket_messages')
         .insert({
           ticket_id: ticketId,
           user_id: currentUser.id,
-          message: `✅ Payment verified! $${amount} has been added to your account. Your new balance is $${(currentBalance + amountNum).toFixed(2)}. Thank you for your top-up!`,
+          message: `✅ Payment verified and approved!\n\n💰 $${amountNum.toFixed(2)} has been added to your account.\n🏦 Your new balance: $${(currentBalance + amountNum).toFixed(2)}\n\nThank you for your top-up! You can now use these funds to purchase items.`,
           is_admin: true
         });
 
       toast({
-        title: "Ticket Verified",
-        description: `Added $${amount} to user balance. Ticket marked as resolved.`,
+        title: "Top-up Approved",
+        description: `Added $${amountNum.toFixed(2)} to user balance. New balance: $${(currentBalance + amountNum).toFixed(2)}`,
       });
 
       // Refresh tickets
@@ -145,7 +145,7 @@ export const CryptoTopupList = () => {
       console.error('Error verifying ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to verify ticket",
+        description: "Failed to approve top-up request",
         variant: "destructive",
       });
     } finally {
@@ -171,8 +171,8 @@ export const CryptoTopupList = () => {
         .eq('id', ticketId);
 
       toast({
-        title: "Ticket Deleted",
-        description: "The crypto top-up ticket has been deleted.",
+        title: "Top-up Request Deleted",
+        description: "The top-up request has been permanently deleted.",
       });
 
       // Refresh tickets
@@ -181,7 +181,7 @@ export const CryptoTopupList = () => {
       console.error('Error deleting ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to delete ticket",
+        description: "Failed to delete top-up request",
         variant: "destructive",
       });
     } finally {
@@ -196,9 +196,9 @@ export const CryptoTopupList = () => {
   if (tickets.length === 0) {
     return (
       <div className="text-center py-8">
-        <Bitcoin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No Crypto Top-up Requests</h3>
-        <p className="text-muted-foreground">No cryptocurrency top-up requests have been submitted yet.</p>
+        <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">No Top-up Requests</h3>
+        <p className="text-muted-foreground">No cryptocurrency or gift card top-up requests have been submitted yet.</p>
       </div>
     );
   }
@@ -207,23 +207,24 @@ export const CryptoTopupList = () => {
     <div className="space-y-4">
       {tickets.map((ticket) => {
         const amount = extractAmountFromSubject(ticket.subject);
-        const crypto = getCryptoType(ticket.message);
+        const requestType = getRequestType(ticket.category, ticket.message);
         const isResolved = ticket.status === 'resolved' || ticket.status === 'closed';
+        const IconComponent = requestType.icon;
         
         return (
           <Card key={ticket.id} className="bg-background border-primary/20 hover:shadow-gaming transition-all duration-300">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full ${crypto.color} flex items-center justify-center text-white font-bold`}>
-                    {crypto.icon}
+                  <div className={`w-12 h-12 rounded-full ${requestType.color} flex items-center justify-center text-white`}>
+                    <IconComponent className="h-6 w-6" />
                   </div>
                   <div>
-                    <CardTitle className="text-primary text-lg">{crypto.type} Top-up Request</CardTitle>
+                    <CardTitle className="text-primary text-lg">{requestType.type} Top-up Request</CardTitle>
                     <CardDescription className="flex items-center gap-4">
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        {ticket.user_email || 'Unknown'}
+                        User ID: {ticket.user_id.slice(0, 8)}...
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
@@ -234,9 +235,9 @@ export const CryptoTopupList = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <div className="flex items-center gap-1 text-gaming-success font-bold text-lg">
-                      <DollarSign className="h-4 w-4" />
-                      {amount}
+                    <div className="flex items-center gap-1 text-gaming-success font-bold text-xl">
+                      <DollarSign className="h-5 w-5" />
+                      {parseFloat(amount).toFixed(2)}
                     </div>
                     <div className="text-xs text-muted-foreground">USD</div>
                   </div>
@@ -268,13 +269,11 @@ export const CryptoTopupList = () => {
                   <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full ${crypto.color} flex items-center justify-center text-white text-xs font-bold`}>
-                          {crypto.icon}
-                        </div>
-                        {crypto.type} Top-up Chat - ${amount}
+                        <IconComponent className="h-5 w-5" />
+                        {requestType.type} Top-up Chat - ${parseFloat(amount).toFixed(2)}
                       </DialogTitle>
                       <DialogDescription>
-                        Communicate with the user about their cryptocurrency top-up request
+                        Chat with the customer about their {requestType.type.toLowerCase()} top-up request
                       </DialogDescription>
                     </DialogHeader>
                     {selectedTicket && currentUser && (
@@ -300,7 +299,7 @@ export const CryptoTopupList = () => {
                       ) : (
                         <CheckCircle className="h-4 w-4 mr-2" />
                       )}
-                      Verify & Add Balance
+                      Approve & Add ${parseFloat(amount).toFixed(2)}
                     </Button>
                     
                     <Button 
@@ -322,7 +321,7 @@ export const CryptoTopupList = () => {
                 {isResolved && (
                   <Badge className="bg-gaming-success text-black">
                     <CheckCircle className="h-3 w-3 mr-1" />
-                    Resolved
+                    Approved & Funded
                   </Badge>
                 )}
               </div>
