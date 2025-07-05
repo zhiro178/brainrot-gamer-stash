@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TicketChat } from "@/components/TicketChat";
+import { StreamTicketChat } from "@/components/StreamTicketChat";
 import { Bitcoin, Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -337,7 +337,7 @@ export const CryptoTopupList = () => {
                       </DialogDescription>
                     </DialogHeader>
                     {selectedTicket && currentUser && (
-                      <TicketChat 
+                      <StreamTicketChat 
                         ticketId={selectedTicket.id}
                         ticketSubject={selectedTicket.subject}
                         currentUser={currentUser}
