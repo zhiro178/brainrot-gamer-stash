@@ -101,46 +101,102 @@ export const CryptoTopupList = () => {
     try {
       const amountNum = parseFloat(amount);
       
+      console.log("Starting approval process for:", { ticketId, amount, userId, amountNum });
+      
       // Update ticket status to resolved
-      await supabase
+      const { error: ticketUpdateError } = await supabase
         .from('support_tickets')
         .update({ status: 'resolved' })
         .eq('id', ticketId);
+        
+      if (ticketUpdateError) {
+        throw new Error(`Failed to update ticket: ${ticketUpdateError.message}`);
+      }
 
-      // Get current user balance
-      const { data: existingBalance } = await supabase
+      // Get or create user balance
+      let { data: existingBalance, error: balanceError } = await supabase
         .from('user_balances')
         .select('balance')
-        .eq('user_id', String(userId)) // Ensure it's a string
+        .eq('user_id', String(userId))
         .single();
 
-      const currentBalance = existingBalance?.balance || 0;
+      console.log("Existing balance query result:", existingBalance, balanceError);
+
+      // If no balance record exists, create one
+      if (!existingBalance && balanceError?.code === 'PGRST116') {
+        console.log("Creating new balance record for user:", userId);
+        const { data: newBalanceRecord, error: createError } = await supabase
+          .from('user_balances')
+          .insert({
+            user_id: String(userId),
+            balance: '0.00'
+          })
+          .select()
+          .single();
+          
+        if (createError) {
+          throw new Error(`Failed to create balance record: ${createError.message}`);
+        }
+        
+        existingBalance = newBalanceRecord;
+        console.log("Created new balance record:", newBalanceRecord);
+      } else if (balanceError && balanceError.code !== 'PGRST116') {
+        throw new Error(`Failed to query balance: ${balanceError.message}`);
+      }
+
+      const currentBalance = parseFloat(existingBalance?.balance || '0');
+      const newBalance = currentBalance + amountNum;
+      
+      console.log("Balance calculation:", { currentBalance, amountNum, newBalance });
       
       // Add amount to user balance
-      await supabase
+      const { data: upsertResult, error: upsertError } = await supabase
         .from('user_balances')
         .upsert({
-          user_id: String(userId), // Ensure it's a string
-          balance: currentBalance + amountNum
-        });
+          user_id: String(userId),
+          balance: newBalance.toFixed(2)
+        }, { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
+        })
+        .select();
+
+      console.log("Balance upsert result:", upsertResult, upsertError);
+
+      if (upsertError) {
+        throw new Error(`Failed to update balance: ${upsertError.message}`);
+      }
 
       // Add admin confirmation message
-      await supabase
+      console.log("Creating admin confirmation message for ticket:", ticketId);
+      const { data: adminMessageResult, error: adminMessageError } = await supabase
         .from('ticket_messages')
         .insert({
-          ticket_id: parseInt(ticketId), // Convert to integer
-          user_id: String(currentUser.id), // Ensure it's a string
-          message: `✅ Payment verified and approved!\n\n💰 $${amountNum.toFixed(2)} has been added to your account.\n🏦 Your new balance: $${(currentBalance + amountNum).toFixed(2)}\n\nThank you for your top-up! You can now use these funds to purchase items.`,
+          ticket_id: parseInt(ticketId),
+          user_id: String(currentUser.id),
+          message: `✅ Payment verified and approved!\n\n💰 $${amountNum.toFixed(2)} has been added to your account.\n🏦 Your new balance: $${newBalance.toFixed(2)}\n\nThank you for your top-up! You can now use these funds to purchase items.`,
           is_admin: true
-        });
+        })
+        .select();
+        
+      console.log("Admin message creation result:", adminMessageResult, adminMessageError);
+      
+      if (adminMessageError) {
+        console.error("Failed to create admin message:", adminMessageError);
+      }
 
       toast({
         title: "Top-up Approved",
-        description: `Added $${amountNum.toFixed(2)} to user balance. New balance: $${(currentBalance + amountNum).toFixed(2)}`,
+        description: `Added $${amountNum.toFixed(2)} to user balance. New balance: $${newBalance.toFixed(2)}`,
       });
 
       // Refresh tickets
       fetchCryptoTickets();
+      
+      // Refresh page to update balance in navbar
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       console.error('Error verifying ticket:', error);
       toast({

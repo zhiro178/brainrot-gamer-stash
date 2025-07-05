@@ -44,24 +44,13 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
   useEffect(() => {
     fetchMessages();
     
-    // Subscribe to new messages
-    const subscription = supabase
-      .channel(`ticket_messages_${ticketId}`)
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'ticket_messages',
-          filter: `ticket_id=eq.${ticketId}`
-        }, 
-        (payload) => {
-          setMessages(prev => [...prev, payload.new as Message]);
-        }
-      )
-      .subscribe();
+    // Set up a simple interval to refresh messages
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 3000); // Refresh every 3 seconds
 
     return () => {
-      subscription.unsubscribe();
+      clearInterval(interval);
     };
   }, [ticketId]);
 
@@ -71,55 +60,80 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
 
   const fetchMessages = async () => {
     try {
+      console.log("Fetching messages for ticket ID:", ticketId, "Type:", typeof ticketId);
+      
       const { data, error } = await supabase
         .from('ticket_messages')
-        .select(`
-          *,
-          user_email:user_id(email)
-        `)
-        .eq('ticket_id', ticketId)
+        .select('*')
+        .eq('ticket_id', parseInt(ticketId))
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      console.log("Messages fetch result:", data, error);
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
+      }
+      
       setMessages(data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load chat messages",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
+  const sendMessage = async (e: any) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
     try {
-      const { error } = await supabase
+      console.log("Sending message:", {
+        ticket_id: parseInt(ticketId),
+        user_id: String(currentUser.id),
+        message: newMessage.trim(),
+        is_admin: isAdmin
+      });
+
+      const { data, error } = await supabase
         .from('ticket_messages')
         .insert({
-          ticket_id: parseInt(ticketId), // Convert to integer
-          user_id: String(currentUser.id), // Ensure it's a string
+          ticket_id: parseInt(ticketId),
+          user_id: String(currentUser.id),
           message: newMessage.trim(),
           is_admin: isAdmin
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      console.log("Message send result:", data, error);
+
+      if (error) {
+        throw error;
+      }
       
       setNewMessage("");
+      
+      // Refresh messages immediately
+      await fetchMessages();
       
       // Update ticket status to 'in_progress' if it's the first message
       if (messages.length === 0) {
         await supabase
           .from('support_tickets')
           .update({ status: 'in_progress' })
-          .eq('id', ticketId);
+          .eq('id', parseInt(ticketId));
       }
       
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: `Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
