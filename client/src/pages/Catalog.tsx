@@ -100,7 +100,7 @@ export default function Catalog() {
       const { data: balanceData } = await supabase
         .from('user_balances')
         .select('balance')
-        .eq('user_id', user.id)
+        .eq('user_id', String(user.id)) // Ensure it's a string
         .single();
       
       const currentBalance = balanceData?.balance || 0;
@@ -110,7 +110,7 @@ export default function Catalog() {
         await supabase
           .from('user_balances')
           .upsert({
-            user_id: user.id,
+            user_id: String(user.id), // Ensure it's a string
             balance: currentBalance - item.price
           });
         
@@ -118,7 +118,7 @@ export default function Catalog() {
         const { data: ticketData, error } = await supabase
           .from('support_tickets')
           .insert({
-            user_id: user.id,
+            user_id: String(user.id), // Ensure it's a string
             subject: `Purchase Claim - ${item.name}`,
             message: `Purchase completed for: ${item.name} - Price: $${item.price}. Please deliver the item.`,
             status: 'open',
@@ -132,8 +132,8 @@ export default function Catalog() {
           await supabase
             .from('ticket_messages')
             .insert({
-              ticket_id: ticketData.id,
-              user_id: user.id,
+              ticket_id: ticketData.id, // Keep as integer
+              user_id: String(user.id), // Ensure it's a string
               message: `I have successfully purchased: ${item.name} for $${item.price}. My remaining balance is $${(currentBalance - item.price).toFixed(2)}. Please deliver the item to my account.`,
               is_admin: false
             });
@@ -142,8 +142,8 @@ export default function Catalog() {
           await supabase
             .from('ticket_messages')
             .insert({
-              ticket_id: ticketData.id,
-              user_id: user.id,
+              ticket_id: ticketData.id, // Keep as integer
+              user_id: String(user.id), // Ensure it's a string
               message: `Payment received! We'll process your ${item.name} order and deliver it to your account within 24 hours. Thank you for your purchase!`,
               is_admin: true
             });

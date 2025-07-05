@@ -109,7 +109,7 @@ const Index = () => {
       const { data, error } = await supabase
         .from('user_balances')
         .select('balance')
-        .eq('user_id', userId)
+        .eq('user_id', String(userId)) // Ensure it's a string
         .single();
       
       // Handle expected errors gracefully (table doesn't exist, no records found)

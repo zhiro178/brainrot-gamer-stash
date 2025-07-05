@@ -97,8 +97,8 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
       const { error } = await supabase
         .from('ticket_messages')
         .insert({
-          ticket_id: ticketId,
-          user_id: currentUser.id,
+          ticket_id: parseInt(ticketId), // Convert to integer
+          user_id: String(currentUser.id), // Ensure it's a string
           message: newMessage.trim(),
           is_admin: isAdmin
         });
