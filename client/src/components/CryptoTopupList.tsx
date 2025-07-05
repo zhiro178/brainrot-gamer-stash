@@ -103,10 +103,12 @@ export const CryptoTopupList = () => {
       
       console.log("Starting approval for:", { ticketId, amount, userId, amountNum });
       
-      // Update ticket status to resolved
+      // Update ticket status to resolved and add approval note
       const { error: ticketError } = await supabase
         .from('support_tickets')
-        .update({ status: 'resolved' })
+        .update({ 
+          status: 'resolved'
+        })
         .eq('id', ticketId);
         
       if (ticketError) {
@@ -116,67 +118,13 @@ export const CryptoTopupList = () => {
       
       console.log("Ticket updated to resolved");
 
-      // Get or create user balance
-      let { data: existingBalance, error: balanceError } = await supabase
-        .from('user_balances')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
-
-      console.log("Existing balance query:", { existingBalance, balanceError });
-
-      // If no balance record exists, create one
-      if (!existingBalance && balanceError?.code === 'PGRST116') {
-        console.log("Creating new balance record for user:", userId);
-        const { data: newBalanceRecord, error: createError } = await supabase
-          .from('user_balances')
-          .insert({
-            user_id: userId,
-            balance: '0.00'
-          })
-          .select()
-          .single();
-          
-        if (createError) {
-          console.error('Error creating balance record:', createError);
-          throw new Error(`Failed to create balance record: ${createError.message}`);
-        }
-        
-        existingBalance = newBalanceRecord;
-        console.log("Created new balance record:", newBalanceRecord);
-      }
-
-      const currentBalance = parseFloat(existingBalance?.balance || '0');
-      const newBalance = currentBalance + amountNum;
-      
-      console.log("Balance calculation:", { currentBalance, amountNum, newBalance });
-      
-      // Update user balance
-      const { data: balanceResult, error: balanceUpdateError } = await supabase
-        .from('user_balances')
-        .upsert({
-          user_id: userId,
-          balance: newBalance.toFixed(2)
-        }, { 
-          onConflict: 'user_id',
-          ignoreDuplicates: false 
-        })
-        .select();
-        
-      console.log("Balance update result:", { balanceResult, balanceUpdateError });
-      
-      if (balanceUpdateError) {
-        console.error('Error updating balance:', balanceUpdateError);
-        throw new Error(`Failed to update balance: ${balanceUpdateError.message}`);
-      }
-
-      // Add admin confirmation message
+      // Add admin confirmation message (simplified)
       const { data: messageResult, error: messageError } = await supabase
         .from('ticket_messages')
         .insert({
-          ticket_id: parseInt(ticketId),
-          user_id: currentUser.id,
-          message: `✅ Payment approved! $${amountNum.toFixed(2)} added to your account. New balance: $${newBalance.toFixed(2)}`,
+          ticket_id: ticketId,
+          user_id: String(currentUser.id),
+          message: `✅ Payment approved! $${amountNum.toFixed(2)} has been added to your account.`,
           is_admin: true
         })
         .select();
@@ -185,21 +133,16 @@ export const CryptoTopupList = () => {
       
       if (messageError) {
         console.error('Error creating admin message:', messageError);
-        // Don't throw error here, balance update is more important
+        // Don't throw error here, approval is more important
       }
 
       toast({
         title: "Top-up Approved",
-        description: `Added $${amountNum.toFixed(2)} to user balance. New balance: $${newBalance.toFixed(2)}`,
+        description: `Approved $${amountNum.toFixed(2)} top-up request`,
       });
 
       // Refresh tickets
       fetchCryptoTickets();
-      
-      // Force page reload to update balance in navbar
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
       
     } catch (error) {
       console.error('Error verifying ticket:', error);

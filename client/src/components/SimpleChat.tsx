@@ -42,16 +42,15 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
 
   const fetchMessages = async () => {
     try {
-      const ticketIdNum = parseInt(ticketId);
-      console.log("Fetching messages for ticket:", ticketIdNum);
+      console.log("Fetching messages for ticket:", ticketId);
       
       const { data, error } = await supabase
         .from('ticket_messages')
         .select('*')
-        .eq('ticket_id', ticketIdNum)
+        .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
 
-      console.log("Messages fetch result:", { data, error, ticketId: ticketIdNum });
+      console.log("Messages fetch result:", { data, error, ticketId });
 
       if (error) {
         console.error('Error fetching messages:', error);
@@ -71,11 +70,8 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
     if (!newMessage.trim()) return;
 
     try {
-      // Ensure ticket_id is a number
-      const ticketIdNum = parseInt(ticketId);
-      
       console.log("Sending message:", {
-        ticket_id: ticketIdNum,
+        ticket_id: ticketId,
         user_id: currentUser.id,
         message: newMessage.trim(),
         is_admin: isAdmin,
@@ -85,8 +81,8 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
       const { data, error } = await supabase
         .from('ticket_messages')
         .insert({
-          ticket_id: ticketIdNum,
-          user_id: currentUser.id,
+          ticket_id: ticketId,
+          user_id: String(currentUser.id),
           message: newMessage.trim(),
           is_admin: isAdmin
         })
