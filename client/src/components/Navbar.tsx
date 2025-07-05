@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Wallet, LogOut, Ticket, Settings, Edit } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -26,6 +27,7 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
   if (isUserAdmin && !isAdminMode) {
     setIsAdmin(true);
   }
+
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -33,7 +35,7 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: any) => {
     e.preventDefault();
     onLogin(loginEmail, loginPassword);
     setIsLoginOpen(false);
@@ -41,12 +43,24 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
     setLoginPassword("");
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = (e: any) => {
     e.preventDefault();
     onRegister(registerEmail, registerPassword);
     setIsRegisterOpen(false);
     setRegisterEmail("");
     setRegisterPassword("");
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.nickname) {
+      return user.user_metadata.nickname;
+    }
+    return user?.email?.split('@')[0] || 'User';
+  };
+
+  const getUserInitials = () => {
+    const displayName = getUserDisplayName();
+    return displayName.charAt(0).toUpperCase();
   };
 
   return (
@@ -76,8 +90,13 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm">{user.email}</span>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.user_metadata?.avatar_url} alt={getUserDisplayName()} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium hidden sm:inline">{getUserDisplayName()}</span>
                 </div>
                 
                 {(!isUserAdmin || isAdminMode) && (

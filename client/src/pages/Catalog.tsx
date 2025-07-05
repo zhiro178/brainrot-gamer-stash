@@ -59,92 +59,118 @@ export default function Catalog() {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (user) {
-        // Check user balance
-        const { data: balanceData } = await supabase
+      // Check if user is logged in
+      if (!user) {
+        const { toast } = await import("@/hooks/use-toast");
+        toast({
+          title: "Login Required",
+          description: (
+            <div className="space-y-3">
+              <p>You need to be logged in to purchase items.</p>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => window.location.href = "/?login=true"}
+                  className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm hover:bg-primary/80"
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => window.location.href = "/?register=true"}
+                  className="bg-secondary text-secondary-foreground px-3 py-1 rounded text-sm hover:bg-secondary/80"
+                >
+                  Register
+                </button>
+              </div>
+            </div>
+          ),
+        });
+        return;
+      }
+      
+      // Check user balance
+      const { data: balanceData } = await supabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', user.id)
+        .single();
+      
+      const currentBalance = balanceData?.balance || 0;
+      
+      if (currentBalance >= item.price) {
+        // Deduct from balance
+        await supabase
           .from('user_balances')
-          .select('balance')
-          .eq('user_id', user.id)
+          .upsert({
+            user_id: user.id,
+            balance: currentBalance - item.price
+          });
+        
+        // Create purchase ticket
+        const { data: ticketData, error } = await supabase
+          .from('support_tickets')
+          .insert({
+            user_id: user.id,
+            subject: `Purchase Claim - ${item.name}`,
+            message: `Purchase completed for: ${item.name} - Price: $${item.price}. Please deliver the item.`,
+            status: 'open',
+            category: 'purchase'
+          })
+          .select('id')
           .single();
         
-        const currentBalance = balanceData?.balance || 0;
-        
-        if (currentBalance >= item.price) {
-          // Deduct from balance
+        if (!error && ticketData) {
+          // Add user message
           await supabase
-            .from('user_balances')
-            .upsert({
-              user_id: user.id,
-              balance: currentBalance - item.price
-            });
-          
-          // Create purchase ticket
-          const { data: ticketData, error } = await supabase
-            .from('support_tickets')
+            .from('ticket_messages')
             .insert({
+              ticket_id: ticketData.id,
               user_id: user.id,
-              subject: `Purchase Claim - ${item.name}`,
-              message: `Purchase completed for: ${item.name} - Price: $${item.price}. Please deliver the item.`,
-              status: 'open',
-              category: 'purchase'
-            })
-            .select('id')
-            .single();
-          
-          if (!error && ticketData) {
-            // Add user message
-            await supabase
-              .from('ticket_messages')
-              .insert({
-                ticket_id: ticketData.id,
-                user_id: user.id,
-                message: `I have successfully purchased: ${item.name} for $${item.price}. My remaining balance is $${(currentBalance - item.price).toFixed(2)}. Please deliver the item to my account.`,
-                is_admin: false
-              });
-            
-            // Add admin message
-            await supabase
-              .from('ticket_messages')
-              .insert({
-                ticket_id: ticketData.id,
-                user_id: user.id,
-                message: `Payment received! We'll process your ${item.name} order and deliver it to your account within 24 hours. Thank you for your purchase!`,
-                is_admin: true
-              });
-            
-            const { toast } = await import("@/hooks/use-toast");
-            toast({
-              title: "🎉 Purchase Successful!",
-              description: (
-                <div className="space-y-3 p-4 bg-gradient-to-br from-gaming-success/20 to-gaming-success/10 rounded-lg border border-gaming-success/30">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Item:</span>
-                    <span className="font-bold text-primary">{item.name}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Amount Paid:</span>
-                    <span className="font-bold text-destructive">${item.price}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">New Balance:</span>
-                    <span className="font-bold text-gaming-success">${(currentBalance - item.price).toFixed(2)}</span>
-                  </div>
-                  <p className="text-xs text-center text-muted-foreground mt-3 italic">
-                    🎫 Check 'My Tickets' for delivery updates
-                  </p>
-                </div>
-              ),
+              message: `I have successfully purchased: ${item.name} for $${item.price}. My remaining balance is $${(currentBalance - item.price).toFixed(2)}. Please deliver the item to my account.`,
+              is_admin: false
             });
-          }
-        } else {
+          
+          // Add admin message
+          await supabase
+            .from('ticket_messages')
+            .insert({
+              ticket_id: ticketData.id,
+              user_id: user.id,
+              message: `Payment received! We'll process your ${item.name} order and deliver it to your account within 24 hours. Thank you for your purchase!`,
+              is_admin: true
+            });
+          
           const { toast } = await import("@/hooks/use-toast");
-          const shortfall = (item.price - currentBalance).toFixed(2);
           toast({
-            title: "Insufficient Balance",
-            description: `You need $${shortfall} more to purchase this item. Current balance: $${currentBalance.toFixed(2)}`,
-            className: "bg-gradient-to-br from-cyan-500/20 to-blue-400/20 border border-cyan-400/30 text-cyan-100",
+            title: "🎉 Purchase Successful!",
+            description: (
+              <div className="space-y-3 p-4 bg-gradient-to-br from-gaming-success/20 to-gaming-success/10 rounded-lg border border-gaming-success/30">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Item:</span>
+                  <span className="font-bold text-primary">{item.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Amount Paid:</span>
+                  <span className="font-bold text-destructive">${item.price}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">New Balance:</span>
+                  <span className="font-bold text-gaming-success">${(currentBalance - item.price).toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-center text-muted-foreground mt-3 italic">
+                  🎫 Check 'My Tickets' for delivery updates
+                </p>
+              </div>
+            ),
           });
         }
+      } else {
+        const { toast } = await import("@/hooks/use-toast");
+        const shortfall = (item.price - currentBalance).toFixed(2);
+        toast({
+          title: "Insufficient Balance",
+          description: `You need $${shortfall} more to purchase this item. Current balance: $${currentBalance.toFixed(2)}`,
+          className: "bg-gradient-to-br from-cyan-500/20 to-blue-400/20 border border-cyan-400/30 text-cyan-100",
+        });
       }
     } catch (error) {
       console.error('Purchase error:', error);
