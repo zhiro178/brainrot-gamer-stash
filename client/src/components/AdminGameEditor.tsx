@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Edit, Save, X, Upload, Eye, Trash2, Plus, RotateCcw } from "lucide-react";
+import { Settings, Edit, Save, X, Upload, Eye, Trash2, Plus, RotateCcw, Image, FileImage } from "lucide-react";
 
 interface GameData {
   id: string;
@@ -35,6 +35,9 @@ export const AdminGameEditor = ({ games, defaultGames, onGamesUpdate }: AdminGam
   });
   const [newGame, setNewGame] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -113,6 +116,8 @@ export const AdminGameEditor = ({ games, defaultGames, onGamesUpdate }: AdminGam
     setNewGame(false);
     setFormData({ title: "", description: "", imageUrl: "", itemCount: 0 });
     setPreviewUrl("");
+    setIsDragging(false);
+    setIsUploading(false);
     toast({
       title: "Reset Complete",
       description: "Games have been reset to default configuration",
@@ -124,12 +129,87 @@ export const AdminGameEditor = ({ games, defaultGames, onGamesUpdate }: AdminGam
     setNewGame(false);
     setFormData({ title: "", description: "", imageUrl: "", itemCount: 0 });
     setPreviewUrl("");
+    setIsDragging(false);
+    setIsUploading(false);
   };
 
   const handleImagePreview = () => {
     if (formData.imageUrl) {
       setPreviewUrl(formData.imageUrl);
     }
+  };
+
+  const handleFileUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setFormData({...formData, imageUrl: result});
+      setPreviewUrl(result);
+      setIsUploading(false);
+      toast({
+        title: "Image Uploaded",
+        description: "Image has been successfully uploaded",
+      });
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   const startEdit = (game: GameData) => {
@@ -142,6 +222,8 @@ export const AdminGameEditor = ({ games, defaultGames, onGamesUpdate }: AdminGam
     setNewGame(true);
     setFormData({ title: "", description: "", imageUrl: "", itemCount: 0 });
     setPreviewUrl("");
+    setIsDragging(false);
+    setIsUploading(false);
   };
 
   return (
@@ -276,32 +358,90 @@ export const AdminGameEditor = ({ games, defaultGames, onGamesUpdate }: AdminGam
                 </div>
 
                 <div>
-                  <Label htmlFor="imageUrl" className="text-primary">Image URL *</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      id="imageUrl"
-                      value={formData.imageUrl}
-                      onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                      placeholder="Enter image URL"
-                      className="bg-background border-primary/20"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleImagePreview}
-                      className="px-3"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                  <Label htmlFor="imageUrl" className="text-primary">Game Image *</Label>
+                  
+                  {/* Drag and Drop Zone */}
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                      isDragging 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-primary/20 hover:border-primary/40'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    {isUploading ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <span className="text-sm text-muted-foreground">Uploading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <FileImage className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Drag and drop an image here, or click to select
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={triggerFileInput}
+                          className="mb-2"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Choose Image
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Supports JPG, PNG, GIF up to 5MB
+                        </p>
+                      </>
+                    )}
                   </div>
-                  {previewUrl && (
-                    <div className="mt-2">
-                      <img 
-                        src={previewUrl} 
-                        alt="Preview"
-                        className="w-32 h-20 object-cover rounded border-2 border-primary/20"
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+
+                  {/* Or use URL input */}
+                  <div className="mt-4">
+                    <Label className="text-sm text-muted-foreground">Or enter image URL:</Label>
+                    <div className="flex space-x-2 mt-1">
+                      <Input
+                        id="imageUrl"
+                        value={formData.imageUrl}
+                        onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                        placeholder="https://example.com/image.jpg"
+                        className="bg-background border-primary/20"
                       />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleImagePreview}
+                        className="px-3"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Image Preview */}
+                  {previewUrl && (
+                    <div className="mt-4">
+                      <Label className="text-sm text-muted-foreground">Preview:</Label>
+                      <div className="mt-2">
+                        <img 
+                          src={previewUrl} 
+                          alt="Preview"
+                          className="w-full max-w-sm h-32 object-cover rounded border-2 border-primary/20"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

@@ -427,14 +427,11 @@ const Index = () => {
           <div className="flex items-center justify-center space-x-4 mb-4">
             <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
             {isAdminMode && (
-              <div className="flex items-center space-x-2">
-                <AdminGameEditor 
-                  games={games}
-                  defaultGames={GAMES}
-                  onGamesUpdate={handleGamesUpdate}
-                />
-                <AdminCatalogEditor games={games} />
-              </div>
+              <AdminGameEditor 
+                games={games}
+                defaultGames={GAMES}
+                onGamesUpdate={handleGamesUpdate}
+              />
             )}
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
