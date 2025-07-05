@@ -77,22 +77,14 @@ export function TopUpModal({ user }: { user?: any }) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
       // Add initial user message
-      console.log("Creating initial message for ticket:", insertResult.id);
-      const { data: messageResult, error: messageError } = await supabase
+      await supabase
         .from("ticket_messages")
         .insert({
           ticket_id: insertResult.id,
-          user_id: String(currentUser.id),
+          user_id: currentUser.id,
           message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
           is_admin: false,
-        })
-        .select();
-        
-      console.log("Message creation result:", messageResult, messageError);
-      
-      if (messageError) {
-        throw new Error(`Message creation failed: ${messageError.message}`);
-      }
+        });
       setCryptoAmount("");
       setIsOpen(false);
       toast({
@@ -163,22 +155,14 @@ export function TopUpModal({ user }: { user?: any }) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
       // Add initial user message
-      console.log("Creating initial message for gift card ticket:", insertResult.id);
-      const { data: messageResult, error: messageError } = await supabase
+      await supabase
         .from("ticket_messages")
         .insert({
           ticket_id: insertResult.id,
-          user_id: String(currentUser.id),
+          user_id: currentUser.id,
           message: `I would like to top up my account using an Amazon gift card.\n\nAmount: $${amount} USD\nGift Card Code: ${giftCardCode}\n\nPlease verify and add the funds to my account.`,
           is_admin: false,
-        })
-        .select();
-        
-      console.log("Gift card message creation result:", messageResult, messageError);
-      
-      if (messageError) {
-        throw new Error(`Message creation failed: ${messageError.message}`);
-      }
+        });
       setGiftCardCode("");
       setGiftCardAmount("");
       setIsOpen(false);
