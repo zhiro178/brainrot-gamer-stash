@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Send, User, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { useAdmin } from "@/contexts/AdminContext";
 
 interface Message {
   id: string;
@@ -30,8 +27,7 @@ export const SimpleChat = ({ ticketId, currentUser, userEmail }: SimpleChatProps
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  
-  const isAdmin = currentUser?.email === 'zhirocomputer@gmail.com';
+  const { isAdmin } = useAdmin();
 
   useEffect(() => {
     fetchMessages();
