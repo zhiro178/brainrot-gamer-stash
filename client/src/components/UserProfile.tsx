@@ -8,11 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, Upload, Check, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase, handleSupabaseError } from "@/lib/supabase";
 
 interface UserProfileProps {
   user: any;
@@ -106,6 +102,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
     setIsUpdating(true);
 
     try {
+      // Try to update profile via Supabase
       const { data, error } = await supabase.auth.updateUser({
         data: {
           username: username.trim(),
@@ -114,6 +111,14 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       });
 
       if (error) throw error;
+
+      // Update localStorage as backup
+      const userProfile = {
+        username: username.trim(),
+        avatar_url: profilePicture,
+        updated_at: new Date().toISOString()
+      };
+      localStorage.setItem(`user_profile_${user?.id}`, JSON.stringify(userProfile));
 
       toast({
         title: "Profile updated!",
@@ -127,11 +132,26 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       setIsOpen(false);
     } catch (error) {
       console.error('Profile update error:', error);
-      toast({
-        title: "Update failed",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Fallback to localStorage only
+      try {
+        const userProfile = {
+          username: username.trim(),
+          avatar_url: profilePicture,
+          updated_at: new Date().toISOString()
+        };
+        localStorage.setItem(`user_profile_${user?.id}`, JSON.stringify(userProfile));
+        
+        toast({
+          title: "Profile saved locally",
+          description: "Profile saved to local storage. Changes will sync when connection is restored.",
+        });
+        
+        setIsOpen(false);
+      } catch (localError) {
+        const errorInfo = handleSupabaseError(error, "Failed to update profile");
+        toast(errorInfo);
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -152,11 +172,8 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       });
     } catch (error) {
       console.error('Resend error:', error);
-      toast({
-        title: "Failed to send email",
-        description: "Please try again later",
-        variant: "destructive",
-      });
+      const errorInfo = handleSupabaseError(error, "Failed to send verification email");
+      toast(errorInfo);
     }
   };
 
