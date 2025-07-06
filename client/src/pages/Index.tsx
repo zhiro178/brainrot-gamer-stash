@@ -307,10 +307,8 @@ const Index = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/?verified=true`,
-          data: {
-            email_confirm: false // Ensure email confirmation is required
-          }
+          emailRedirectTo: `${window.location.origin}/?verified=true`
+          // Removed email_confirm: false as it might interfere with email sending
         }
       });
       
