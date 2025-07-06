@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -67,12 +67,31 @@ export const AdminPanel = () => {
     });
   };
 
-  const mockUsers = [
-    { email: 'zhirocomputer@gmail.com', status: 'Admin', joined: '2024-01-01' },
-    { email: 'ajay123phone@gmail.com', status: 'Admin', joined: '2024-01-02' },
-    { email: 'user1@example.com', status: 'Active', joined: '2024-01-05' },
-    { email: 'user2@example.com', status: 'Active', joined: '2024-01-10' }
-  ];
+  // Load users from localStorage (real data from registrations)
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedUserBalance, setSelectedUserBalance] = useState<string>('');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+
+  useEffect(() => {
+    const loadUsers = () => {
+      const savedUsers = localStorage.getItem('admin_users');
+      if (savedUsers) {
+        try {
+          const parsedUsers = JSON.parse(savedUsers);
+          setUsers(parsedUsers);
+        } catch (error) {
+          console.error('Error loading users:', error);
+        }
+      }
+    };
+    
+    loadUsers();
+    
+    // Refresh users when dialog opens
+    if (isLogsDialogOpen) {
+      loadUsers();
+    }
+  }, [isLogsDialogOpen]);
 
   const adminLogs = getAdminLogs();
 
@@ -98,24 +117,129 @@ export const AdminPanel = () => {
         </DialogTrigger>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>User Management ({mockUsers.length} users)</DialogTitle>
+            <DialogTitle>User Management ({users.length} users)</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {mockUsers.map((user, index) => (
-              <Card key={index}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-medium">{user.email}</span>
-                      <Badge className="ml-2" variant={user.status === 'Admin' ? 'default' : 'secondary'}>
-                        {user.status}
-                      </Badge>
+            {users.map((user, index) => {
+              const isAdmin = user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com';
+              const isVerified = user.email_confirmed_at !== null;
+              
+              return (
+                <Card key={user.id || index}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">{user.email}</span>
+                            {isAdmin && (
+                              <Badge className="bg-gaming-accent text-black">Admin</Badge>
+                            )}
+                            {isVerified ? (
+                              <Badge className="bg-gaming-success text-black">Verified</Badge>
+                            ) : (
+                              <Badge variant="destructive">Unverified</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Joined: {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+                          </p>
+                          {user.last_sign_in_at && (
+                            <p className="text-xs text-muted-foreground">
+                              Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-sm text-muted-foreground">Joined: {user.joined}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    
+                    {/* Admin Actions */}
+                    <div className="flex items-center space-x-2 mt-3">
+                      <div className="flex items-center space-x-2 flex-1">
+                        <Input
+                          placeholder="Add balance ($)"
+                          value={selectedUserId === user.id ? selectedUserBalance : ''}
+                          onChange={(e) => {
+                            setSelectedUserId(user.id);
+                            setSelectedUserBalance(e.target.value);
+                          }}
+                          className="w-32 h-8 text-xs"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                        />
+                        <Button
+                          onClick={() => {
+                            if (selectedUserBalance && parseFloat(selectedUserBalance) > 0) {
+                              // Add balance logic here
+                              logAdminAction('ADD_BALANCE', `Added $${selectedUserBalance} to ${user.email}`, 'admin', user.email);
+                              toast({
+                                title: "Balance Added",
+                                description: `Added $${selectedUserBalance} to ${user.email}`,
+                              });
+                              setSelectedUserBalance('');
+                              setSelectedUserId('');
+                            }
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs text-gaming-success border-gaming-success"
+                          disabled={!selectedUserBalance || parseFloat(selectedUserBalance) <= 0}
+                        >
+                          Add $
+                        </Button>
+                      </div>
+                      
+                      {!isAdmin && (
+                        <div className="flex space-x-1">
+                          <Button
+                            onClick={() => {
+                              // Clear balance logic
+                              logAdminAction('CLEAR_BALANCE', `Cleared balance for ${user.email}`, 'admin', user.email);
+                              toast({
+                                title: "Balance Cleared",
+                                description: `Cleared balance for ${user.email}`,
+                                variant: "destructive",
+                              });
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs text-gaming-warning border-gaming-warning"
+                          >
+                            Clear $
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              // Delete user logic
+                              const updatedUsers = users.filter(u => u.id !== user.id);
+                              setUsers(updatedUsers);
+                              localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
+                              logAdminAction('DELETE_USER', `Deleted user account: ${user.email}`, 'admin', user.email);
+                              toast({
+                                title: "User Deleted",
+                                description: `${user.email} has been deleted`,
+                                variant: "destructive",
+                              });
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs text-destructive border-destructive"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            
+            {users.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No users registered yet</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

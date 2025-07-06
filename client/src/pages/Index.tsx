@@ -112,6 +112,17 @@ const Index = () => {
   });
 
   useEffect(() => {
+    // Check for verification success from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('verified') === 'true') {
+      toast({
+        title: "Email Verified! ✅",
+        description: "Your account has been verified successfully. You can now access all features!",
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Load saved games from localStorage or use defaults
     const savedGames = localStorage.getItem('admin_games');
     if (savedGames) {
@@ -222,7 +233,7 @@ const Index = () => {
 
   const handleLogin = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -233,11 +244,37 @@ const Index = () => {
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Welcome back!",
-          description: "Successfully logged in to 592 Stock",
-        });
+      } else if (data.user) {
+        // Update user data in admin list
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          created_at: data.user.created_at,
+          email_confirmed_at: data.user.email_confirmed_at,
+          last_sign_in_at: new Date().toISOString(),
+          user_metadata: data.user.user_metadata
+        };
+        
+        const existingUsers = localStorage.getItem('admin_users');
+        const users = existingUsers ? JSON.parse(existingUsers) : [];
+        const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user.id)];
+        localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
+        
+        // Check if user is verified
+        if (!data.user.email_confirmed_at) {
+          toast({
+            title: "Email Verification Required",
+            description: "Please verify your email before accessing all features. Check your inbox for the verification link.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Welcome back! 🎮",
+            description: "Successfully logged in to 592 Stock",
+          });
+        }
+        
+        logAdminAction('USER_LOGIN', `User logged in: ${email}`, 'system');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -246,9 +283,12 @@ const Index = () => {
 
   const handleRegister = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/?verified=true`
+        }
       });
       
       if (error) {
@@ -258,9 +298,29 @@ const Index = () => {
           variant: "destructive",
         });
       } else {
+        // Store user info for admin tracking
+        if (data.user) {
+          const userData = {
+            id: data.user.id,
+            email: data.user.email,
+            created_at: data.user.created_at,
+            email_confirmed_at: data.user.email_confirmed_at,
+            last_sign_in_at: data.user.last_sign_in_at,
+            user_metadata: data.user.user_metadata
+          };
+          
+          // Update admin user list
+          const existingUsers = localStorage.getItem('admin_users');
+          const users = existingUsers ? JSON.parse(existingUsers) : [];
+          const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user.id)];
+          localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
+          
+          logAdminAction('USER_REGISTERED', `New user registered: ${email}`, 'system');
+        }
+        
         toast({
-          title: "Account Created!",
-          description: "Please check your email to confirm your account",
+          title: "Account Created! 📧",
+          description: "Please check your email and click the verification link before logging in. Check your spam folder if you don't see it.",
         });
       }
     } catch (error) {
@@ -469,6 +529,53 @@ const Index = () => {
         onRegister={handleRegister}
         onLogout={handleLogout}
       />
+      
+      {/* Verification Banner */}
+      {user && !user.email_confirmed_at && (
+        <div className="bg-gaming-warning/20 border-gaming-warning border-t border-b">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="text-gaming-warning text-2xl">⚠️</div>
+                <div>
+                  <h3 className="font-semibold text-gaming-warning">Email Verification Required</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Please verify your email to access profile customization and full features.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={async () => {
+                  try {
+                    const { error } = await supabase.auth.resend({
+                      type: 'signup',
+                      email: user.email
+                    });
+                    
+                    if (error) throw error;
+                    
+                    toast({
+                      title: "Verification email sent",
+                      description: "Check your email for the verification link",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Failed to send email",
+                      description: "Please try again later",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                variant="outline"
+                size="sm"
+                className="border-gaming-warning text-gaming-warning hover:bg-gaming-warning/10"
+              >
+                Resend Email
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Announcements */}
       {visibleAnnouncements.length > 0 && (

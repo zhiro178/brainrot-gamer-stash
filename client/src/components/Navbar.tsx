@@ -11,6 +11,7 @@ import { User, Wallet, LogOut, Ticket, Settings, Edit } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAdmin } from "@/contexts/AdminContext";
 import { AdminPanel } from "@/components/AdminPanel";
+import { UserProfile } from "@/components/UserProfile";
 
 interface NavbarProps {
   user?: any;
@@ -143,15 +144,7 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.user_metadata?.avatar_url} alt={getUserDisplayName()} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {getUserInitials()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium hidden sm:inline">{getUserDisplayName()}</span>
-                </div>
+                <UserProfile user={user} />
                 
                 {(!isUserAdmin || isAdminMode) && (
                   <Button 
