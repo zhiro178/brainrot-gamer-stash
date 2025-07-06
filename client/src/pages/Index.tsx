@@ -70,6 +70,10 @@ const Index = () => {
   const { toast } = useToast();
   const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
   
+  // Announcement functionality
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<string[]>([]);
+  
   // Homepage content state
   const [homepageContent, setHomepageContent] = useState({
     hero: {
@@ -166,6 +170,33 @@ const Index = () => {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Load announcements
+  useEffect(() => {
+    const savedAnnouncements = localStorage.getItem('admin_announcements');
+    if (savedAnnouncements) {
+      try {
+        const allAnnouncements = JSON.parse(savedAnnouncements);
+        const activeAnnouncements = allAnnouncements.filter((ann: any) => {
+          if (!ann.active) return false;
+          if (ann.expires_at && new Date(ann.expires_at) < new Date()) return false;
+          return true;
+        });
+        setAnnouncements(activeAnnouncements);
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+      }
+    }
+
+    const dismissed = localStorage.getItem('dismissed_announcements');
+    if (dismissed) {
+      try {
+        setDismissedAnnouncements(JSON.parse(dismissed));
+      } catch (error) {
+        console.error('Error loading dismissed announcements:', error);
+      }
+    }
   }, []);
 
   const fetchUserBalance = async (userId: string) => {
@@ -364,7 +395,7 @@ const Index = () => {
     logAdminAction('UPDATE_HOMEPAGE', 'Updated homepage content', user?.email);
   };
 
-  // Function to refresh announcements (called from admin panel)
+  // Announcement helper functions
   const refreshAnnouncements = () => {
     const savedAnnouncements = localStorage.getItem('admin_announcements');
     if (savedAnnouncements) {
@@ -381,63 +412,6 @@ const Index = () => {
       }
     }
   };
-
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading 592 Stock...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Announcement functionality
-  const [announcements, setAnnouncements] = useState([]);
-  const [dismissedAnnouncements, setDismissedAnnouncements] = useState([]);
-
-  useEffect(() => {
-    // Load announcements from localStorage
-    const savedAnnouncements = localStorage.getItem('admin_announcements');
-    if (savedAnnouncements) {
-      try {
-        const allAnnouncements = JSON.parse(savedAnnouncements);
-        // Filter for active, non-expired announcements
-        const activeAnnouncements = allAnnouncements.filter((ann: any) => {
-          if (!ann.active) return false;
-          if (ann.expires_at && new Date(ann.expires_at) < new Date()) return false;
-          return true;
-        });
-        setAnnouncements(activeAnnouncements);
-      } catch (error) {
-        console.error('Error loading announcements:', error);
-      }
-    }
-
-    // Load dismissed announcements
-    const dismissed = localStorage.getItem('dismissed_announcements');
-    if (dismissed) {
-      try {
-        setDismissedAnnouncements(JSON.parse(dismissed));
-      } catch (error) {
-        console.error('Error loading dismissed announcements:', error);
-      }
-    }
-  }, []);
-
-  // Listen for announcement changes
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'admin_announcements') {
-        refreshAnnouncements();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
 
   const dismissAnnouncement = (announcementId: string) => {
     const newDismissed = [...dismissedAnnouncements, announcementId];
@@ -471,6 +445,20 @@ const Index = () => {
   const visibleAnnouncements = announcements.filter(
     (ann: any) => !dismissedAnnouncements.includes(ann.id)
   );
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading 592 Stock...</p>
+        </div>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="min-h-screen bg-background">
