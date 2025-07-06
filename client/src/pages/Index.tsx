@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { createClient } from "@supabase/supabase-js";
+import { supabase, handleSupabaseError } from "@/lib/supabase";
 import { Navbar } from "@/components/Navbar";
 import { GameCard } from "@/components/GameCard";
 import { TopUpModal } from "@/components/TopUpModal";
@@ -21,14 +21,6 @@ import adoptMeBanner from "@/assets/adopt-me-banner.jpg";
 import gardenBanner from "@/assets/garden-banner.jpg";
 import mm2Banner from "@/assets/mm2-banner.jpg";
 import brainrotBanner from "@/assets/brainrot-banner.jpg";
-
-// Temporary hardcoded values to bypass env issues
-const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-
-console.log('Using hardcoded Supabase credentials');
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const GAMES = [
   {
@@ -239,11 +231,8 @@ const Index = () => {
       });
       
       if (error) {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        const errorInfo = handleSupabaseError(error, "Login failed");
+        toast(errorInfo);
       } else if (data.user) {
         // Update user data in admin list
         const userData = {
@@ -278,6 +267,8 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Login error:', error);
+      const errorInfo = handleSupabaseError(error, "Login failed");
+      toast(errorInfo);
     }
   };
 
@@ -292,11 +283,8 @@ const Index = () => {
       });
       
       if (error) {
-        toast({
-          title: "Registration Failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        const errorInfo = handleSupabaseError(error, "Registration failed");
+        toast(errorInfo);
       } else {
         // Store user info for admin tracking
         if (data.user) {
@@ -325,26 +313,41 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Registration error:', error);
+      const errorInfo = handleSupabaseError(error, "Registration failed");
+      toast(errorInfo);
     }
   };
 
   const handleLogout = async () => {
     try {
+      // Try to sign out from Supabase first
       const { error } = await supabase.auth.signOut();
       if (error) {
-        toast({
-          title: "Logout Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Goodbye!",
-          description: "Successfully logged out",
-        });
+        console.error('Supabase logout error:', error);
       }
+      
+      // Always show success and refresh to clear state
+      toast({
+        title: "Goodbye!",
+        description: "Successfully logged out",
+      });
+      
+      // Small delay then refresh to clear all state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
     } catch (error) {
       console.error('Logout error:', error);
+      // Force logout by reloading the page
+      toast({
+        title: "Logged out!",
+        description: "Session cleared",
+      });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     }
   };
 
@@ -422,11 +425,8 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Top-up error:', error);
-      toast({
-        title: "Top-up Failed",
-        description: "There was an error processing your request",
-        variant: "destructive",
-      });
+      const errorInfo = handleSupabaseError(error, "Failed to create support ticket");
+      toast(errorInfo);
     }
   };
 
