@@ -18,10 +18,9 @@ interface NavbarProps {
   onLogin: (email: string, password: string) => void;
   onRegister: (email: string, password: string) => void;
   onLogout: () => void;
-  onResetGames?: () => void;
 }
 
-export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout, onResetGames }: NavbarProps) => {
+export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }: NavbarProps) => {
   const [, setLocation] = useLocation();
   const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
   
@@ -184,7 +183,7 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout, o
                     </Button>
                     
                     {isAdminMode && (
-                      <AdminPanel onResetGames={onResetGames} />
+                      <AdminPanel />
                     )}
                     
                     <Button 
