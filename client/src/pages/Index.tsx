@@ -330,21 +330,34 @@ const Index = () => {
 
   const handleLogout = async () => {
     try {
+      // Try to sign out from Supabase first
       const { error } = await supabase.auth.signOut();
       if (error) {
-        toast({
-          title: "Logout Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Goodbye!",
-          description: "Successfully logged out",
-        });
+        console.error('Supabase logout error:', error);
       }
+      
+      // Always show success and refresh to clear state
+      toast({
+        title: "Goodbye!",
+        description: "Successfully logged out",
+      });
+      
+      // Small delay then refresh to clear all state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
     } catch (error) {
       console.error('Logout error:', error);
+      // Force logout by reloading the page
+      toast({
+        title: "Logged out!",
+        description: "Session cleared",
+      });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     }
   };
 

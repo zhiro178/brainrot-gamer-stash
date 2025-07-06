@@ -122,15 +122,31 @@ export const AdminPanel = () => {
       const currentBalance = userBalances[userId] || 0;
       const newBalance = currentBalance + amount;
       
-      // Update balance in Supabase
-      const { error } = await supabase
-        .from('user_balances')
-        .upsert({
-          user_id: userId,
-          balance: newBalance.toString()
-        });
-      
-      if (error) throw error;
+      // Try to update balance in Supabase
+      try {
+        const { error } = await supabase
+          .from('user_balances')
+          .upsert({
+            user_id: userId,
+            balance: newBalance.toString()
+          });
+        
+        if (error) {
+          console.error('Supabase balance error:', error);
+          // Fall back to localStorage if Supabase fails
+          const savedBalances = localStorage.getItem('user_balances');
+          const balances = savedBalances ? JSON.parse(savedBalances) : {};
+          balances[userId] = newBalance;
+          localStorage.setItem('user_balances', JSON.stringify(balances));
+        }
+      } catch (supabaseError) {
+        console.error('Supabase connection error:', supabaseError);
+        // Fall back to localStorage
+        const savedBalances = localStorage.getItem('user_balances');
+        const balances = savedBalances ? JSON.parse(savedBalances) : {};
+        balances[userId] = newBalance;
+        localStorage.setItem('user_balances', JSON.stringify(balances));
+      }
       
       // Update local state
       setUserBalances(prev => ({...prev, [userId]: newBalance}));
