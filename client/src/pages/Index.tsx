@@ -320,34 +320,62 @@ const Index = () => {
 
   const handleLogout = async () => {
     try {
-      // Try to sign out from Supabase first
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Supabase logout error:', error);
-      }
+      // Clear local state immediately
+      setUser(null);
+      setUserBalance(0);
+      setIsAdmin(false);
       
-      // Always show success and refresh to clear state
+      // Clear any localStorage that might contain session data
+      localStorage.removeItem('admin_users');
+      localStorage.removeItem('user_balances');
+      
+      // Clear any Supabase auth tokens from localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') || key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Try to sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Show success message
       toast({
         title: "Goodbye!",
         description: "Successfully logged out",
       });
       
-      // Small delay then refresh to clear all state
+      // Very brief delay to show the toast, then reload
       setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+        window.location.href = window.location.pathname; // Full navigation to clear everything
+      }, 500);
       
     } catch (error) {
       console.error('Logout error:', error);
-      // Force logout by reloading the page
+      
+      // Force logout by clearing everything and reloading
+      setUser(null);
+      setUserBalance(0);
+      setIsAdmin(false);
+      
+      // Clear all localStorage
+      localStorage.removeItem('admin_users');
+      localStorage.removeItem('user_balances');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') || key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
       toast({
         title: "Logged out!",
         description: "Session cleared",
       });
       
+      // Force navigation to clear all state
       setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+        window.location.href = window.location.pathname;
+      }, 500);
     }
   };
 
