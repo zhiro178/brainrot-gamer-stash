@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, X, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { MessageCircle, X, User, Sparkles, Gamepad2 } from "lucide-react";
 
 interface Message {
   id: string;
@@ -17,14 +18,16 @@ interface LiveChatProps {
 }
 
 const MASCOT_RESPONSES = {
-  "hello": "Hey there, gamer! 🎮 Welcome to 592 Stock! I'm here to help you with anything you need. What can I assist you with today?",
-  "hi": "Hi! 👋 I'm the 592 Stock mascot! How can I help you find the perfect gaming items today?",
-  "help": "I'm here to help! 🌟 You can ask me about:\n• Available games and items\n• How to top up your balance\n• Payment methods\n• Account questions\n• Trading tips",
-  "games": "We currently offer items for these amazing games:\n🎮 Adopt Me\n🌱 Grow a Garden\n🔪 MM2 (Murder Mystery 2)\n🧠 Steal a Brainrot\n\nWhich game interests you most?",
-  "payment": "We accept two payment methods:\n💳 Crypto payments (instant, minimum $5)\n🎁 Amazon gift cards (manual verification, 24h processing)\n\nBoth are secure and reliable!",
-  "balance": "Your balance appears in the top right corner when logged in! 💰 You can top up using crypto or Amazon gift cards. Need help with a top-up?",
-  "support": "For additional support:\n📧 Contact our team\n💬 Use this chat for quick questions\n⏰ We typically respond within minutes!",
-  "default": "Thanks for your message! 🤖 I'm still learning, but I can help with questions about games, payments, accounts, and more. Try asking about 'games', 'payment', or 'help'!"
+  "hello": "Hey there, legendary gamer! 🎮✨ Welcome to 592 Stock - your ultimate gaming marketplace! I'm Stocky, your friendly AI assistant. Ready to level up your gaming experience? What can I help you with today?",
+  "hi": "Hi there, champion! 👋🎮 I'm Stocky, the 592 Stock mascot! Whether you're hunting for rare items or need trading advice, I'm here to help you dominate the marketplace!",
+  "help": "🌟 **I'm your gaming guru!** Here's what I can assist with:\n\n🎮 **Games & Items** - Browse our catalog\n💰 **Balance & Payments** - Top-up help\n🔒 **Account Support** - Login/security\n📈 **Trading Tips** - Pro strategies\n🎯 **Order Status** - Track purchases\n\nJust ask me anything!",
+  "games": "🎮 **Our Epic Game Collection:**\n\n🐾 **Adopt Me** - Pets, eggs, exclusive items\n🌱 **Grow a Garden** - Seeds, tools, decorations\n🔪 **MM2** - Knives, guns, legendary items\n🧠 **Steal a Brainrot** - Unique collectibles\n\n✨ Which game world are you exploring today?",
+  "payment": "💳 **Secure Payment Options:**\n\n⚡ **Crypto Payments** - Instant delivery, $5 minimum\n🎁 **Amazon Gift Cards** - Manual verification, 24h processing\n\n🔒 **100% Secure & Encrypted**\n✅ **Trusted by thousands of gamers**\n\nNeed help with a top-up?",
+  "balance": "💰 **Your Gaming Wallet:**\n\nYour balance shows in the top-right when logged in! You can boost it with:\n• Crypto (instant delivery) ⚡\n• Amazon gift cards (24h processing) 🎁\n\nReady to power up your balance? 🚀",
+  "support": "🎯 **Need More Help?**\n\n💬 **Live Chat** - You're here! (instant responses)\n🎫 **Support Tickets** - Complex issues\n📧 **Direct Contact** - Priority support\n⏰ **Response Time** - Usually under 5 minutes!\n\n🌟 We're here 24/7 for our gaming community!",
+  "admin": "🛡️ **Admin detected!** Welcome back, boss! Need help managing the marketplace? I can assist with user questions while you handle the backend magic! 👑",
+  "ticket": "🎫 **Support Tickets:**\n\nCreate tickets for:\n• Payment issues 💳\n• Item delivery problems 📦\n• Account security 🔒\n• Feature requests 💡\n\nGo to 'My Tickets' in the nav bar to manage them!",
+  "default": "🤖✨ **Thanks for chatting with Stocky!**\n\nI'm getting smarter every day! Try asking me about:\n• 'games' - Browse our collection\n• 'payment' - Top-up methods\n• 'help' - Full command list\n• 'support' - Get assistance\n\nWhat gaming adventure can I help with? 🎮"
 };
 
 export const LiveChat = ({ user }: LiveChatProps) => {
@@ -32,7 +35,7 @@ export const LiveChat = ({ user }: LiveChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Hey there! 🎮 I'm the 592 Stock mascot! I'm here to help you with any questions about our gaming marketplace. How can I assist you today?",
+      text: "🎮✨ **Welcome to 592 Stock!**\n\nHey there, gamer! I'm **Stocky**, your AI gaming assistant! 🤖\n\nI'm here to help you navigate our epic marketplace, find rare items, and level up your trading game!\n\n💬 **Try asking me about:**\n• 'games' - Browse our collection\n• 'help' - See what I can do\n• 'payment' - Top-up methods\n\nWhat gaming adventure can I help with today? 🚀",
       sender: "bot",
       timestamp: new Date()
     }
@@ -51,8 +54,16 @@ export const LiveChat = ({ user }: LiveChatProps) => {
   const getBotResponse = (userMessage: string): string => {
     const message = userMessage.toLowerCase();
     
+    // Check if user is admin
+    const isAdmin = user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com');
+    
+    // Special admin greeting
+    if (isAdmin && (message.includes('admin') || message.includes('hello') || message.includes('hi'))) {
+      return MASCOT_RESPONSES.admin;
+    }
+    
     for (const [keyword, response] of Object.entries(MASCOT_RESPONSES)) {
-      if (keyword !== "default" && message.includes(keyword)) {
+      if (keyword !== "default" && keyword !== "admin" && message.includes(keyword)) {
         return response;
       }
     }
@@ -91,23 +102,48 @@ export const LiveChat = ({ user }: LiveChatProps) => {
     <>
       {/* Chat Toggle Button */}
       <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={() => setIsOpen(!isOpen)}
-          className="rounded-full w-14 h-14 bg-gradient-primary hover:shadow-glow shadow-gaming"
-        >
-          {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-        </Button>
+        <div className="relative">
+          <Button
+            onClick={() => setIsOpen(!isOpen)}
+            className="rounded-full w-16 h-16 bg-gradient-primary hover:shadow-glow shadow-gaming transform transition-all duration-300 hover:scale-110"
+          >
+            {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+          </Button>
+          {!isOpen && (
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-gaming-success rounded-full flex items-center justify-center">
+              <span className="text-xs font-bold text-black">AI</span>
+            </div>
+          )}
+          {!isOpen && (
+            <div className="absolute -top-12 right-0 bg-background border border-primary/20 rounded-lg px-3 py-1 shadow-lg">
+              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                💬 Need help? Chat with Stocky!
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-6 w-80 h-96 z-40 bg-gradient-card border-primary/20 shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2 text-primary">
-              <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
-                🤖
+        <Card className="fixed bottom-24 right-6 w-80 h-96 z-40 bg-gradient-card border-primary/20 shadow-card animate-in slide-in-from-bottom-4 duration-300">
+          <CardHeader className="pb-3 bg-gradient-primary/10 border-b border-primary/20">
+            <CardTitle className="flex items-center justify-between text-primary">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center shadow-glow">
+                  🤖
+                </div>
+                <div>
+                  <div className="flex items-center space-x-1">
+                    <span className="font-bold">Stocky</span>
+                    <div className="w-2 h-2 bg-gaming-success rounded-full animate-pulse"></div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">592 Stock AI Assistant</p>
+                </div>
               </div>
-              <span>592 Stock Support</span>
+              <Badge className="bg-gaming-success/20 text-gaming-success border-gaming-success/30">
+                ✨ AI Online
+              </Badge>
             </CardTitle>
           </CardHeader>
           

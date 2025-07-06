@@ -513,7 +513,7 @@ const Index = () => {
       <div className="relative bg-gradient-hero">
         <div className="container mx-auto px-4 py-16 text-center">
           <div className="flex justify-center mb-4">
-            {isAdminMode && (
+            {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
               <AdminHomepageEditor 
                 content={homepageContent}
                 onContentUpdate={handleHomepageContentUpdate}
@@ -554,7 +554,7 @@ const Index = () => {
         <div className="text-center mb-12">
           <div className="flex items-center justify-center space-x-4 mb-4">
             <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
-            {isAdminMode && (
+            {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
               <>
                 <AdminGameEditor 
                   games={games}
