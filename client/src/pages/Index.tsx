@@ -231,40 +231,66 @@ const Index = () => {
       });
       
       if (error) {
-        const errorInfo = handleSupabaseError(error, "Login failed");
-        toast(errorInfo);
-      } else if (data.user) {
-        // Update user data in admin list
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          created_at: data.user.created_at,
-          email_confirmed_at: data.user.email_confirmed_at,
-          last_sign_in_at: new Date().toISOString(),
-          user_metadata: data.user.user_metadata
-        };
-        
-        const existingUsers = localStorage.getItem('admin_users');
-        const users = existingUsers ? JSON.parse(existingUsers) : [];
-        const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user.id)];
-        localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
-        
-        // Check if user is verified
-        if (!data.user.email_confirmed_at) {
+        // Special handling for unverified email errors
+        if (error.message.includes('Email not confirmed') || error.message.includes('not verified')) {
           toast({
-            title: "Email Verification Required",
-            description: "Please verify your email before accessing all features. Check your inbox for the verification link.",
+            title: "Email Not Verified",
+            description: "Please check your email and click the verification link to activate your account.",
             variant: "destructive",
           });
         } else {
-          toast({
-            title: "Welcome back! 🎮",
-            description: "Successfully logged in to 592 Stock",
-          });
+          const errorInfo = handleSupabaseError(error, "Login failed");
+          toast(errorInfo);
         }
-        
-        logAdminAction('USER_LOGIN', `User logged in: ${email}`, 'system');
+        return;
       }
+      
+      if (!data.user) {
+        toast({
+          title: "Login Error",
+          description: "Something went wrong during login. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if user is verified before allowing access
+      const isVerified = data.user.email_confirmed_at !== null;
+      
+      if (!isVerified) {
+        // Force logout unverified users
+        await supabase.auth.signOut();
+        
+        toast({
+          title: "Email Verification Required ⚠️",
+          description: "You must verify your email before you can log in. Please check your inbox and click the verification link.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // User is verified - proceed with login
+      const userData = {
+        id: data.user.id,
+        email: data.user.email,
+        created_at: data.user.created_at,
+        email_confirmed_at: data.user.email_confirmed_at,
+        last_sign_in_at: new Date().toISOString(),
+        user_metadata: data.user.user_metadata
+      };
+      
+      const existingUsers = localStorage.getItem('admin_users');
+      const users = existingUsers ? JSON.parse(existingUsers) : [];
+      const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user.id)];
+      localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
+      
+      toast({
+        title: "Welcome back! 🎮",
+        description: "Successfully logged in to 592 Stock",
+      });
+      
+      logAdminAction('USER_LOGIN', `Verified user logged in: ${email}`, 'system');
+      
     } catch (error) {
       console.error('Login error:', error);
       const errorInfo = handleSupabaseError(error, "Login failed");
@@ -274,41 +300,75 @@ const Index = () => {
 
   const handleRegister = async (email: string, password: string) => {
     try {
+      // Sign out any existing session first
+      await supabase.auth.signOut();
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/?verified=true`
+          emailRedirectTo: `${window.location.origin}/?verified=true`,
+          data: {
+            email_confirm: false // Ensure email confirmation is required
+          }
         }
       });
       
       if (error) {
         const errorInfo = handleSupabaseError(error, "Registration failed");
         toast(errorInfo);
-      } else {
-        // Store user info for admin tracking
-        if (data.user) {
-          const userData = {
-            id: data.user.id,
-            email: data.user.email,
-            created_at: data.user.created_at,
-            email_confirmed_at: data.user.email_confirmed_at,
-            last_sign_in_at: data.user.last_sign_in_at,
-            user_metadata: data.user.user_metadata
-          };
-          
-          // Update admin user list
-          const existingUsers = localStorage.getItem('admin_users');
-          const users = existingUsers ? JSON.parse(existingUsers) : [];
-          const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user.id)];
-          localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
-          
-          logAdminAction('USER_REGISTERED', `New user registered: ${email}`, 'system');
-        }
+        return;
+      }
+      
+      // Debug logging
+      console.log('=== REGISTRATION DEBUG ===');
+      console.log('Registration data:', data);
+      console.log('User created:', data.user);
+      console.log('Session created:', data.session);
+      console.log('email_confirmed_at:', data.user?.email_confirmed_at);
+      console.log('========================');
+      
+      // Check if user was created but not confirmed
+      if (data.user && !data.session) {
+        // This is the correct flow - user created but not logged in until verified
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          created_at: data.user.created_at,
+          email_confirmed_at: data.user.email_confirmed_at, // Use actual value from Supabase
+          last_sign_in_at: null,
+          user_metadata: data.user.user_metadata
+        };
+        
+        // Update admin user list with unverified user
+        const existingUsers = localStorage.getItem('admin_users');
+        const users = existingUsers ? JSON.parse(existingUsers) : [];
+        const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user.id)];
+        localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
+        
+        logAdminAction('USER_REGISTERED', `New unverified user registered: ${email}`, 'system');
         
         toast({
           title: "Account Created! 📧",
-          description: "Please check your email and click the verification link before logging in. Check your spam folder if you don't see it.",
+          description: "Please check your email and click the verification link to activate your account. Check your spam folder if you don't see it.",
+        });
+      } else if (data.session) {
+        // User was auto-logged in (this shouldn't happen if email confirmation is required)
+        console.warn('User was auto-logged in during registration - this suggests email confirmation is not properly configured');
+        
+        // Force logout to ensure they verify email first
+        await supabase.auth.signOut();
+        
+        toast({
+          title: "Account Created! 📧", 
+          description: "Please check your email and click the verification link to activate your account.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration Error",
+          description: "Something went wrong during registration. Please try again.",
+          variant: "destructive",
         });
       }
     } catch (error) {
@@ -755,6 +815,27 @@ const Index = () => {
       </div>
 
       <LiveChat user={user} />
+      
+      {/* Debug Panel for Email Verification - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Button 
+            onClick={() => {
+              console.log('=== EMAIL VERIFICATION DEBUG ===');
+              console.log('Current user:', user);
+              console.log('User email_confirmed_at:', user?.email_confirmed_at);
+              console.log('User email:', user?.email);
+              console.log('User created_at:', user?.created_at);
+              console.log('================================');
+            }}
+            variant="outline" 
+            size="sm"
+            className="bg-red-500 text-white hover:bg-red-600"
+          >
+            Debug Auth
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
