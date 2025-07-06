@@ -76,14 +76,25 @@ export const AdminPanel = () => {
 
   const adminLogs = getAdminLogs();
 
+  // Functions to open dialogs from dropdown
+  const openUsersDialog = () => {
+    document.getElementById('users-trigger')?.click();
+  };
+
+  const openLogsDialog = () => {
+    setIsLogsDialogOpen(true);
+  };
+
+  const openAnnouncementDialog = () => {
+    setIsAnnouncementDialogOpen(true);
+  };
+
   return (
     <div className="flex items-center space-x-2">
       {/* Users Dialog */}
       <Dialog>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-            👥 Users
-          </Button>
+          <div id="users-trigger" style={{ display: 'none' }} />
         </DialogTrigger>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
@@ -112,9 +123,7 @@ export const AdminPanel = () => {
       {/* Admin Logs Dialog */}
       <Dialog open={isLogsDialogOpen} onOpenChange={setIsLogsDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="bg-purple-500/10 text-purple-500 border-purple-500/20">
-            📋 Logs
-          </Button>
+          <div id="logs-trigger" style={{ display: 'none' }} />
         </DialogTrigger>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -154,9 +163,7 @@ export const AdminPanel = () => {
       {/* Announcements Dialog */}
       <Dialog open={isAnnouncementDialogOpen} onOpenChange={setIsAnnouncementDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="bg-gaming-success/10 text-gaming-success border-gaming-success/20">
-            📢 Announce
-          </Button>
+          <div id="announcement-trigger" style={{ display: 'none' }} />
         </DialogTrigger>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -241,26 +248,26 @@ export const AdminPanel = () => {
             <p className="text-xs text-muted-foreground">Management tools available</p>
           </div>
           
-          <DropdownMenuItem className="flex items-center cursor-pointer">
+          <DropdownMenuItem className="flex items-center cursor-pointer" onClick={openUsersDialog}>
             <Users className="h-4 w-4 mr-2" />
             User Management
           </DropdownMenuItem>
           
-          <DropdownMenuItem className="flex items-center cursor-pointer">
+          <DropdownMenuItem className="flex items-center cursor-pointer" onClick={openLogsDialog}>
             <FileText className="h-4 w-4 mr-2" />
             Activity Logs
           </DropdownMenuItem>
           
-          <DropdownMenuItem className="flex items-center cursor-pointer">
+          <DropdownMenuItem className="flex items-center cursor-pointer" onClick={openAnnouncementDialog}>
             <Megaphone className="h-4 w-4 mr-2" />
-            Announcements
+            Create Announcement
           </DropdownMenuItem>
           
-          <div className="px-2 py-1.5 border-t border-primary/20">
-            <p className="text-xs text-muted-foreground">
-              Use buttons above for quick access
-            </p>
-          </div>
+                      <div className="px-2 py-1.5 border-t border-primary/20">
+              <p className="text-xs text-muted-foreground">
+                Click items above to access management tools
+              </p>
+            </div>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
