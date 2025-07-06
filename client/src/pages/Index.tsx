@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 import { Settings } from "lucide-react";
+import { logAdminAction } from "@/lib/adminLogging";
 
 // Import game banners
 import adoptMeBanner from "@/assets/adopt-me-banner.jpg";
@@ -353,12 +354,32 @@ const Index = () => {
 
   const handleGamesUpdate = (updatedGames: typeof GAMES) => {
     setGames(updatedGames);
+    logAdminAction('UPDATE_GAMES', 'Updated games configuration', user?.email);
   };
 
 
 
   const handleHomepageContentUpdate = (newContent: any) => {
     setHomepageContent(newContent);
+    logAdminAction('UPDATE_HOMEPAGE', 'Updated homepage content', user?.email);
+  };
+
+  // Function to refresh announcements (called from admin panel)
+  const refreshAnnouncements = () => {
+    const savedAnnouncements = localStorage.getItem('admin_announcements');
+    if (savedAnnouncements) {
+      try {
+        const allAnnouncements = JSON.parse(savedAnnouncements);
+        const activeAnnouncements = allAnnouncements.filter((ann: any) => {
+          if (!ann.active) return false;
+          if (ann.expires_at && new Date(ann.expires_at) < new Date()) return false;
+          return true;
+        });
+        setAnnouncements(activeAnnouncements);
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+      }
+    }
   };
 
 
@@ -373,6 +394,84 @@ const Index = () => {
     );
   }
 
+  // Announcement functionality
+  const [announcements, setAnnouncements] = useState([]);
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState([]);
+
+  useEffect(() => {
+    // Load announcements from localStorage
+    const savedAnnouncements = localStorage.getItem('admin_announcements');
+    if (savedAnnouncements) {
+      try {
+        const allAnnouncements = JSON.parse(savedAnnouncements);
+        // Filter for active, non-expired announcements
+        const activeAnnouncements = allAnnouncements.filter((ann: any) => {
+          if (!ann.active) return false;
+          if (ann.expires_at && new Date(ann.expires_at) < new Date()) return false;
+          return true;
+        });
+        setAnnouncements(activeAnnouncements);
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+      }
+    }
+
+    // Load dismissed announcements
+    const dismissed = localStorage.getItem('dismissed_announcements');
+    if (dismissed) {
+      try {
+        setDismissedAnnouncements(JSON.parse(dismissed));
+      } catch (error) {
+        console.error('Error loading dismissed announcements:', error);
+      }
+    }
+  }, []);
+
+  // Listen for announcement changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'admin_announcements') {
+        refreshAnnouncements();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const dismissAnnouncement = (announcementId: string) => {
+    const newDismissed = [...dismissedAnnouncements, announcementId];
+    setDismissedAnnouncements(newDismissed);
+    localStorage.setItem('dismissed_announcements', JSON.stringify(newDismissed));
+  };
+
+  const getAnnouncementStyle = (type: string) => {
+    switch (type) {
+      case 'sale':
+        return 'border-gaming-success bg-gaming-success/10 text-gaming-success';
+      case 'warning':
+        return 'border-gaming-warning bg-gaming-warning/10 text-gaming-warning';
+      case 'success':
+        return 'border-green-500 bg-green-500/10 text-green-500';
+      default:
+        return 'border-blue-500 bg-blue-500/10 text-blue-500';
+    }
+  };
+
+  const getAnnouncementIcon = (type: string) => {
+    switch (type) {
+      case 'sale': return '💰';
+      case 'warning': return '⚠️';
+      case 'success': return '✅';
+      default: return 'ℹ️';
+    }
+  };
+
+  // Filter out dismissed announcements
+  const visibleAnnouncements = announcements.filter(
+    (ann: any) => !dismissedAnnouncements.includes(ann.id)
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar
@@ -382,6 +481,45 @@ const Index = () => {
         onRegister={handleRegister}
         onLogout={handleLogout}
       />
+      
+      {/* Announcements */}
+      {visibleAnnouncements.length > 0 && (
+        <div className="container mx-auto px-4 py-4 space-y-3">
+          {visibleAnnouncements.map((announcement: any) => (
+            <Card key={announcement.id} className={`${getAnnouncementStyle(announcement.type)} border-2`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{getAnnouncementIcon(announcement.type)}</span>
+                    <div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h3 className="font-semibold">{announcement.title}</h3>
+                        <Badge className={`${getAnnouncementStyle(announcement.type)} text-xs`}>
+                          {announcement.type.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <p className="text-sm opacity-90">{announcement.content}</p>
+                      {announcement.expires_at && (
+                        <p className="text-xs opacity-70 mt-1">
+                          Expires: {new Date(announcement.expires_at).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => dismissAnnouncement(announcement.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
       
       {/* Hero Section */}
       <div className="relative bg-gradient-hero">
