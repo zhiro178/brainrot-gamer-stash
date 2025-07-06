@@ -214,6 +214,19 @@ export function TopUpModal({ user }: { user?: any }) {
     );
   }
 
+  if (!user.email_confirmed_at) {
+    return (
+      <Button 
+        disabled 
+        variant="outline"
+        className="border-gaming-warning text-gaming-warning opacity-60"
+      >
+        <Wallet className="h-4 w-4 mr-2" />
+        Verify Email to Top Up
+      </Button>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>

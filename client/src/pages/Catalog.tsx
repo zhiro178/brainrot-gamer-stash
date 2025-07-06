@@ -96,6 +96,17 @@ export default function Catalog() {
         return;
       }
       
+      // Check if user is verified
+      if (!user.email_confirmed_at) {
+        const { toast } = await import("@/hooks/use-toast");
+        toast({
+          title: "Email Verification Required",
+          description: "Please verify your email address before making purchases. Check your inbox for the verification link.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Check user balance
       const { data: balanceData } = await supabase
         .from('user_balances')
