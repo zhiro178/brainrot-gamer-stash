@@ -57,19 +57,25 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
   const fetchMessages = async () => {
     try {
+      console.log('Fetching messages for ticket:', ticketId);
       const { data, error } = await supabase
         .from('ticket_messages')
         .select('*')
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching messages:', error);
+        throw error;
+      }
+      
+      console.log('Fetched messages:', data);
       setMessages(data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
         title: "Error",
-        description: "Failed to load chat messages",
+        description: `Failed to load chat messages: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {

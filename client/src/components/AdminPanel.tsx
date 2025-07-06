@@ -81,36 +81,61 @@ export const AdminPanel = () => {
 
   useEffect(() => {
     const loadUsers = async () => {
-      const savedUsers = localStorage.getItem('admin_users');
-      if (savedUsers) {
+      try {
+        // Load users from localStorage first
+        const savedUsers = localStorage.getItem('admin_users');
+        let parsedUsers = [];
+        
+        if (savedUsers) {
+          parsedUsers = JSON.parse(savedUsers);
+        }
+        
+        // Also try to load users from Supabase auth (if possible)
         try {
-          const parsedUsers = JSON.parse(savedUsers);
-          setUsers(parsedUsers);
-          
-          // Load balances for each user
-          const balances: {[key: string]: number} = {};
-          for (const user of parsedUsers) {
-            try {
-              const { data, error } = await supabase
-                .from('user_balances')
-                .select('balance')
-                .eq('user_id', user.id)
-                .single();
-              
-              if (!error && data) {
-                balances[user.id] = parseFloat(data.balance || '0');
-              } else {
-                balances[user.id] = 0;
-              }
-            } catch (error) {
-              console.error('Error fetching balance for user:', user.email, error);
+          const { data: authUsers } = await supabase.auth.admin.listUsers();
+          if (authUsers?.users) {
+            // Merge auth users with localStorage users
+            const authUsersList = authUsers.users.map((user: any) => ({
+              id: user.id,
+              email: user.email,
+              created_at: user.created_at,
+              email_confirmed_at: user.email_confirmed_at,
+              last_sign_in_at: user.last_sign_in_at
+            }));
+            
+            // Update localStorage with fresh data
+            localStorage.setItem('admin_users', JSON.stringify(authUsersList));
+            parsedUsers = authUsersList;
+          }
+        } catch (authError) {
+          console.log('Could not fetch auth users (using localStorage):', authError);
+        }
+        
+        setUsers(parsedUsers);
+        
+        // Load balances for each user
+        const balances: {[key: string]: number} = {};
+        for (const user of parsedUsers) {
+          try {
+            const { data, error } = await supabase
+              .from('user_balances')
+              .select('balance')
+              .eq('user_id', user.id)
+              .single();
+            
+            if (!error && data) {
+              balances[user.id] = parseFloat(data.balance || '0');
+            } else {
               balances[user.id] = 0;
             }
+          } catch (error) {
+            console.error('Error fetching balance for user:', user.email, error);
+            balances[user.id] = 0;
           }
-          setUserBalances(balances);
-        } catch (error) {
-          console.error('Error loading users:', error);
         }
+        setUserBalances(balances);
+      } catch (error) {
+        console.error('Error loading users:', error);
       }
     };
     
