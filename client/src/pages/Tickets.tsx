@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { StreamTicketChat } from "@/components/StreamTicketChat";
+import { SimpleTicketChat } from "@/components/SimpleTicketChat";
 import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -259,10 +259,11 @@ export default function Tickets() {
                             </DialogDescription>
                           </DialogHeader>
                           {selectedTicket && user && (
-                            <StreamTicketChat 
+                            <SimpleTicketChat 
                               ticketId={selectedTicket.id}
                               ticketSubject={selectedTicket.subject}
                               currentUser={user}
+                              isAdmin={isAdmin}
                             />
                           )}
                         </DialogContent>
