@@ -355,9 +355,7 @@ const Index = () => {
     setGames(updatedGames);
   };
 
-  const handleResetGames = () => {
-    setGames(GAMES);
-  };
+
 
   const handleHomepageContentUpdate = (newContent: any) => {
     setHomepageContent(newContent);
@@ -383,7 +381,6 @@ const Index = () => {
         onLogin={handleLogin}
         onRegister={handleRegister}
         onLogout={handleLogout}
-        onResetGames={handleResetGames}
       />
       
       {/* Hero Section */}
@@ -409,7 +406,12 @@ const Index = () => {
             <div className="flex items-center space-x-2">
               {homepageContent.hero.badges.map((badge) => (
                 <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black`}>
-                  {badge.emoji} {badge.text}
+                  {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
+                    <img src={badge.emoji} alt="Badge icon" className="w-4 h-4 inline mr-1 object-cover rounded" />
+                  ) : (
+                    <span className="mr-1">{badge.emoji}</span>
+                  )}
+                  {badge.text}
                 </Badge>
               ))}
             </div>
@@ -471,7 +473,13 @@ const Index = () => {
             {homepageContent.features.items.map((feature) => (
               <Card key={feature.id} className="bg-background border-primary/20">
                 <CardHeader className="text-center">
-                  <div className="text-4xl mb-2">{feature.emoji}</div>
+                  <div className="mb-2 flex justify-center">
+                    {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
+                      <img src={feature.emoji} alt="Feature icon" className="w-12 h-12 object-cover rounded" />
+                    ) : (
+                      <span className="text-4xl">{feature.emoji}</span>
+                    )}
+                  </div>
                   <CardTitle className="text-primary">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
