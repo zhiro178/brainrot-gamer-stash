@@ -31,6 +31,20 @@ export const CryptoTopupList = () => {
     getCurrentUser();
   }, []);
 
+  // Function to refresh user balance after approval
+  const refreshUserBalance = async (userId: string) => {
+    try {
+      // Trigger a balance refresh event that other components can listen to
+      window.dispatchEvent(new CustomEvent('balance-updated', { 
+        detail: { userId } 
+      }));
+      
+      console.log('Balance refresh event dispatched for user:', userId);
+    } catch (error) {
+      console.error('Error dispatching balance refresh:', error);
+    }
+  };
+
   const getCurrentUser = async () => {
     const { data: { user } } = await workingSupabase.auth.getUser();
     setCurrentUser(user);
@@ -202,10 +216,13 @@ export const CryptoTopupList = () => {
       // Refresh tickets
       fetchCryptoTickets();
       
-      // Force page reload to update balance in navbar
+      // Force balance refresh for the affected user
+      refreshUserBalance(userId);
+      
+      // Force page reload to update balance in navbar (fallback)
       setTimeout(() => {
         window.location.reload();
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
       console.error('Error verifying ticket:', error);

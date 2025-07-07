@@ -175,6 +175,23 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Listen for balance refresh events
+  useEffect(() => {
+    const handleBalanceUpdate = (event: any) => {
+      console.log('Balance update event received:', event.detail);
+      if (user?.id === event.detail?.userId) {
+        // Refresh current user's balance
+        fetchUserBalance(user.id);
+      }
+    };
+
+    window.addEventListener('balance-updated', handleBalanceUpdate);
+    
+    return () => {
+      window.removeEventListener('balance-updated', handleBalanceUpdate);
+    };
+  }, [user]);
+
   // Load announcements
   useEffect(() => {
     const savedAnnouncements = localStorage.getItem('admin_announcements');
