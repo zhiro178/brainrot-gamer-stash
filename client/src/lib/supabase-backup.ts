@@ -1,13 +1,8 @@
 // Working Supabase client using direct fetch calls
 // This bypasses the broken @supabase/supabase-js client
 
-import { supabase } from "./supabase";
-
 const SUPABASE_URL = "https://uahxenisnppufpswupnz.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-
-// Use the standard Supabase client for authentication
-const authClient = supabase;
 
 interface QueryBuilder {
   select: (columns: string) => QueryBuilder;
@@ -38,21 +33,28 @@ class WorkingSupabaseClient {
       'Content-Type': 'application/json'
     };
 
-    // Try to get the current session for auth token
+    // Try to get auth token from localStorage (Supabase standard storage)
     try {
-      const { data: { session } } = await authClient.auth.getSession();
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-        console.log('Using user auth token for API request');
-      } else {
-        headers['Authorization'] = `Bearer ${SUPABASE_KEY}`;
-        console.log('Using anon key for API request');
+      const supabaseAuthKey = 'sb-uahxenisnppufpswupnz-auth-token';
+      const authData = localStorage.getItem(supabaseAuthKey);
+      
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        const accessToken = parsed?.access_token;
+        
+        if (accessToken) {
+          headers['Authorization'] = `Bearer ${accessToken}`;
+          console.log('Using stored auth token for API request');
+          return headers;
+        }
       }
     } catch (error) {
-      console.log('Could not get session, using anon key:', error);
-      headers['Authorization'] = `Bearer ${SUPABASE_KEY}`;
+      console.log('Could not get stored auth token:', error);
     }
 
+    // Fallback to anon key
+    headers['Authorization'] = `Bearer ${SUPABASE_KEY}`;
+    console.log('Using anon key for API request');
     return headers;
   }
 
@@ -266,14 +268,28 @@ class WorkingSupabaseClient {
     return builder;
   }
 
-  // Auth methods - now properly integrated with standard Supabase client
+  // Auth methods - simplified but functional
   auth = {
     getUser: async () => {
       try {
-        console.log('WorkingSupabase: Getting user from standard auth client...');
-        const { data, error } = await authClient.auth.getUser();
-        console.log('WorkingSupabase: getUser result:', { data, error });
-        return { data, error };
+        console.log('WorkingSupabase: Getting user from localStorage...');
+        
+        // Get auth data from localStorage (Supabase standard storage)
+        const supabaseAuthKey = 'sb-uahxenisnppufpswupnz-auth-token';
+        const authData = localStorage.getItem(supabaseAuthKey);
+        
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          const user = parsed?.user;
+          
+          if (user) {
+            console.log('WorkingSupabase: Found user in localStorage:', user);
+            return { data: { user }, error: null };
+          }
+        }
+        
+        console.log('WorkingSupabase: No user found in localStorage');
+        return { data: { user: null }, error: null };
       } catch (error) {
         console.error('WorkingSupabase: getUser error:', error);
         return { data: { user: null }, error };
@@ -281,22 +297,69 @@ class WorkingSupabaseClient {
     },
     getSession: async () => {
       try {
-        console.log('WorkingSupabase: Getting session from standard auth client...');
-        const { data, error } = await authClient.auth.getSession();
-        console.log('WorkingSupabase: getSession result:', { data, error });
-        return { data, error };
+        console.log('WorkingSupabase: Getting session from localStorage...');
+        
+        // Get auth data from localStorage (Supabase standard storage)
+        const supabaseAuthKey = 'sb-uahxenisnppufpswupnz-auth-token';
+        const authData = localStorage.getItem(supabaseAuthKey);
+        
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          
+          if (parsed?.access_token && parsed?.user) {
+            const session = {
+              access_token: parsed.access_token,
+              user: parsed.user
+            };
+            
+            console.log('WorkingSupabase: Found session in localStorage');
+            return { data: { session }, error: null };
+          }
+        }
+        
+        console.log('WorkingSupabase: No session found in localStorage');
+        return { data: { session: null }, error: null };
       } catch (error) {
         console.error('WorkingSupabase: getSession error:', error);
         return { data: { session: null }, error };
       }
     },
     onAuthStateChange: (callback: any) => {
-      console.log('WorkingSupabase: Setting up auth state change listener...');
-      return authClient.auth.onAuthStateChange(callback);
-    },
-    signIn: (credentials: any) => authClient.auth.signInWithPassword(credentials),
-    signUp: (credentials: any) => authClient.auth.signUp(credentials),
-    signOut: () => authClient.auth.signOut()
+      console.log('WorkingSupabase: Setting up localStorage listener for auth changes...');
+      
+      // Listen for localStorage changes (when auth state changes)
+      const handleStorageChange = (e: StorageEvent) => {
+        const supabaseAuthKey = 'sb-uahxenisnppufpswupnz-auth-token';
+        
+        if (e.key === supabaseAuthKey) {
+          console.log('Auth state changed in localStorage');
+          
+          if (e.newValue) {
+            try {
+              const parsed = JSON.parse(e.newValue);
+              callback('SIGNED_IN', { access_token: parsed.access_token, user: parsed.user });
+            } catch (error) {
+              console.error('Error parsing auth data:', error);
+            }
+          } else {
+            callback('SIGNED_OUT', null);
+          }
+        }
+      };
+      
+      window.addEventListener('storage', handleStorageChange);
+      
+      return { 
+        data: { 
+          subscription: { 
+            unsubscribe: () => {
+              window.removeEventListener('storage', handleStorageChange);
+              console.log('Auth state listener unsubscribed');
+            }
+          } 
+        } 
+      };
+    }
   };
 }
 

@@ -146,12 +146,18 @@ export const CryptoTopupList = () => {
       console.log("Ticket updated to resolved");
 
       // Get or create user balance
+      console.log("Fetching existing balance for user:", userId);
       let { data: existingBalance, error: balanceError } = await workingSupabase
         .from('user_balances')
         .select('balance')
         .eq('user_id', userId);
 
-      console.log("Existing balance query:", { existingBalance, balanceError });
+      console.log("Existing balance query result:", { existingBalance, balanceError });
+
+      if (balanceError) {
+        console.error('Error fetching balance:', balanceError);
+        throw new Error(`Failed to fetch user balance: ${balanceError.message}`);
+      }
 
       const currentBalance = parseFloat(existingBalance?.[0]?.balance || '0');
       const newBalance = currentBalance + amountNum;
@@ -162,6 +168,7 @@ export const CryptoTopupList = () => {
       
       // If balance record exists, update it
       if (existingBalance && existingBalance.length > 0) {
+        console.log("Updating existing balance record");
         const updateResult = await workingSupabase
           .from('user_balances')
           .update({
@@ -171,9 +178,10 @@ export const CryptoTopupList = () => {
         
         balanceResult = updateResult.data;
         balanceUpdateError = updateResult.error;
-        console.log("Balance updated:", { balanceResult, balanceUpdateError });
+        console.log("Balance update result:", { balanceResult, balanceUpdateError });
       } else {
         // If no balance record exists, create one
+        console.log("Creating new balance record");
         const insertResult = await workingSupabase
           .from('user_balances')
           .insert({
@@ -183,7 +191,7 @@ export const CryptoTopupList = () => {
         
         balanceResult = insertResult.data;
         balanceUpdateError = insertResult.error;
-        console.log("Balance created:", { balanceResult, balanceUpdateError });
+        console.log("Balance insert result:", { balanceResult, balanceUpdateError });
       }
       
       if (balanceUpdateError) {
@@ -192,6 +200,7 @@ export const CryptoTopupList = () => {
       }
 
       // Add admin confirmation message
+      console.log("Adding admin confirmation message");
       const { data: messageResult, error: messageError } = await workingSupabase
         .from('ticket_messages')
         .insert({
@@ -210,19 +219,32 @@ export const CryptoTopupList = () => {
 
       toast({
         title: "Top-up Approved",
-        description: `Added $${amountNum.toFixed(2)} to user balance. New balance: $${newBalance.toFixed(2)}`,
+        description: `Successfully added $${amountNum.toFixed(2)} to user balance. New balance: $${newBalance.toFixed(2)}`,
       });
 
-      // Refresh tickets
+      // Refresh tickets to show updated status
+      console.log("Refreshing tickets list");
       fetchCryptoTickets();
       
-      // Force balance refresh for the affected user
+      // Force balance refresh for the affected user with multiple methods
+      console.log("Triggering balance refresh events");
       refreshUserBalance(userId);
       
-      // Force page reload to update balance in navbar (fallback)
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
+      // Also dispatch a more general balance update event
+      window.dispatchEvent(new CustomEvent('user-balance-updated', { 
+        detail: { 
+          userId, 
+          newBalance: newBalance.toFixed(2),
+          addedAmount: amountNum.toFixed(2)
+        } 
+      }));
+      
+      // Additional event for navbar refresh
+      window.dispatchEvent(new CustomEvent('refresh-navbar-balance', { 
+        detail: { userId } 
+      }));
+      
+      console.log("All balance refresh events dispatched");
       
     } catch (error) {
       console.error('Error verifying ticket:', error);
