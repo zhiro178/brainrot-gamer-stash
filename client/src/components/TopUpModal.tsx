@@ -101,25 +101,14 @@ export function TopUpModal({ user }: { user?: any }) {
         }
       }
       
-      // Add initial messages if we have a ticket ID
+      // Add initial admin welcome message only
       if (ticketId) {
-        // Add initial user message
-        await workingSupabase
-          .from("ticket_messages")
-          .insert({
-            ticket_id: ticketId,
-            user_id: currentUser.id,
-            message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
-            is_admin: false,
-          });
-
-        // Add automatic admin response to start the conversation
         await workingSupabase
           .from("ticket_messages")
           .insert({
             ticket_id: ticketId,
             user_id: "system",
-            message: `Hello! Thank you for your crypto top-up request of $${amount} USD. An admin will review your request and provide payment instructions shortly. Please check back here for updates or wait for our response.`,
+            message: `Hello! Thanks for reaching out. Your top-up request for $${amount} USD has been received.\nA support team member will review your request and send payment instructions shortly.\nPlease stay in this chat for updates.`,
             is_admin: true,
           });
       } else {
@@ -225,25 +214,14 @@ export function TopUpModal({ user }: { user?: any }) {
         }
       }
       
-      // Add initial messages if we have a ticket ID
+      // Add initial admin welcome message only
       if (ticketId) {
-        // Add initial user message
-        await workingSupabase
-          .from("ticket_messages")
-          .insert({
-            ticket_id: ticketId,
-            user_id: currentUser.id,
-            message: `I would like to top up my account using an Amazon gift card.\n\nAmount: $${amount} USD\nGift Card Code: ${giftCardCode}\n\nPlease verify and add the funds to my account.`,
-            is_admin: false,
-          });
-
-        // Add automatic admin response to start the conversation
         await workingSupabase
           .from("ticket_messages")
           .insert({
             ticket_id: ticketId,
             user_id: "system",
-            message: `Hello! Thank you for submitting your Amazon gift card for $${amount} USD. We will verify your gift card and process your top-up request within 24 hours. You can chat with us here if you have any questions!`,
+            message: `Hello! Thanks for reaching out. Your top-up request for $${amount} USD has been received.\nA support team member will review your request and send payment instructions shortly.\nPlease stay in this chat for updates.`,
             is_admin: true,
           });
       } else {
