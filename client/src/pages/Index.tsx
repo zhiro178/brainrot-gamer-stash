@@ -181,14 +181,42 @@ const Index = () => {
       console.log('Balance update event received:', event.detail);
       if (user?.id === event.detail?.userId) {
         // Refresh current user's balance
+        console.log('Refreshing balance for current user');
         fetchUserBalance(user.id);
       }
     };
 
+    const handleUserBalanceUpdate = (event: any) => {
+      console.log('User balance update event received:', event.detail);
+      if (user?.id === event.detail?.userId) {
+        // Update balance directly if provided, otherwise fetch
+        if (event.detail.newBalance) {
+          console.log('Setting balance directly:', event.detail.newBalance);
+          setUserBalance(parseFloat(event.detail.newBalance));
+        } else {
+          console.log('Fetching updated balance');
+          fetchUserBalance(user.id);
+        }
+      }
+    };
+
+    const handleNavbarBalanceRefresh = (event: any) => {
+      console.log('Navbar balance refresh event received:', event.detail);
+      if (user?.id === event.detail?.userId) {
+        console.log('Refreshing navbar balance');
+        fetchUserBalance(user.id);
+      }
+    };
+
+    // Listen for all balance update events
     window.addEventListener('balance-updated', handleBalanceUpdate);
+    window.addEventListener('user-balance-updated', handleUserBalanceUpdate);
+    window.addEventListener('refresh-navbar-balance', handleNavbarBalanceRefresh);
     
     return () => {
       window.removeEventListener('balance-updated', handleBalanceUpdate);
+      window.removeEventListener('user-balance-updated', handleUserBalanceUpdate);
+      window.removeEventListener('refresh-navbar-balance', handleNavbarBalanceRefresh);
     };
   }, [user]);
 
