@@ -139,42 +139,40 @@ export const CryptoTopupList = () => {
 
       console.log("Existing balance query:", { existingBalance, balanceError });
 
-      // If no balance record exists, create one
-      if (!existingBalance || existingBalance.length === 0) {
-        console.log("Creating new balance record for user:", userId);
-        const { data: newBalanceRecord, error: createError } = await workingSupabase
-          .from('user_balances')
-          .insert({
-            user_id: userId,
-            balance: '0.00'
-          });
-          
-        if (createError) {
-          console.error('Error creating balance record:', createError);
-          throw new Error(`Failed to create balance record: ${createError.message}`);
-        }
-        
-        existingBalance = [{ balance: '0.00' }];
-        console.log("Created new balance record");
-      }
-
-      const currentBalance = parseFloat(existingBalance[0]?.balance || '0');
+      const currentBalance = parseFloat(existingBalance?.[0]?.balance || '0');
       const newBalance = currentBalance + amountNum;
       
       console.log("Balance calculation:", { currentBalance, amountNum, newBalance });
       
-      // Update user balance using working client update (need to implement)
-      // For now, using insert with conflict handling
-      const { data: balanceResult, error: balanceUpdateError } = await workingSupabase
-        .from('user_balances')
-        .insert({
-          user_id: userId,
-          balance: newBalance.toFixed(2)
-        });
-        
-      console.log("Balance update result:", { balanceResult, balanceUpdateError });
+      let balanceResult, balanceUpdateError;
       
-      if (balanceUpdateError && !balanceUpdateError.message.includes('duplicate')) {
+      // If balance record exists, update it
+      if (existingBalance && existingBalance.length > 0) {
+        const updateResult = await workingSupabase
+          .from('user_balances')
+          .update({
+            balance: newBalance.toFixed(2)
+          })
+          .eq('user_id', userId);
+        
+        balanceResult = updateResult.data;
+        balanceUpdateError = updateResult.error;
+        console.log("Balance updated:", { balanceResult, balanceUpdateError });
+      } else {
+        // If no balance record exists, create one
+        const insertResult = await workingSupabase
+          .from('user_balances')
+          .insert({
+            user_id: userId,
+            balance: newBalance.toFixed(2)
+          });
+        
+        balanceResult = insertResult.data;
+        balanceUpdateError = insertResult.error;
+        console.log("Balance created:", { balanceResult, balanceUpdateError });
+      }
+      
+      if (balanceUpdateError) {
         console.error('Error updating balance:', balanceUpdateError);
         throw new Error(`Failed to update balance: ${balanceUpdateError.message}`);
       }

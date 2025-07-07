@@ -149,15 +149,38 @@ export const AdminPanel = () => {
       
       // Try to update balance in Supabase
       try {
-        const { error } = await supabase
+        // First check if balance record exists
+        const { data: existingBalance } = await supabase
           .from('user_balances')
-          .upsert({
-            user_id: userId,
-            balance: newBalance.toString()
-          });
+          .select('balance')
+          .eq('user_id', userId);
+
+        let balanceUpdateError;
         
-        if (error) {
-          console.error('Supabase balance error:', error);
+        if (existingBalance && existingBalance.length > 0) {
+          // Update existing balance
+          const { error } = await supabase
+            .from('user_balances')
+            .update({
+              balance: newBalance.toString()
+            })
+            .eq('user_id', userId);
+          
+          balanceUpdateError = error;
+        } else {
+          // Create new balance record
+          const { error } = await supabase
+            .from('user_balances')
+            .insert({
+              user_id: userId,
+              balance: newBalance.toString()
+            });
+          
+          balanceUpdateError = error;
+        }
+        
+        if (balanceUpdateError) {
+          console.error('Supabase balance error:', balanceUpdateError);
           // Fall back to localStorage if Supabase fails
           const savedBalances = localStorage.getItem('user_balances');
           const balances = savedBalances ? JSON.parse(savedBalances) : {};
@@ -195,15 +218,37 @@ export const AdminPanel = () => {
 
   const clearUserBalance = async (userId: string, userEmail: string) => {
     try {
-      // Update balance to 0 in Supabase
-      const { error } = await supabase
+      // Check if balance record exists first
+      const { data: existingBalance } = await supabase
         .from('user_balances')
-        .upsert({
-          user_id: userId,
-          balance: '0'
-        });
+        .select('balance')
+        .eq('user_id', userId);
+
+      let clearError;
       
-      if (error) throw error;
+      if (existingBalance && existingBalance.length > 0) {
+        // Update existing balance to 0
+        const { error } = await supabase
+          .from('user_balances')
+          .update({
+            balance: '0'
+          })
+          .eq('user_id', userId);
+        
+        clearError = error;
+      } else {
+        // Create new balance record with 0 balance
+        const { error } = await supabase
+          .from('user_balances')
+          .insert({
+            user_id: userId,
+            balance: '0'
+          });
+        
+        clearError = error;
+      }
+      
+      if (clearError) throw clearError;
       
       // Update local state
       setUserBalances(prev => ({...prev, [userId]: 0}));
