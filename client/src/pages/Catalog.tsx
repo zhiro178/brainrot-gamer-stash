@@ -60,13 +60,12 @@ export default function Catalog() {
     console.log("Purchase item:", item);
     
     try {
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { workingSupabase } = await import("@/lib/supabase-backup");
       
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get current user using working client
+      const { data: { user } } = await workingSupabase.auth.getUser();
+      
+      console.log('Purchase flow - user check:', user);
       
       // Check if user is logged in
       if (!user) {
@@ -107,57 +106,69 @@ export default function Catalog() {
         return;
       }
       
-      // Check user balance
-      const { data: balanceData } = await supabase
+      console.log('Purchase flow - checking balance for user:', user.id);
+      
+      // Check user balance using working client
+      const { data: balanceData } = await workingSupabase
         .from('user_balances')
         .select('balance')
-        .eq('user_id', String(user.id)) // Ensure it's a string
-        .single();
+        .eq('user_id', String(user.id));
       
-      const currentBalance = balanceData?.balance || 0;
+      console.log('Purchase flow - balance query result:', balanceData);
+      
+      const currentBalance = parseFloat(balanceData?.[0]?.balance || '0');
+      
+      console.log('Purchase flow - current balance:', currentBalance, 'item price:', item.price);
       
       if (currentBalance >= item.price) {
-        // Deduct from balance
-        await supabase
+        // Deduct from balance using working client
+        await workingSupabase
           .from('user_balances')
-          .upsert({
-            user_id: String(user.id), // Ensure it's a string
-            balance: currentBalance - item.price
-          });
+          .update({
+            balance: (currentBalance - item.price).toFixed(2)
+          })
+          .eq('user_id', String(user.id));
         
-        // Create purchase ticket
-        const { data: ticketData, error } = await supabase
+        console.log('Purchase flow - balance updated');
+        
+        // Create purchase ticket using working client
+        const { data: ticketData, error } = await workingSupabase
           .from('support_tickets')
           .insert({
-            user_id: String(user.id), // Ensure it's a string
+            user_id: String(user.id),
             subject: `Purchase Claim - ${item.name}`,
             message: `Purchase completed for: ${item.name} - Price: $${item.price}. Please deliver the item.`,
             status: 'open',
             category: 'purchase'
-          })
-          .select('id')
-          .single();
+          });
+        
+        console.log('Purchase flow - ticket creation result:', { ticketData, error });
         
         if (!error && ticketData) {
-          // Add user message
-          await supabase
-            .from('ticket_messages')
-            .insert({
-              ticket_id: ticketData.id, // Keep as integer
-              user_id: String(user.id), // Ensure it's a string
-              message: `I have successfully purchased: ${item.name} for $${item.price}. My remaining balance is $${(currentBalance - item.price).toFixed(2)}. Please deliver the item to my account.`,
-              is_admin: false
-            });
+          // Get the ticket ID from response
+          const ticketId = Array.isArray(ticketData) ? ticketData[0]?.id : (ticketData as any)?.id;
           
-          // Add admin message
-          await supabase
-            .from('ticket_messages')
-            .insert({
-              ticket_id: ticketData.id, // Keep as integer
-              user_id: String(user.id), // Ensure it's a string
-              message: `Payment received! We'll process your ${item.name} order and deliver it to your account within 24 hours. Thank you for your purchase!`,
-              is_admin: true
-            });
+          if (ticketId) {
+            // Add user message
+            await workingSupabase
+              .from('ticket_messages')
+              .insert({
+                ticket_id: ticketId,
+                user_id: String(user.id),
+                message: `I have successfully purchased: ${item.name} for $${item.price}. My remaining balance is $${(currentBalance - item.price).toFixed(2)}. Please deliver the item to my account.`,
+                is_admin: false
+              });
+            
+            // Add admin message
+            await workingSupabase
+              .from('ticket_messages')
+              .insert({
+                ticket_id: ticketId,
+                user_id: "system",
+                message: `Payment received! We'll process your ${item.name} order and deliver it to your account within 24 hours. Thank you for your purchase!`,
+                is_admin: true
+              });
+          }
           
           const { toast } = await import("@/hooks/use-toast");
           toast({
@@ -182,6 +193,11 @@ export default function Catalog() {
               </div>
             ),
           });
+          
+          // Refresh page to update balance in navbar
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
         }
       } else {
         const { toast } = await import("@/hooks/use-toast");
