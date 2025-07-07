@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { workingSupabase } from "@/lib/supabase-backup";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ export default function Tickets() {
     console.log('Tickets component mounted, checking authentication...');
     
     // Add auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
+    const { data: { subscription } } = workingSupabase.auth.onAuthStateChange((event: any, session: any) => {
       console.log('Auth state changed:', { event, session });
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         console.log('User signed in or token refreshed, fetching tickets...');
@@ -62,12 +63,12 @@ export default function Tickets() {
       console.log('Fetching user and tickets...');
       
       // Try multiple ways to get the user
-      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-      console.log('Auth getUser result:', { currentUser, userError });
+      const { data: { user: currentUser }, error: userError } = await workingSupabase.auth.getUser();
+      console.log('Working client getUser result:', { currentUser, userError });
       
       // Also try getSession as backup
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Auth getSession result:', { session, sessionError });
+      const { data: { session }, error: sessionError } = await workingSupabase.auth.getSession();
+      console.log('Working client getSession result:', { session, sessionError });
       
       // Use user from session if getUser fails
       const user = currentUser || session?.user;
@@ -78,8 +79,10 @@ export default function Tickets() {
       if (user) {
         console.log('User found, fetching tickets for user:', user.id);
         
-        // Fetch tickets - admins see all tickets, users see only their own
-        let query = supabase
+        // Fetch tickets using working client - admins see all tickets, users see only their own
+        console.log('Using working Supabase client...');
+        
+        let query = workingSupabase
           .from('support_tickets')
           .select('*')
           .order('created_at', { ascending: false });
@@ -92,9 +95,9 @@ export default function Tickets() {
           console.log('Admin user detected, showing all tickets');
         }
         
-        console.log('Executing tickets query...');
+        console.log('Executing tickets query with working client...');
         const { data, error } = await query;
-        console.log('Tickets query result:', { data, error });
+        console.log('Working client query result:', { data, error });
         
         if (error) {
           console.error('Error fetching tickets:', error);
@@ -251,50 +254,46 @@ export default function Tickets() {
                 onClick={async () => {
                   console.log('=== SUPABASE DIAGNOSTIC TEST ===');
                   
-                  // Test 1: Authentication
-                  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-                  console.log('1. Auth User:', { authUser, authError });
+                  // Test 1: Authentication (Working Client)
+                  const { data: { user: authUser }, error: authError } = await workingSupabase.auth.getUser();
+                  console.log('1. Working Auth User:', { authUser, authError });
                   
-                  // Test 2: Basic query
-                  const { data: testData, error: testError } = await supabase
+                  // Test 2: Basic query (Working Client)
+                  const { data: testData, error: testError } = await workingSupabase
                     .from('support_tickets')
                     .select('*')
                     .limit(1);
-                  console.log('2. Basic Query:', { testData, testError });
+                  console.log('2. Working Basic Query:', { testData, testError });
                   
-                  // Test 3: Insert test (if logged in)
-                  if (authUser) {
-                    const { data: insertData, error: insertError } = await supabase
-                      .from('support_tickets')
-                      .insert({
-                        user_id: authUser.id,
-                        subject: 'TEST DIAGNOSTIC',
-                        message: 'This is a test',
-                        status: 'open',
-                        category: 'general'
-                      })
-                      .select();
-                    console.log('3. Insert Test:', { insertData, insertError });
-                    
-                    // Clean up
-                    if (insertData?.[0]) {
-                      await supabase.from('support_tickets').delete().eq('id', insertData[0].id);
-                      console.log('4. Cleanup: Test ticket deleted');
+                                      // Test 3: Insert test (if logged in) - Working Client
+                    if (authUser) {
+                      const { data: insertData, error: insertError } = await workingSupabase
+                        .from('support_tickets')
+                        .insert({
+                          user_id: authUser.id,
+                          subject: 'TEST DIAGNOSTIC',
+                          message: 'This is a test',
+                          status: 'open',
+                          category: 'general'
+                        });
+                      console.log('3. Working Insert Test:', { insertData, insertError });
+                      
+                      // Clean up (skip for now since delete not implemented in working client)
+                      console.log('4. Cleanup skipped (delete not implemented in working client)');
                     }
-                  }
                   
-                  // Test 4: RLS Status
-                  try {
-                    const response = await fetch(`${supabase.supabaseUrl}/rest/v1/support_tickets?select=id&limit=1`, {
-                      headers: {
-                        'apikey': supabase.supabaseKey,
-                        'Authorization': `Bearer ${supabase.supabaseKey}`
-                      }
-                    });
-                    console.log('4. Direct API Test:', { status: response.status, ok: response.ok });
-                  } catch (e) {
-                    console.log('4. Direct API Test Failed:', e);
-                  }
+                                      // Test 4: RLS Status (Direct API)
+                    try {
+                      const response = await fetch(`https://uahxenisnppufpswupnz.supabase.co/rest/v1/support_tickets?select=id&limit=1`, {
+                        headers: {
+                          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q',
+                          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q'
+                        }
+                      });
+                      console.log('4. Direct API Test:', { status: response.status, ok: response.ok });
+                    } catch (e) {
+                      console.log('4. Direct API Test Failed:', e);
+                    }
                   
                   console.log('=== END DIAGNOSTIC ===');
                   alert('Diagnostic complete! Check console (F12) for detailed results.');
