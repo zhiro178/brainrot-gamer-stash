@@ -28,38 +28,90 @@ export default function Tickets() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
   const { isAdmin } = useAdmin();
+  
+  // Also check if user is admin by email as backup
+  const isAdminByEmail = user?.email === 'zhirocomputer@gmail.com' || user?.email === 'ajay123phone@gmail.com';
 
   useEffect(() => {
+    console.log('Tickets component mounted, checking authentication...');
+    
+    // Add auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
+      console.log('Auth state changed:', { event, session });
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('User signed in or token refreshed, fetching tickets...');
+        fetchUserAndTickets();
+      } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
+        setUser(null);
+        setTickets([]);
+      }
+    });
+    
+    // Initial fetch
     fetchUserAndTickets();
+    
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserAndTickets = async () => {
     try {
-      // Get current user
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
+      console.log('Fetching user and tickets...');
       
-      if (currentUser) {
+      // Try multiple ways to get the user
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      console.log('Auth getUser result:', { currentUser, userError });
+      
+      // Also try getSession as backup
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Auth getSession result:', { session, sessionError });
+      
+      // Use user from session if getUser fails
+      const user = currentUser || session?.user;
+      console.log('Final user object:', user);
+      
+      setUser(user);
+      
+      if (user) {
+        console.log('User found, fetching tickets for user:', user.id);
+        
         // Fetch tickets - admins see all tickets, users see only their own
         let query = supabase
           .from('support_tickets')
           .select('*')
           .order('created_at', { ascending: false });
         
-        if (!isAdmin) {
-          query = query.eq('user_id', currentUser.id);
+        // Apply user filtering only for non-admins
+        if (!(isAdmin || isAdminByEmail)) {
+          console.log('Filtering tickets for non-admin user:', user.id);
+          query = query.eq('user_id', user.id);
+        } else {
+          console.log('Admin user detected, showing all tickets');
         }
         
+        console.log('Executing tickets query...');
         const { data, error } = await query;
+        console.log('Tickets query result:', { data, error });
         
-        // Handle expected errors gracefully (table doesn't exist)
-        if (error && !['42703', '42P01'].includes(error.code)) {
+        if (error) {
           console.error('Error fetching tickets:', error);
+          toast({
+            title: "Error",
+            description: `Failed to fetch tickets: ${error.message}`,
+            variant: "destructive",
+          });
         }
+        
         setTickets(data || []);
+      } else {
+        console.log('No user found');
+        setTickets([]);
       }
     } catch (error) {
-      console.error('Error fetching tickets:', error);
+      console.error('Error in fetchUserAndTickets:', error);
       setTickets([]);
     } finally {
       setLoading(false);
@@ -140,12 +192,25 @@ export default function Tickets() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="bg-gradient-card border-primary/20">
           <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
-            <p className="text-muted-foreground mb-4">Please log in to view your tickets.</p>
-            <Button onClick={() => setLocation("/")} variant="outline">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
+            <h1 className="text-2xl font-bold text-destructive mb-4">Authentication Issue</h1>
+            <p className="text-muted-foreground mb-4">
+              Unable to verify your login status. Check browser console for details.
+            </p>
+            <div className="space-y-2 mb-4">
+              <Button onClick={() => {
+                console.log('Attempting to refresh authentication...');
+                window.location.reload();
+              }} variant="outline">
+                🔄 Refresh Page
+              </Button>
+              <Button onClick={() => setLocation("/")} variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Debug: Check browser console (F12) for authentication details
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -167,20 +232,30 @@ export default function Tickets() {
           
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">
-              {isAdmin ? 'All Support Tickets' : 'My Tickets'}
+              {isAdmin || isAdminByEmail ? 'All Support Tickets' : 'My Tickets'}
             </h1>
             <p className="text-muted-foreground">
-              {isAdmin ? 'Manage all customer support requests' : 'View and manage your support requests'}
+              {isAdmin || isAdminByEmail ? 'Manage all customer support requests' : 'View and manage your support requests'}
             </p>
+            
+            {/* Debug info */}
+            <div className="mt-4 p-2 bg-muted rounded text-xs">
+              <p>Debug Info:</p>
+              <p>User ID: {user?.id}</p>
+              <p>Email: {user?.email}</p>
+              <p>IsAdmin (hook): {String(isAdmin)}</p>
+              <p>IsAdmin (email): {String(isAdminByEmail)}</p>
+              <p>Tickets count: {tickets.length}</p>
+            </div>
           </div>
 
-          {tickets.length === 0 ? (
+                                {tickets.length === 0 ? (
             <Card className="bg-gradient-card border-primary/20">
               <CardContent className="p-8 text-center">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No tickets found</h3>
                 <p className="text-muted-foreground">
-                  {isAdmin ? 'No support tickets have been created yet.' : 'You haven\'t created any support tickets yet.'}
+                  {(isAdmin || isAdminByEmail) ? 'No support tickets have been created yet.' : 'You haven\'t created any support tickets yet.'}
                 </p>
               </CardContent>
             </Card>
@@ -263,7 +338,7 @@ export default function Tickets() {
                               ticketId={selectedTicket.id}
                               ticketSubject={selectedTicket.subject}
                               currentUser={user}
-                              isAdmin={isAdmin}
+                              isAdmin={isAdmin || isAdminByEmail}
                             />
                           )}
                         </DialogContent>
