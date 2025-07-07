@@ -29,10 +29,25 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  console.log('SimpleTicketChat mounted with:', { 
+    ticketId, 
+    ticketSubject, 
+    currentUser: currentUser?.id, 
+    isAdmin 
+  });
+
   useEffect(() => {
+    if (!ticketId || !currentUser) {
+      console.error('Missing required props:', { ticketId, currentUser });
+      setError('Missing ticket ID or user information');
+      setLoading(false);
+      return;
+    }
+
     fetchMessages();
     
     // Set up polling for new messages since our working client doesn't support real-time subscriptions
@@ -43,7 +58,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     return () => {
       clearInterval(pollInterval);
     };
-  }, [ticketId]);
+  }, [ticketId, currentUser]);
 
   useEffect(() => {
     scrollToBottom();
@@ -51,26 +66,35 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
   const fetchMessages = async () => {
     try {
-      console.log('Fetching messages for ticket:', ticketId);
+      console.log('Fetching messages for ticket:', ticketId, 'as user:', currentUser?.id);
+      
+      if (!ticketId) {
+        throw new Error('No ticket ID provided');
+      }
+
       const { data, error } = await workingSupabase
         .from('ticket_messages')
         .select('*')
-        .eq('ticket_id', ticketId)
+        .eq('ticket_id', parseInt(ticketId))
         .order('created_at', { ascending: true });
+
+      console.log('Messages fetch result:', { data, error, ticketId });
 
       if (error) {
         console.error('Working client error fetching messages:', error);
         throw error;
       }
       
-      console.log('Fetched messages:', data);
+      console.log('Fetched messages count:', data?.length || 0);
       setMessages(data || []);
+      setError(null);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load messages');
       if (loading) {
         // Only show toast on initial load error, not polling errors
         toast({
-          title: "Error",
+          title: "Chat Error",
           description: `Failed to load chat messages: ${error instanceof Error ? error.message : 'Unknown error'}`,
           variant: "destructive",
         });
@@ -81,11 +105,17 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || sending) return;
+    if (!newMessage.trim() || sending || !currentUser) return;
 
     setSending(true);
     try {
-      console.log('Sending message with working client...');
+      console.log('Sending message with working client...', {
+        ticketId: parseInt(ticketId),
+        userId: currentUser.id,
+        isAdmin,
+        message: newMessage.trim()
+      });
+      
       const { error } = await workingSupabase
         .from('ticket_messages')
         .insert({
@@ -123,12 +153,32 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Show error state
+  if (error && !loading) {
+    return (
+      <Card className="h-96 flex flex-col">
+        <CardContent className="p-8 text-center flex-1 flex flex-col justify-center">
+          <div className="text-destructive mb-4">❌ Chat Error</div>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => {
+            setError(null);
+            setLoading(true);
+            fetchMessages();
+          }} variant="outline">
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
+      <Card className="h-96 flex flex-col">
+        <CardContent className="p-8 text-center flex-1 flex flex-col justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading chat...</p>
+          <p className="text-xs text-muted-foreground mt-2">Ticket ID: {ticketId}</p>
         </CardContent>
       </Card>
     );
@@ -144,6 +194,9 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
             #{ticketId.slice(-6)}
           </Badge>
         </CardTitle>
+        <div className="text-xs text-muted-foreground">
+          Debug: User ID: {currentUser?.id} | Admin: {isAdmin ? 'Yes' : 'No'} | Messages: {messages.length}
+        </div>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-3 gap-3">
@@ -152,6 +205,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <p>No messages yet. Start the conversation!</p>
+                <p className="text-xs mt-2">Ticket #{ticketId}</p>
               </div>
             ) : (
               messages.map((message) => (
@@ -173,7 +227,8 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                         <User className="h-3 w-3" />
                       )}
                       <span className="text-xs opacity-75">
-                        {message.is_admin ? 'Support Team' : 'You'}
+                        {message.is_admin ? 'Support Team' : 
+                         message.user_id === currentUser.id ? 'You' : 'Customer'}
                       </span>
                       <span className="text-xs opacity-50">
                         {new Date(message.created_at).toLocaleTimeString()}
@@ -194,9 +249,9 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={isAdmin ? "Reply to customer..." : "Type your message..."}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            disabled={sending}
+            disabled={sending || !currentUser}
           />
-          <Button onClick={sendMessage} disabled={sending || !newMessage.trim()}>
+          <Button onClick={sendMessage} disabled={sending || !newMessage.trim() || !currentUser}>
             <Send className="h-4 w-4" />
           </Button>
         </div>

@@ -120,16 +120,50 @@ class WorkingSupabaseClient {
           
           const response = await fetch(url, {
             method: 'PATCH',
-            headers: this.getHeaders(),
+            headers: {
+              ...this.getHeaders(),
+              'Prefer': 'return=minimal'
+            },
             body: JSON.stringify(updateData)
           });
 
+          console.log('Update response status:', response.status, response.statusText);
+
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('Update failed with status:', response.status, 'body:', errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
           }
 
-          const data = await response.json();
-          console.log('Direct update success:', data);
+          // Handle response - Supabase PATCH with return=minimal returns empty body
+          let data = null;
+          const contentLength = response.headers.get('content-length');
+          const contentType = response.headers.get('content-type');
+          
+          console.log('Update response headers:', { contentLength, contentType });
+          
+          if (contentLength === '0' || contentLength === null) {
+            // Empty response is expected for updates with return=minimal
+            console.log('Empty response from update - treating as success');
+            data = null; // No data returned, but operation was successful
+          } else {
+            // Try to parse response if there's content
+            try {
+              const responseText = await response.text();
+              console.log('Update response text:', responseText);
+              
+              if (responseText.trim() === '') {
+                data = null;
+              } else {
+                data = JSON.parse(responseText);
+              }
+            } catch (jsonError) {
+              console.log('Non-JSON response from update, treating as success');
+              data = null; // No data, but operation was successful
+            }
+          }
+
+          console.log('Direct update success - no data returned (normal for updates)');
           callback({ data, error: null });
           return { data, error: null };
         } catch (error) {
