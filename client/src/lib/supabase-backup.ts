@@ -122,7 +122,7 @@ class WorkingSupabaseClient {
             method: 'PATCH',
             headers: {
               ...this.getHeaders(),
-              'Prefer': 'return=representation'
+              'Prefer': 'return=minimal'
             },
             body: JSON.stringify(updateData)
           });
@@ -135,25 +135,35 @@ class WorkingSupabaseClient {
             throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
           }
 
-          // Handle empty response or non-JSON response
-          let data;
-          const responseText = await response.text();
-          console.log('Raw update response text:', responseText);
+          // Handle response - Supabase PATCH with return=minimal returns empty body
+          let data = null;
+          const contentLength = response.headers.get('content-length');
+          const contentType = response.headers.get('content-type');
           
-          if (responseText.trim() === '') {
-            // Empty response is common for updates
-            data = [updateData]; // Return the updated data
+          console.log('Update response headers:', { contentLength, contentType });
+          
+          if (contentLength === '0' || contentLength === null) {
+            // Empty response is expected for updates with return=minimal
+            console.log('Empty response from update - treating as success');
+            data = null; // No data returned, but operation was successful
           } else {
+            // Try to parse response if there's content
             try {
-              data = JSON.parse(responseText);
+              const responseText = await response.text();
+              console.log('Update response text:', responseText);
+              
+              if (responseText.trim() === '') {
+                data = null;
+              } else {
+                data = JSON.parse(responseText);
+              }
             } catch (jsonError) {
-              console.error('Failed to parse JSON response:', responseText);
-              // If JSON parsing fails but HTTP status was OK, still treat as success
-              data = [updateData]; // Return the updated data
+              console.log('Non-JSON response from update, treating as success');
+              data = null; // No data, but operation was successful
             }
           }
 
-          console.log('Direct update success:', data);
+          console.log('Direct update success - no data returned (normal for updates)');
           callback({ data, error: null });
           return { data, error: null };
         } catch (error) {
