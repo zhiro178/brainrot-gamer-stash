@@ -36,6 +36,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add a simple health check endpoint for debugging
+app.get('/api/health', (_req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'unknown',
+    message: 'Server is running'
+  });
+});
+
 (async () => {
   const server = await registerRoutes(app);
 

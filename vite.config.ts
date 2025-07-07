@@ -32,6 +32,10 @@ export default defineConfig({
     emptyOutDir: true,
     // Improve build for production
     rollupOptions: {
+      input: {
+        main: path.resolve(import.meta.dirname, "client/index.html"),
+        debug: path.resolve(import.meta.dirname, "client/debug.html")
+      },
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],

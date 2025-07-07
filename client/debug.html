@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>592 Stock - Debug Page</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a0b0f 0%, #1a1b2e 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .debug-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 32px;
+        }
+        .test-item {
+            background: #1a1b2e;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #8b5cf6;
+        }
+        .success { border-left-color: #10b981; }
+        .error { border-left-color: #ef4444; }
+        button {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #7c3aed; }
+        pre {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 592 Stock - Debug Page</h1>
+        <p>This page tests basic connectivity and helps diagnose the black page issue.</p>
+        
+        <div class="test-item">
+            <h3>✅ Basic HTML/CSS Loading</h3>
+            <p>If you can see this styled page, basic asset serving works.</p>
+        </div>
+
+        <div class="test-item">
+            <h3>🌐 Environment Test</h3>
+            <div id="env-info">Testing...</div>
+        </div>
+
+        <div class="test-item">
+            <h3>📡 Network Test</h3>
+            <div id="network-info">Testing...</div>
+        </div>
+
+        <div class="test-item">
+            <h3>🎯 Asset Loading Test</h3>
+            <div id="asset-info">Testing...</div>
+        </div>
+
+        <div class="test-item">
+            <h3>🔧 Actions</h3>
+            <button onclick="testMainApp()">Test Main App</button>
+            <button onclick="runDiagnostics()">Run Full Diagnostics</button>
+            <button onclick="downloadLogs()">Download Debug Logs</button>
+        </div>
+
+        <div class="test-item">
+            <h3>📝 Debug Output</h3>
+            <pre id="debug-output">Debug information will appear here...</pre>
+        </div>
+    </div>
+
+    <script>
+        const debugOutput = document.getElementById('debug-output');
+        const envInfo = document.getElementById('env-info');
+        const networkInfo = document.getElementById('network-info');
+        const assetInfo = document.getElementById('asset-info');
+
+        function log(message) {
+            console.log(message);
+            debugOutput.textContent += new Date().toISOString() + ': ' + message + '\n';
+        }
+
+        function testMainApp() {
+            log('Testing main app...');
+            try {
+                window.location.href = '/';
+            } catch (error) {
+                log('Error navigating to main app: ' + error);
+            }
+        }
+
+        function downloadLogs() {
+            const logs = debugOutput.textContent;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '592-stock-debug-' + new Date().toISOString() + '.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function runDiagnostics() {
+            log('=== STARTING FULL DIAGNOSTICS ===');
+            
+            // Test environment
+            log('Environment check...');
+            try {
+                const envData = {
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    protocol: window.location.protocol,
+                    host: window.location.host,
+                    pathname: window.location.pathname,
+                    search: window.location.search,
+                    referrer: document.referrer,
+                    cookieEnabled: navigator.cookieEnabled,
+                    onLine: navigator.onLine,
+                    language: navigator.language,
+                    platform: navigator.platform,
+                    screen: {
+                        width: screen.width,
+                        height: screen.height,
+                        colorDepth: screen.colorDepth
+                    }
+                };
+                envInfo.innerHTML = '<pre>' + JSON.stringify(envData, null, 2) + '</pre>';
+                log('Environment: ' + JSON.stringify(envData));
+            } catch (error) {
+                log('Environment test failed: ' + error);
+                envInfo.innerHTML = '<span style="color: #ef4444;">Failed: ' + error + '</span>';
+            }
+
+            // Test network connectivity
+            log('Network connectivity test...');
+            try {
+                const response = await fetch('/api/health');
+                const text = await response.text();
+                networkInfo.innerHTML = '<span style="color: #10b981;">✅ API endpoint reachable</span><br>Response: ' + text;
+                log('Network test passed: ' + text);
+            } catch (error) {
+                networkInfo.innerHTML = '<span style="color: #ef4444;">❌ API endpoint failed</span><br>Error: ' + error;
+                log('Network test failed: ' + error);
+            }
+
+            // Test asset loading
+            log('Asset loading test...');
+            try {
+                // Test if main JS bundle exists (try different possible names)
+                const possibleJsFiles = [
+                    '/assets/main-DA9SjpAi.js',
+                    '/assets/index-CAKBWg1C.js', 
+                    '/assets/main.js',
+                    '/assets/index.js'
+                ];
+                
+                const possibleCssFiles = [
+                    '/assets/main-DWqqwjK6.css',
+                    '/assets/index-DWqqwjK6.css',
+                    '/assets/main.css',
+                    '/assets/index.css'
+                ];
+                
+                // Test all possible asset files
+                let jsFound = false;
+                let cssFound = false;
+                let foundJsFile = '';
+                let foundCssFile = '';
+                
+                for (const jsFile of possibleJsFiles) {
+                    try {
+                        const response = await fetch(jsFile);
+                        if (response.ok) {
+                            jsFound = true;
+                            foundJsFile = jsFile;
+                            break;
+                        }
+                    } catch (e) {
+                        // Continue to next file
+                    }
+                }
+                
+                for (const cssFile of possibleCssFiles) {
+                    try {
+                        const response = await fetch(cssFile);
+                        if (response.ok) {
+                            cssFound = true;
+                            foundCssFile = cssFile;
+                            break;
+                        }
+                    } catch (e) {
+                        // Continue to next file
+                    }
+                }
+                
+                let assetStatus = '';
+                if (jsFound) {
+                    assetStatus += '✅ Main JS bundle loads: ' + foundJsFile + '<br>';
+                } else {
+                    assetStatus += '❌ Main JS bundle missing (tried: ' + possibleJsFiles.join(', ') + ')<br>';
+                }
+                
+                if (cssFound) {
+                    assetStatus += '✅ Main CSS bundle loads: ' + foundCssFile + '<br>';
+                } else {
+                    assetStatus += '❌ Main CSS bundle missing (tried: ' + possibleCssFiles.join(', ') + ')<br>';
+                }
+                
+                // Test if assets directory is accessible
+                try {
+                    const assetsResponse = await fetch('/assets/');
+                    if (assetsResponse.ok) {
+                        assetStatus += '✅ Assets directory accessible<br>';
+                    } else {
+                        assetStatus += '❌ Assets directory not accessible (status: ' + assetsResponse.status + ')<br>';
+                    }
+                } catch (e) {
+                    assetStatus += '❌ Assets directory test failed: ' + e + '<br>';
+                }
+                
+                assetInfo.innerHTML = assetStatus;
+                log('Asset test - JS: ' + jsFound + ' (' + foundJsFile + '), CSS: ' + cssFound + ' (' + foundCssFile + ')');
+            } catch (error) {
+                assetInfo.innerHTML = '<span style="color: #ef4444;">❌ Asset test failed</span><br>Error: ' + error;
+                log('Asset test failed: ' + error);
+            }
+
+            log('=== DIAGNOSTICS COMPLETE ===');
+        }
+
+        // Auto-run basic diagnostics on load
+        window.addEventListener('load', () => {
+            log('Debug page loaded successfully');
+            setTimeout(runDiagnostics, 1000);
+        });
+
+        // Test basic console logging
+        log('Debug page script loaded');
+    </script>
+</body>
+</html>
