@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { workingSupabase } from '@/lib/supabase-backup';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,19 +35,13 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   useEffect(() => {
     fetchMessages();
     
-    // Subscribe to new messages
-    const subscription = supabase
-      .channel(`ticket_${ticketId}`)
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: `ticket_id=eq.${ticketId}` },
-        (payload: any) => {
-          setMessages((prev: Message[]) => [...prev, payload.new as Message]);
-        }
-      )
-      .subscribe();
+    // Set up polling for new messages since our working client doesn't support real-time subscriptions
+    const pollInterval = setInterval(() => {
+      fetchMessages();
+    }, 3000); // Poll every 3 seconds
 
     return () => {
-      supabase.removeChannel(subscription);
+      clearInterval(pollInterval);
     };
   }, [ticketId]);
 
@@ -58,14 +52,14 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   const fetchMessages = async () => {
     try {
       console.log('Fetching messages for ticket:', ticketId);
-      const { data, error } = await supabase
+      const { data, error } = await workingSupabase
         .from('ticket_messages')
         .select('*')
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Supabase error fetching messages:', error);
+        console.error('Working client error fetching messages:', error);
         throw error;
       }
       
@@ -73,11 +67,14 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
       setMessages(data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
-      toast({
-        title: "Error",
-        description: `Failed to load chat messages: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive",
-      });
+      if (loading) {
+        // Only show toast on initial load error, not polling errors
+        toast({
+          title: "Error",
+          description: `Failed to load chat messages: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -88,7 +85,8 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
     setSending(true);
     try {
-      const { error } = await supabase
+      console.log('Sending message with working client...');
+      const { error } = await workingSupabase
         .from('ticket_messages')
         .insert({
           ticket_id: parseInt(ticketId),
@@ -97,8 +95,18 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           is_admin: isAdmin
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
+      
+      console.log('Message sent successfully');
       setNewMessage('');
+      
+      // Refresh messages immediately after sending
+      setTimeout(() => {
+        fetchMessages();
+      }, 500);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -141,35 +149,41 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
       <CardContent className="flex-1 flex flex-col p-3 gap-3">
         <ScrollArea className="flex-1 pr-3">
           <div className="space-y-3">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.user_id === currentUser.id ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.user_id === currentUser.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {message.is_admin ? (
-                      <UserCog className="h-3 w-3" />
-                    ) : (
-                      <User className="h-3 w-3" />
-                    )}
-                    <span className="text-xs opacity-75">
-                      {message.is_admin ? 'Support Team' : 'You'}
-                    </span>
-                    <span className="text-xs opacity-50">
-                      {new Date(message.created_at).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <p className="text-sm">{message.message}</p>
-                </div>
+            {messages.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <p>No messages yet. Start the conversation!</p>
               </div>
-            ))}
+            ) : (
+              messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.user_id === currentUser.id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      message.user_id === currentUser.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {message.is_admin ? (
+                        <UserCog className="h-3 w-3" />
+                      ) : (
+                        <User className="h-3 w-3" />
+                      )}
+                      <span className="text-xs opacity-75">
+                        {message.is_admin ? 'Support Team' : 'You'}
+                      </span>
+                      <span className="text-xs opacity-50">
+                        {new Date(message.created_at).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <p className="text-sm">{message.message}</p>
+                  </div>
+                </div>
+              ))
+            )}
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
@@ -178,13 +192,17 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={isAdmin ? "Reply to customer..." : "Type your message..."}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             disabled={sending}
           />
           <Button onClick={sendMessage} disabled={sending || !newMessage.trim()}>
             <Send className="h-4 w-4" />
           </Button>
+        </div>
+        
+        <div className="text-xs text-muted-foreground text-center">
+          {isAdmin ? 'Replying as Support Team' : 'Messages refresh automatically'}
         </div>
       </CardContent>
     </Card>
