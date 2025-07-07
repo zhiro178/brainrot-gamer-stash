@@ -120,15 +120,39 @@ class WorkingSupabaseClient {
           
           const response = await fetch(url, {
             method: 'PATCH',
-            headers: this.getHeaders(),
+            headers: {
+              ...this.getHeaders(),
+              'Prefer': 'return=representation'
+            },
             body: JSON.stringify(updateData)
           });
 
+          console.log('Update response status:', response.status, response.statusText);
+
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('Update failed with status:', response.status, 'body:', errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
           }
 
-          const data = await response.json();
+          // Handle empty response or non-JSON response
+          let data;
+          const responseText = await response.text();
+          console.log('Raw update response text:', responseText);
+          
+          if (responseText.trim() === '') {
+            // Empty response is common for updates
+            data = [updateData]; // Return the updated data
+          } else {
+            try {
+              data = JSON.parse(responseText);
+            } catch (jsonError) {
+              console.error('Failed to parse JSON response:', responseText);
+              // If JSON parsing fails but HTTP status was OK, still treat as success
+              data = [updateData]; // Return the updated data
+            }
+          }
+
           console.log('Direct update success:', data);
           callback({ data, error: null });
           return { data, error: null };
