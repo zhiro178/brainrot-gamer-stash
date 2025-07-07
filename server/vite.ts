@@ -76,36 +76,10 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // Serve static files with proper headers
-  app.use(express.static(distPath, {
-    maxAge: '1d', // Cache static assets for 1 day
-    setHeaders: (res, filePath) => {
-      // Set CORS headers for assets
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      
-      // Set proper MIME types
-      if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      } else if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css');
-      } else if (filePath.endsWith('.html')) {
-        res.setHeader('Content-Type', 'text/html');
-        res.setHeader('Cache-Control', 'no-cache'); // Don't cache HTML
-      }
-    }
-  }));
+  app.use(express.static(distPath));
 
-  // Handle client-side routing - fall through to index.html if the file doesn't exist
+  // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
-    const indexPath = path.resolve(distPath, "index.html");
-    
-    // Ensure index.html exists
-    if (!fs.existsSync(indexPath)) {
-      log(`Index file not found at ${indexPath}`);
-      res.status(500).send('Application not built properly - index.html missing');
-      return;
-    }
-    
-    res.sendFile(indexPath);
+    res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
