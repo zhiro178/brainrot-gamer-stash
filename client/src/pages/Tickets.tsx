@@ -246,6 +246,65 @@ export default function Tickets() {
               <p>IsAdmin (hook): {String(isAdmin)}</p>
               <p>IsAdmin (email): {String(isAdminByEmail)}</p>
               <p>Tickets count: {tickets.length}</p>
+              
+              <Button 
+                onClick={async () => {
+                  console.log('=== SUPABASE DIAGNOSTIC TEST ===');
+                  
+                  // Test 1: Authentication
+                  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+                  console.log('1. Auth User:', { authUser, authError });
+                  
+                  // Test 2: Basic query
+                  const { data: testData, error: testError } = await supabase
+                    .from('support_tickets')
+                    .select('*')
+                    .limit(1);
+                  console.log('2. Basic Query:', { testData, testError });
+                  
+                  // Test 3: Insert test (if logged in)
+                  if (authUser) {
+                    const { data: insertData, error: insertError } = await supabase
+                      .from('support_tickets')
+                      .insert({
+                        user_id: authUser.id,
+                        subject: 'TEST DIAGNOSTIC',
+                        message: 'This is a test',
+                        status: 'open',
+                        category: 'general'
+                      })
+                      .select();
+                    console.log('3. Insert Test:', { insertData, insertError });
+                    
+                    // Clean up
+                    if (insertData?.[0]) {
+                      await supabase.from('support_tickets').delete().eq('id', insertData[0].id);
+                      console.log('4. Cleanup: Test ticket deleted');
+                    }
+                  }
+                  
+                  // Test 4: RLS Status
+                  try {
+                    const response = await fetch(`${supabase.supabaseUrl}/rest/v1/support_tickets?select=id&limit=1`, {
+                      headers: {
+                        'apikey': supabase.supabaseKey,
+                        'Authorization': `Bearer ${supabase.supabaseKey}`
+                      }
+                    });
+                    console.log('4. Direct API Test:', { status: response.status, ok: response.ok });
+                  } catch (e) {
+                    console.log('4. Direct API Test Failed:', e);
+                  }
+                  
+                  console.log('=== END DIAGNOSTIC ===');
+                  alert('Diagnostic complete! Check console (F12) for detailed results.');
+                }}
+                size="sm"
+                variant="outline"
+                className="mt-2"
+              >
+                🔍 Run Diagnostic
+              </Button>
             </div>
           </div>
 
