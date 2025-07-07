@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import { workingSupabase } from "@/lib/supabase-backup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,7 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
     try {
       console.log("Fetching messages for ticket ID:", ticketId, "Type:", typeof ticketId);
       
-      const { data, error } = await supabase
+      const { data, error } = await workingSupabase
         .from('ticket_messages')
         .select('*')
         .eq('ticket_id', parseInt(ticketId))
@@ -96,15 +96,14 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
         is_admin: isAdmin
       });
 
-      const { data, error } = await supabase
+      const { data, error } = await workingSupabase
         .from('ticket_messages')
         .insert({
           ticket_id: parseInt(ticketId),
           user_id: String(currentUser.id),
           message: newMessage.trim(),
           is_admin: isAdmin
-        })
-        .select();
+        });
 
       console.log("Message send result:", data, error);
 
@@ -119,7 +118,7 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
       
       // Update ticket status to 'in_progress' if it's the first message
       if (messages.length === 0) {
-        await supabase
+        await workingSupabase
           .from('support_tickets')
           .update({ status: 'in_progress' })
           .eq('id', parseInt(ticketId));
@@ -152,7 +151,7 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatP
             <span>{ticketSubject}</span>
           </CardTitle>
           <Badge variant="secondary" className="bg-primary/10">
-            Ticket #{ticketId.slice(-8)}
+            Ticket #{String(ticketId).slice(-8)}
           </Badge>
         </div>
       </CardHeader>
