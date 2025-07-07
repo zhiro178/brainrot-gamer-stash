@@ -62,40 +62,58 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     };
   };
 
-  // Get user display info
+  // Fetch user profile data
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await workingSupabase
+        .from('user_profiles')
+        .select('username, display_name, avatar_url')
+        .eq('user_id', userId);
+
+      if (!error && data && data.length > 0) {
+        const profile = data[0];
+        return {
+          username: profile.username || `user_${userId.slice(-4)}`,
+          displayName: profile.display_name || profile.username || `User ${userId.slice(-4)}`,
+          avatarUrl: profile.avatar_url
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+    
+    // Fallback for users without profiles
+    return {
+      username: `user_${userId.slice(-4)}`,
+      displayName: `User ${userId.slice(-4)}`,
+      avatarUrl: null
+    };
+  };
+
+  // Get user display info (now uses preloaded cache)
   const getUserInfo = (userId: string, isAdmin: boolean) => {
     if (isAdmin) {
       return {
         name: 'Support Team',
         email: 'support@592stock.com',
         avatar: '🛡️',
-        isEmoji: true
+        isEmoji: true,
+        avatarUrl: null
       };
     }
     
-    if (userId === currentUser?.id) {
-      const email = currentUser?.email || 'user@example.com';
-      const avatar = generateAvatar(email);
-      return {
-        name: 'You',
-        email: email,
-        avatar: avatar,
-        isEmoji: false
-      };
-    }
-
-    // For other users, try to get from cache or generate
+    // Use cached data (preloaded when messages are fetched)
     if (userCache[userId]) {
       return userCache[userId];
     }
 
-    // Generate default info for unknown users
-    const defaultEmail = `user${userId.slice(-4)}@example.com`;
-    const avatar = generateAvatar(defaultEmail);
+    // Fallback if somehow not cached
     return {
-      name: `User ${userId.slice(-4)}`,
-      email: defaultEmail,
-      avatar: avatar,
+      name: userId === currentUser?.id ? 'You' : `User ${userId.slice(-4)}`,
+      username: `user_${userId.slice(-4)}`,
+      email: userId === currentUser?.id ? currentUser?.email : '',
+      avatar: generateAvatar(`user_${userId.slice(-4)}`),
+      avatarUrl: null,
       isEmoji: false
     };
   };
@@ -147,6 +165,13 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
       
       console.log('Fetched messages count:', data?.length || 0);
       setMessages(data || []);
+
+      // Preload user profiles for all unique users in messages
+      if (data && data.length > 0) {
+        const uniqueUserIds = Array.from(new Set(data.map((msg: any) => msg.user_id)));
+        await preloadUserProfiles(uniqueUserIds);
+      }
+
       setError(null);
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -161,6 +186,60 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Preload user profiles for chat participants
+  const preloadUserProfiles = async (userIds: string[]) => {
+    try {
+      const newCache: {[key: string]: any} = {};
+      
+      // Fetch profiles for each user individually (working client limitation)
+      for (const userId of userIds) {
+        try {
+          const { data, error } = await workingSupabase
+            .from('user_profiles')
+            .select('user_id, username, display_name, avatar_url')
+            .eq('user_id', userId);
+
+          if (!error && data && data.length > 0) {
+            const profile = data[0];
+            newCache[profile.user_id] = {
+              name: profile.user_id === currentUser?.id ? 'You' : (profile.display_name || profile.username || `User ${profile.user_id.slice(-4)}`),
+              username: profile.username || `user_${profile.user_id.slice(-4)}`,
+              email: profile.user_id === currentUser?.id ? currentUser?.email : '',
+              avatar: profile.avatar_url ? null : generateAvatar(profile.username || profile.user_id),
+              avatarUrl: profile.avatar_url,
+              isEmoji: false
+            };
+          } else {
+            // Fallback for users without profiles
+            newCache[userId] = {
+              name: userId === currentUser?.id ? 'You' : `User ${userId.slice(-4)}`,
+              username: `user_${userId.slice(-4)}`,
+              email: userId === currentUser?.id ? currentUser?.email : '',
+              avatar: generateAvatar(`user_${userId.slice(-4)}`),
+              avatarUrl: null,
+              isEmoji: false
+            };
+          }
+        } catch (profileError) {
+          console.error(`Error fetching profile for user ${userId}:`, profileError);
+          // Fallback for error cases
+          newCache[userId] = {
+            name: userId === currentUser?.id ? 'You' : `User ${userId.slice(-4)}`,
+            username: `user_${userId.slice(-4)}`,
+            email: userId === currentUser?.id ? currentUser?.email : '',
+            avatar: generateAvatar(`user_${userId.slice(-4)}`),
+            avatarUrl: null,
+            isEmoji: false
+          };
+        }
+      }
+
+      setUserCache(newCache);
+    } catch (error) {
+      console.error('Error preloading user profiles:', error);
     }
   };
 
@@ -286,12 +365,24 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                           <div className="w-8 h-8 rounded-full bg-gaming-accent/20 flex items-center justify-center text-lg">
                             {userInfo.avatar}
                           </div>
-                        ) : (
+                        ) : userInfo.avatarUrl ? (
+                          <img 
+                            src={userInfo.avatarUrl} 
+                            alt={userInfo.name}
+                            className="w-8 h-8 rounded-full object-cover border border-primary/20"
+                            onError={(e) => {
+                              // Fallback to generated avatar if image fails to load
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling!.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        {!userInfo.isEmoji && (
                           <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                            style={{ backgroundColor: userInfo.avatar.backgroundColor }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${userInfo.avatarUrl ? 'hidden' : ''}`}
+                            style={{ backgroundColor: userInfo.avatar?.backgroundColor || '#666' }}
                           >
-                            {userInfo.avatar.initials}
+                            {userInfo.avatar?.initials || userInfo.name?.[0] || '?'}
                           </div>
                         )}
                       </div>
