@@ -23,9 +23,10 @@ interface TicketChatProps {
   ticketId: string;
   ticketSubject: string;
   currentUser: any;
+  ticketStatus?: string;
 }
 
-export const TicketChat = ({ ticketId, ticketSubject, currentUser }: TicketChatProps) => {
+export const TicketChat = ({ ticketId, ticketSubject, currentUser, ticketStatus = 'open' }: TicketChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);

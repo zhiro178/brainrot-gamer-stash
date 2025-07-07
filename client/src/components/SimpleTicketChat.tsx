@@ -22,23 +22,83 @@ interface SimpleTicketChatProps {
   ticketSubject: string;
   currentUser: any;
   isAdmin?: boolean;
+  ticketStatus?: string;
 }
 
-export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin = false }: SimpleTicketChatProps) => {
+export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin = false, ticketStatus = 'open' }: SimpleTicketChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userCache, setUserCache] = useState<{[key: string]: any}>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Check if ticket is closed/resolved and messaging should be disabled
+  const isTicketClosed = ticketStatus === 'resolved' || ticketStatus === 'closed';
+  const canMessage = !isTicketClosed;
 
   console.log('SimpleTicketChat mounted with:', { 
     ticketId, 
     ticketSubject, 
     currentUser: currentUser?.id, 
-    isAdmin 
+    isAdmin,
+    ticketStatus,
+    canMessage
   });
+
+  // Generate avatar from email
+  const generateAvatar = (email: string, isAdmin: boolean = false) => {
+    if (isAdmin) {
+      return '🛡️';
+    }
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+    const colorIndex = email.charCodeAt(0) % colors.length;
+    const initials = email.charAt(0).toUpperCase();
+    return {
+      backgroundColor: colors[colorIndex],
+      initials: initials
+    };
+  };
+
+  // Get user display info
+  const getUserInfo = (userId: string, isAdmin: boolean) => {
+    if (isAdmin) {
+      return {
+        name: 'Support Team',
+        email: 'support@592stock.com',
+        avatar: '🛡️',
+        isEmoji: true
+      };
+    }
+    
+    if (userId === currentUser?.id) {
+      const email = currentUser?.email || 'user@example.com';
+      const avatar = generateAvatar(email);
+      return {
+        name: 'You',
+        email: email,
+        avatar: avatar,
+        isEmoji: false
+      };
+    }
+
+    // For other users, try to get from cache or generate
+    if (userCache[userId]) {
+      return userCache[userId];
+    }
+
+    // Generate default info for unknown users
+    const defaultEmail = `user${userId.slice(-4)}@example.com`;
+    const avatar = generateAvatar(defaultEmail);
+    return {
+      name: `User ${userId.slice(-4)}`,
+      email: defaultEmail,
+      avatar: avatar,
+      isEmoji: false
+    };
+  };
 
   useEffect(() => {
     if (!ticketId || !currentUser) {
@@ -105,7 +165,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || sending || !currentUser) return;
+    if (!newMessage.trim() || sending || !currentUser || !canMessage) return;
 
     setSending(true);
     try {
@@ -212,59 +272,78 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
               messages.map((message) => {
                 const isCurrentUser = message.user_id === currentUser.id;
                 const isAdminMessage = message.is_admin;
+                const userInfo = getUserInfo(message.user_id, isAdminMessage);
                 
                 return (
                   <div
                     key={message.id}
                     className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}
                   >
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-lg ${
-                        isAdminMessage
-                          ? 'bg-gradient-to-br from-gaming-accent to-gaming-accent/80 text-black rounded-tl-md border border-gaming-accent/30'
-                          : isCurrentUser
-                            ? 'bg-gradient-to-br from-primary to-primary/80 text-white rounded-br-md border border-primary/30'
-                            : 'bg-gradient-to-br from-background to-muted text-foreground rounded-bl-md border border-primary/20'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        {isAdminMessage ? (
-                          <UserCog className="h-4 w-4 text-gaming-accent-foreground" />
+                    <div className={`flex items-start gap-3 max-w-[75%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                      {/* Avatar */}
+                      <div className="flex-shrink-0">
+                        {userInfo.isEmoji ? (
+                          <div className="w-8 h-8 rounded-full bg-gaming-accent/20 flex items-center justify-center text-lg">
+                            {userInfo.avatar}
+                          </div>
                         ) : (
-                          <User className="h-4 w-4" />
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                            style={{ backgroundColor: userInfo.avatar.backgroundColor }}
+                          >
+                            {userInfo.avatar.initials}
+                          </div>
                         )}
-                        <span className={`text-xs font-medium ${
+                      </div>
+                      
+                      {/* Message bubble */}
+                      <div
+                        className={`rounded-2xl px-4 py-3 shadow-lg ${
+                          isAdminMessage
+                            ? 'bg-gradient-to-br from-gaming-accent to-gaming-accent/80 text-black rounded-tl-md border border-gaming-accent/30'
+                            : isCurrentUser
+                              ? 'bg-gradient-to-br from-primary to-primary/80 text-white rounded-br-md border border-primary/30'
+                              : 'bg-gradient-to-br from-background to-muted text-foreground rounded-bl-md border border-primary/20'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-xs font-medium ${
+                            isAdminMessage 
+                              ? 'text-gaming-accent-foreground' 
+                              : isCurrentUser 
+                                ? 'text-white/90' 
+                                : 'text-muted-foreground'
+                          }`}>
+                            {userInfo.name}
+                          </span>
+                          {isAdminMessage && (
+                            <span className="text-xs bg-gaming-accent-foreground/20 px-2 py-0.5 rounded-full">
+                              Support
+                            </span>
+                          )}
+                          <span className={`text-xs ml-auto ${
+                            isAdminMessage 
+                              ? 'text-gaming-accent-foreground/70' 
+                              : isCurrentUser 
+                                ? 'text-white/70' 
+                                : 'text-muted-foreground/70'
+                          }`}>
+                            {new Date(message.created_at).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
+                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${
                           isAdminMessage 
                             ? 'text-gaming-accent-foreground' 
                             : isCurrentUser 
-                              ? 'text-white/90' 
-                              : 'text-muted-foreground'
+                              ? 'text-white' 
+                              : 'text-foreground'
                         }`}>
-                          {isAdminMessage ? '🛡️ Support Team' : 
-                           isCurrentUser ? '👤 You' : '👤 Customer'}
-                        </span>
-                        <span className={`text-xs ml-auto ${
-                          isAdminMessage 
-                            ? 'text-gaming-accent-foreground/70' 
-                            : isCurrentUser 
-                              ? 'text-white/70' 
-                              : 'text-muted-foreground/70'
-                        }`}>
-                          {new Date(message.created_at).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </span>
+                          {message.message}
+                        </p>
                       </div>
-                      <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                        isAdminMessage 
-                          ? 'text-gaming-accent-foreground' 
-                          : isCurrentUser 
-                            ? 'text-white' 
-                            : 'text-foreground'
-                      }`}>
-                        {message.message}
-                      </p>
                     </div>
                   </div>
                 );
@@ -275,23 +354,49 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
         </ScrollArea>
 
         <div className="border-t border-primary/20 bg-gradient-to-r from-background/95 to-muted/50 p-4">
+          {!canMessage && (
+            <div className="mb-3 p-3 bg-muted/50 border border-primary/20 rounded-lg text-center">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <span className="text-lg">🔒</span>
+                <span>
+                  This ticket has been {ticketStatus === 'resolved' ? 'resolved' : 'closed'}. 
+                  You can view the conversation but cannot send new messages.
+                </span>
+              </div>
+            </div>
+          )}
+          
           <div className="flex gap-3">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={isAdmin ? "Reply to customer..." : "Type your message..."}
+              placeholder={
+                !canMessage 
+                  ? "This conversation is closed..." 
+                  : isAdmin 
+                    ? "Reply to customer..." 
+                    : "Type your message..."
+              }
               onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-              disabled={sending || !currentUser}
-              className="flex-1 bg-background border-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground rounded-xl px-4 py-2 text-sm"
+              disabled={sending || !currentUser || !canMessage}
+              className={`flex-1 border-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground rounded-xl px-4 py-2 text-sm transition-all duration-200 ${
+                !canMessage 
+                  ? 'bg-muted/50 cursor-not-allowed opacity-60' 
+                  : 'bg-background hover:bg-background/80'
+              }`}
               style={{ 
                 color: 'var(--foreground)',
-                backgroundColor: 'var(--background)'
+                backgroundColor: canMessage ? 'var(--background)' : 'var(--muted)'
               }}
             />
             <Button 
               onClick={sendMessage} 
-              disabled={sending || !newMessage.trim() || !currentUser}
-              className="bg-gradient-primary hover:shadow-glow text-primary-foreground rounded-xl px-6 transition-all duration-200"
+              disabled={sending || !newMessage.trim() || !currentUser || !canMessage}
+              className={`rounded-xl px-6 transition-all duration-200 ${
+                !canMessage 
+                  ? 'bg-muted text-muted-foreground cursor-not-allowed' 
+                  : 'bg-gradient-primary hover:shadow-glow text-primary-foreground'
+              }`}
             >
               {sending ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -301,23 +406,21 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
             </Button>
           </div>
           
-          <div className="text-xs text-muted-foreground text-center mt-3 flex items-center justify-center gap-2">
-            {isAdmin ? (
-              <>
+          {canMessage && (
+            <div className="text-xs text-muted-foreground text-center mt-3 flex items-center justify-center gap-2">
+              {isAdmin ? (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 bg-gaming-accent rounded-full"></span>
                   💼 Replying as Support Team
                 </span>
-              </>
-            ) : (
-              <>
+              ) : (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                  🔄 Messages sync automatically
+                  � Chat with support team
                 </span>
-              </>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

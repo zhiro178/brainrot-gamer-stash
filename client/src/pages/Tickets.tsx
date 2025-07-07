@@ -397,6 +397,7 @@ export default function Tickets() {
                               ticketSubject={selectedTicket.subject}
                               currentUser={user}
                               isAdmin={isAdmin || isAdminByEmail}
+                              ticketStatus={selectedTicket.status}
                             />
                           )}
                         </DialogContent>
