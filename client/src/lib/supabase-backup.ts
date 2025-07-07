@@ -161,15 +161,39 @@ class WorkingSupabaseClient {
           
           const response = await fetch(url, {
             method: 'POST',
-            headers: this.getHeaders(),
+            headers: {
+              ...this.getHeaders(),
+              'Prefer': 'return=representation'
+            },
             body: JSON.stringify(values)
           });
 
+          console.log('Insert response status:', response.status, response.statusText);
+
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('Insert failed with status:', response.status, 'body:', errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
           }
 
-          const data = await response.json();
+          // Handle empty response or non-JSON response
+          let data;
+          const responseText = await response.text();
+          console.log('Raw response text:', responseText);
+          
+          if (responseText.trim() === '') {
+            // Empty response is common for inserts
+            data = [values]; // Return the inserted data
+          } else {
+            try {
+              data = JSON.parse(responseText);
+            } catch (jsonError) {
+              console.error('Failed to parse JSON response:', responseText);
+              // If JSON parsing fails but HTTP status was OK, still treat as success
+              data = [values]; // Return the inserted data
+            }
+          }
+
           console.log('Direct insert success:', data);
           callback({ data, error: null });
           return { data, error: null };
