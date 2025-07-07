@@ -12,6 +12,11 @@ interface QueryBuilder {
   then: (callback: (result: { data: any[] | null, error: any | null }) => void) => Promise<any>;
 }
 
+interface UpdateBuilder {
+  eq: (column: string, value: any) => UpdateBuilder;
+  then: (callback: (result: { data: any[] | null, error: any | null }) => void) => Promise<any>;
+}
+
 interface InsertBuilder {
   select: (columns?: string) => InsertBuilder;
   then: (callback: (result: { data: any[] | null, error: any | null }) => void) => Promise<any>;
@@ -93,10 +98,56 @@ class WorkingSupabaseClient {
     return builder;
   }
 
+  private createUpdateBuilder(table: string, updateData: any): UpdateBuilder {
+    let whereConditions: string[] = [];
+
+    const builder: UpdateBuilder = {
+      eq: (column: string, value: any) => {
+        whereConditions.push(`${column}=eq.${value}`);
+        return builder;
+      },
+      then: async (callback) => {
+        try {
+          const params = new URLSearchParams();
+          
+          whereConditions.forEach(condition => {
+            const [key, value] = condition.split('=');
+            params.append(key, value);
+          });
+
+          const url = this.buildUrl(table, params);
+          console.log('Direct update API call to:', url, 'with data:', updateData);
+          
+          const response = await fetch(url, {
+            method: 'PATCH',
+            headers: this.getHeaders(),
+            body: JSON.stringify(updateData)
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log('Direct update success:', data);
+          callback({ data, error: null });
+          return { data, error: null };
+        } catch (error) {
+          console.error('Direct update error:', error);
+          callback({ data: null, error });
+          return { data: null, error };
+        }
+      }
+    };
+
+    return builder;
+  }
+
   from(table: string) {
     return {
       select: (columns = '*') => this.createQueryBuilder(table).select(columns),
-      insert: (values: any) => this.createInsertBuilder(table, values)
+      insert: (values: any) => this.createInsertBuilder(table, values),
+      update: (values: any) => this.createUpdateBuilder(table, values)
     };
   }
 
