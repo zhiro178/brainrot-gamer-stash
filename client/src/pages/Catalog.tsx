@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ItemCard } from "@/components/ItemCard";
 import { useAdmin } from "@/contexts/AdminContext";
 import { ArrowLeft, Search, Filter, Plus } from "lucide-react";
+import { workingSupabase } from "@/lib/supabase-backup";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for demonstration
 const SAMPLE_ITEMS = [
@@ -58,10 +60,9 @@ export default function Catalog() {
 
   const handlePurchase = async (item: any) => {
     console.log("Purchase item:", item);
+    const { toast } = useToast();
     
     try {
-      const { workingSupabase } = await import("@/lib/supabase-backup");
-      
       // Get current user using working client
       const { data: { user } } = await workingSupabase.auth.getUser();
       
@@ -69,7 +70,6 @@ export default function Catalog() {
       
       // Check if user is logged in
       if (!user) {
-        const { toast } = await import("@/hooks/use-toast");
         toast({
           title: "Login Required",
           description: (
@@ -97,7 +97,6 @@ export default function Catalog() {
       
       // Check if user is verified
       if (!user.email_confirmed_at) {
-        const { toast } = await import("@/hooks/use-toast");
         toast({
           title: "Email Verification Required",
           description: "Please verify your email address before making purchases. Check your inbox for the verification link.",
@@ -170,7 +169,6 @@ export default function Catalog() {
               });
           }
           
-          const { toast } = await import("@/hooks/use-toast");
           toast({
             title: "🎉 Purchase Successful!",
             description: (
@@ -200,7 +198,6 @@ export default function Catalog() {
           }, 2000);
         }
       } else {
-        const { toast } = await import("@/hooks/use-toast");
         const shortfall = (item.price - currentBalance).toFixed(2);
         toast({
           title: "Insufficient Balance",
@@ -210,7 +207,6 @@ export default function Catalog() {
       }
     } catch (error) {
       console.error('Purchase error:', error);
-      const { toast } = await import("@/hooks/use-toast");
       toast({
         title: "Purchase Failed",
         description: "There was an error processing your purchase. Please try again.",

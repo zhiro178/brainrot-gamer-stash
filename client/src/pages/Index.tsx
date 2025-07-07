@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 import { Settings } from "lucide-react";
 import { logAdminAction } from "@/lib/adminLogging";
+import { workingSupabase } from "@/lib/supabase-backup";
 
 // Import game banners
 import adoptMeBanner from "@/assets/adopt-me-banner.jpg";
@@ -238,9 +239,6 @@ const Index = () => {
 
   const fetchUserBalance = useCallback(async (userId: string) => {
     try {
-      // Import the working client here to avoid import errors
-      const { workingSupabase } = await import('@/lib/supabase-backup');
-      
       const { data, error } = await workingSupabase
         .from('user_balances')
         .select('balance')
