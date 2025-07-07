@@ -5,14 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Wallet, AlertTriangle, Bitcoin, CreditCard } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { workingSupabase } from "@/lib/supabase-backup";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Supabase config (your actual credentials)
-const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-const supabaseKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Your admin email
 const ADMIN_EMAIL = "zhirocomputer@gmail.com";
@@ -29,7 +23,7 @@ export function TopUpModal({ user }: { user?: any }) {
   const ensureUser = async () => {
     let currentUser = user;
     if (!currentUser) {
-      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      const { data: { user: authUser }, error: userError } = await workingSupabase.auth.getUser();
       if (userError || !authUser) return null;
       currentUser = authUser;
     }
@@ -60,6 +54,8 @@ export function TopUpModal({ user }: { user?: any }) {
         return;
       }
       
+      console.log('Creating crypto topup ticket with working client...');
+      
       // Create ticket
       const ticketData = {
         user_id: currentUser.id,
@@ -68,29 +64,39 @@ export function TopUpModal({ user }: { user?: any }) {
         status: "open",
         category: "crypto_topup",
       };
-      const { data: insertResult, error: ticketError } = await supabase
+      
+      const { data: insertResult, error: ticketError } = await workingSupabase
         .from("support_tickets")
         .insert(ticketData)
-        .select("id")
-        .single();
+        .select("id");
+      
+      console.log('Ticket creation result:', { insertResult, ticketError });
+        
       if (!insertResult || ticketError) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
+      
+      const ticketId = Array.isArray(insertResult) ? insertResult[0]?.id : (insertResult as any)?.id;
+      
+      if (!ticketId) {
+        throw new Error("Failed to get ticket ID from creation result.");
+      }
+      
       // Add initial user message
-      await supabase
+      await workingSupabase
         .from("ticket_messages")
         .insert({
-          ticket_id: insertResult.id,
+          ticket_id: ticketId,
           user_id: currentUser.id,
           message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
           is_admin: false,
         });
 
       // Add automatic admin response to start the conversation
-      await supabase
+      await workingSupabase
         .from("ticket_messages")
         .insert({
-          ticket_id: insertResult.id,
+          ticket_id: ticketId,
           user_id: "system",
           message: `Hello! Thank you for your crypto top-up request of $${amount} USD. An admin will review your request and provide payment instructions shortly. Please check back here for updates or wait for our response.`,
           is_admin: true,
@@ -148,6 +154,8 @@ export function TopUpModal({ user }: { user?: any }) {
         return;
       }
       
+      console.log('Creating gift card topup ticket with working client...');
+      
       // Create ticket
       const ticketData = {
         user_id: currentUser.id,
@@ -156,29 +164,39 @@ export function TopUpModal({ user }: { user?: any }) {
         status: "open",
         category: "giftcard_topup",
       };
-      const { data: insertResult, error: ticketError } = await supabase
+      
+            const { data: insertResult, error: ticketError } = await workingSupabase
         .from("support_tickets")
         .insert(ticketData)
-        .select("id")
-        .single();
+        .select("id");
+         
+      console.log('Gift card ticket creation result:', { insertResult, ticketError });
+         
       if (!insertResult || ticketError) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
+      
+      const ticketId = Array.isArray(insertResult) ? insertResult[0]?.id : (insertResult as any)?.id;
+      
+      if (!ticketId) {
+        throw new Error("Failed to get ticket ID from creation result.");
+      }
+      
       // Add initial user message
-      await supabase
+      await workingSupabase
         .from("ticket_messages")
         .insert({
-          ticket_id: insertResult.id,
+          ticket_id: ticketId,
           user_id: currentUser.id,
           message: `I would like to top up my account using an Amazon gift card.\n\nAmount: $${amount} USD\nGift Card Code: ${giftCardCode}\n\nPlease verify and add the funds to my account.`,
           is_admin: false,
         });
 
       // Add automatic admin response to start the conversation
-      await supabase
+      await workingSupabase
         .from("ticket_messages")
         .insert({
-          ticket_id: insertResult.id,
+          ticket_id: ticketId,
           user_id: "system",
           message: `Hello! Thank you for submitting your Amazon gift card for $${amount} USD. We will verify your gift card and process your top-up request within 24 hours. You can chat with us here if you have any questions!`,
           is_admin: true,
