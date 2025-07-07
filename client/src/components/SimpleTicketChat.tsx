@@ -185,56 +185,62 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   }
 
   return (
-    <Card className="h-96 flex flex-col">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
+    <Card className="w-full max-w-4xl mx-auto flex flex-col" style={{ height: '500px' }}>
+      <CardHeader className="pb-3 border-b">
+        <CardTitle className="text-lg font-medium flex items-center gap-2">
           <span>💬</span>
-          {ticketSubject}
-          <Badge variant="outline" className="ml-auto">
+          <span className="truncate">{ticketSubject}</span>
+          <Badge variant="outline" className="ml-auto shrink-0">
             #{String(ticketId).slice(-6)}
           </Badge>
         </CardTitle>
         <div className="text-xs text-muted-foreground">
-          Debug: User ID: {currentUser?.id} | Admin: {isAdmin ? 'Yes' : 'No'} | Messages: {messages.length}
+          {isAdmin ? '👨‍💼 Admin View' : '👤 Customer View'} • {messages.length} messages
         </div>
       </CardHeader>
       
-      <CardContent className="flex-1 flex flex-col p-3 gap-3">
-        <ScrollArea className="flex-1 pr-3">
-          <div className="space-y-3">
+      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+        <ScrollArea className="flex-1 px-4 py-2">
+          <div className="space-y-3 min-h-0">
             {messages.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                <p>No messages yet. Start the conversation!</p>
-                <p className="text-xs mt-2">Ticket #{ticketId}</p>
+              <div className="text-center text-muted-foreground py-12">
+                <div className="text-4xl mb-4">💬</div>
+                <p className="text-lg font-medium mb-2">Start the conversation!</p>
+                <p className="text-sm">Your messages will appear here</p>
               </div>
             ) : (
               messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.user_id === currentUser.id ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${message.user_id === currentUser.id ? 'justify-end' : 'justify-start'} mb-4`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
+                    className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
                       message.user_id === currentUser.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
+                        ? 'bg-blue-500 text-white rounded-br-md'
+                        : 'bg-gray-100 text-gray-900 rounded-bl-md border'
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-2">
                       {message.is_admin ? (
-                        <UserCog className="h-3 w-3" />
+                        <UserCog className="h-4 w-4" />
                       ) : (
-                        <User className="h-3 w-3" />
+                        <User className="h-4 w-4" />
                       )}
-                      <span className="text-xs opacity-75">
+                      <span className="text-xs font-medium opacity-90">
                         {message.is_admin ? 'Support Team' : 
                          message.user_id === currentUser.id ? 'You' : 'Customer'}
                       </span>
-                      <span className="text-xs opacity-50">
-                        {new Date(message.created_at).toLocaleTimeString()}
+                      <span className="text-xs opacity-70 ml-auto">
+                        {new Date(message.created_at).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
                       </span>
                     </div>
-                    <p className="text-sm">{message.message}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                      {message.message}
+                    </p>
                   </div>
                 </div>
               ))
@@ -243,21 +249,32 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           </div>
         </ScrollArea>
 
-        <div className="flex gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isAdmin ? "Reply to customer..." : "Type your message..."}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            disabled={sending || !currentUser}
-          />
-          <Button onClick={sendMessage} disabled={sending || !newMessage.trim() || !currentUser}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="text-xs text-muted-foreground text-center">
-          {isAdmin ? 'Replying as Support Team' : 'Messages refresh automatically'}
+        <div className="border-t bg-gray-50 p-4">
+          <div className="flex gap-3">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder={isAdmin ? "Reply to customer..." : "Type your message..."}
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              disabled={sending || !currentUser}
+              className="flex-1 bg-white border-gray-200 focus:border-blue-500 rounded-xl"
+            />
+            <Button 
+              onClick={sendMessage} 
+              disabled={sending || !newMessage.trim() || !currentUser}
+              className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-6"
+            >
+              {sending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          
+          <div className="text-xs text-gray-500 text-center mt-2">
+            {isAdmin ? '💼 Replying as Support Team' : '🔄 Messages sync automatically'}
+          </div>
         </div>
       </CardContent>
     </Card>

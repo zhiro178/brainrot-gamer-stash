@@ -204,11 +204,16 @@ const Index = () => {
 
   const fetchUserBalance = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Import the working client here to avoid import errors
+      const { workingSupabase } = await import('@/lib/supabase-backup');
+      
+      const { data, error } = await workingSupabase
         .from('user_balances')
         .select('balance')
         .eq('user_id', userId)
         .single();
+      
+      console.log('Fetching balance with working client:', { data, error, userId });
       
       // Handle expected errors gracefully (table doesn't exist, no records found)
       if (error && !['PGRST116', '42703', '42P01'].includes(error.code)) {
