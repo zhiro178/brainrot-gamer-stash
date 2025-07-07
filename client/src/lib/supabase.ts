@@ -6,6 +6,11 @@ const supabaseKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Also expose on window for debugging
+if (typeof window !== 'undefined') {
+  (window as any).supabase = supabase;
+}
+
 // Helper function to handle Supabase errors gracefully
 export const handleSupabaseError = (error: any, fallbackMessage = "Operation failed") => {
   console.error('Supabase error:', error);
