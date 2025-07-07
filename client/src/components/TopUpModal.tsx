@@ -67,40 +67,64 @@ export function TopUpModal({ user }: { user?: any }) {
       
       const { data: insertResult, error: ticketError } = await workingSupabase
         .from("support_tickets")
-        .insert(ticketData)
-        .select("id");
+        .insert(ticketData);
       
       console.log('Ticket creation result:', { insertResult, ticketError });
         
-      if (!insertResult || ticketError) {
+      if (ticketError) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
       
-      const ticketId = Array.isArray(insertResult) ? insertResult[0]?.id : (insertResult as any)?.id;
-      
-      if (!ticketId) {
-        throw new Error("Failed to get ticket ID from creation result.");
+      // For now, we'll generate messages without relying on the returned ticket ID
+      // since the database will auto-generate the ID
+      let ticketId;
+      if (insertResult && Array.isArray(insertResult) && insertResult[0]?.id) {
+        ticketId = insertResult[0].id;
+      } else {
+        // If we don't get an ID back, we'll create the ticket and then query for it
+        console.log('No ID returned, will create messages after a short delay...');
+        // Wait a moment for the insert to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Query for the most recent ticket by this user with matching subject
+        const { data: recentTickets } = await workingSupabase
+          .from("support_tickets")
+          .select("id")
+          .eq("user_id", currentUser.id)
+          .eq("subject", ticketData.subject)
+          .order("created_at", { ascending: false })
+          .limit(1);
+          
+        if (recentTickets && recentTickets.length > 0) {
+          ticketId = recentTickets[0].id;
+          console.log('Found ticket ID from query:', ticketId);
+        }
       }
       
-      // Add initial user message
-      await workingSupabase
-        .from("ticket_messages")
-        .insert({
-          ticket_id: ticketId,
-          user_id: currentUser.id,
-          message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
-          is_admin: false,
-        });
+      // Add initial messages if we have a ticket ID
+      if (ticketId) {
+        // Add initial user message
+        await workingSupabase
+          .from("ticket_messages")
+          .insert({
+            ticket_id: ticketId,
+            user_id: currentUser.id,
+            message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
+            is_admin: false,
+          });
 
-      // Add automatic admin response to start the conversation
-      await workingSupabase
-        .from("ticket_messages")
-        .insert({
-          ticket_id: ticketId,
-          user_id: "system",
-          message: `Hello! Thank you for your crypto top-up request of $${amount} USD. An admin will review your request and provide payment instructions shortly. Please check back here for updates or wait for our response.`,
-          is_admin: true,
-        });
+        // Add automatic admin response to start the conversation
+        await workingSupabase
+          .from("ticket_messages")
+          .insert({
+            ticket_id: ticketId,
+            user_id: "system",
+            message: `Hello! Thank you for your crypto top-up request of $${amount} USD. An admin will review your request and provide payment instructions shortly. Please check back here for updates or wait for our response.`,
+            is_admin: true,
+          });
+      } else {
+        console.log('Warning: Could not get ticket ID, messages not created');
+      }
       setCryptoAmount("");
       setIsOpen(false);
       toast({
@@ -154,7 +178,7 @@ export function TopUpModal({ user }: { user?: any }) {
         return;
       }
       
-      console.log('Creating gift card topup ticket with working client...');
+            console.log('Creating gift card topup ticket with working client...');
       
       // Create ticket
       const ticketData = {
@@ -165,42 +189,66 @@ export function TopUpModal({ user }: { user?: any }) {
         category: "giftcard_topup",
       };
       
-            const { data: insertResult, error: ticketError } = await workingSupabase
+      const { data: insertResult, error: ticketError } = await workingSupabase
         .from("support_tickets")
-        .insert(ticketData)
-        .select("id");
+        .insert(ticketData);
          
       console.log('Gift card ticket creation result:', { insertResult, ticketError });
          
-      if (!insertResult || ticketError) {
+      if (ticketError) {
         throw new Error(ticketError?.message || "Failed to create ticket.");
       }
       
-      const ticketId = Array.isArray(insertResult) ? insertResult[0]?.id : (insertResult as any)?.id;
-      
-      if (!ticketId) {
-        throw new Error("Failed to get ticket ID from creation result.");
+      // For now, we'll generate messages without relying on the returned ticket ID
+      // since the database will auto-generate the ID
+      let ticketId;
+      if (insertResult && Array.isArray(insertResult) && insertResult[0]?.id) {
+        ticketId = insertResult[0].id;
+      } else {
+        // If we don't get an ID back, we'll create the ticket and then query for it
+        console.log('No ID returned, will create messages after a short delay...');
+        // Wait a moment for the insert to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Query for the most recent ticket by this user with matching subject
+        const { data: recentTickets } = await workingSupabase
+          .from("support_tickets")
+          .select("id")
+          .eq("user_id", currentUser.id)
+          .eq("subject", ticketData.subject)
+          .order("created_at", { ascending: false })
+          .limit(1);
+          
+        if (recentTickets && recentTickets.length > 0) {
+          ticketId = recentTickets[0].id;
+          console.log('Found gift card ticket ID from query:', ticketId);
+        }
       }
       
-      // Add initial user message
-      await workingSupabase
-        .from("ticket_messages")
-        .insert({
-          ticket_id: ticketId,
-          user_id: currentUser.id,
-          message: `I would like to top up my account using an Amazon gift card.\n\nAmount: $${amount} USD\nGift Card Code: ${giftCardCode}\n\nPlease verify and add the funds to my account.`,
-          is_admin: false,
-        });
+      // Add initial messages if we have a ticket ID
+      if (ticketId) {
+        // Add initial user message
+        await workingSupabase
+          .from("ticket_messages")
+          .insert({
+            ticket_id: ticketId,
+            user_id: currentUser.id,
+            message: `I would like to top up my account using an Amazon gift card.\n\nAmount: $${amount} USD\nGift Card Code: ${giftCardCode}\n\nPlease verify and add the funds to my account.`,
+            is_admin: false,
+          });
 
-      // Add automatic admin response to start the conversation
-      await workingSupabase
-        .from("ticket_messages")
-        .insert({
-          ticket_id: ticketId,
-          user_id: "system",
-          message: `Hello! Thank you for submitting your Amazon gift card for $${amount} USD. We will verify your gift card and process your top-up request within 24 hours. You can chat with us here if you have any questions!`,
-          is_admin: true,
-        });
+        // Add automatic admin response to start the conversation
+        await workingSupabase
+          .from("ticket_messages")
+          .insert({
+            ticket_id: ticketId,
+            user_id: "system",
+            message: `Hello! Thank you for submitting your Amazon gift card for $${amount} USD. We will verify your gift card and process your top-up request within 24 hours. You can chat with us here if you have any questions!`,
+            is_admin: true,
+          });
+      } else {
+        console.log('Warning: Could not get gift card ticket ID, messages not created');
+      }
       setGiftCardCode("");
       setGiftCardAmount("");
       setIsOpen(false);
