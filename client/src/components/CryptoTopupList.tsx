@@ -346,6 +346,7 @@ export const CryptoTopupList = () => {
                         ticketSubject={selectedTicket.subject}
                         currentUser={currentUser}
                         isAdmin={true}
+                        ticketStatus={selectedTicket.status}
                       />
                     )}
                   </DialogContent>
