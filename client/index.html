@@ -3,11 +3,50 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>592 Stock - Gaming Marketplace</title>
+    <meta name="description" content="Your ultimate destination for gaming items across Adopt Me, Grow a Garden, MM2, and Steal a Brainrot" />
+    <style>
+      /* Prevent flash of unstyled content and provide loading state */
+      #root {
+        min-height: 100vh;
+        background: #0a0b0f;
+        color: #ffffff;
+      }
+      
+      /* Loading spinner */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #0a0b0f;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #333;
+        border-top: 3px solid #8b5cf6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="loading">
+        <div>
+          <div class="loading-spinner"></div>
+          <p style="margin-top: 16px; color: #8b5cf6;">Loading 592 Stock...</p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>
 </html>
