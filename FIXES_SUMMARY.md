@@ -39,6 +39,75 @@
   - Items are loaded from localStorage on component mount
   - Uses unique keys per game/category combination
 
+## Auto-Message System Fixed ✅
+
+**Problem**: When customers created tickets, both the customer and admin were sending auto-messages.
+
+**Solution**: Modified `TopUpModal.tsx` to only send admin welcome messages with the specific template:
+```
+Hello! Thanks for reaching out. Your top-up request for $[amount] USD has been received.
+A support team member will review your request and send payment instructions shortly.
+Please stay in this chat for updates.
+```
+
+**Changes Made**:
+- Removed automatic user messages in both crypto and gift card flows
+- Replaced multiple messages with single admin welcome message
+- Uses exact template requested by user
+
+## Balance Update System Enhanced 💰
+
+**Problem**: User balance wasn't updating when tickets were approved.
+
+**Solutions Implemented**:
+
+1. **Enhanced Event Listeners**: 
+   - Added both specific and generic balance refresh events
+   - Added `useCallback` for `fetchUserBalance` to prevent infinite re-renders
+   - Fixed dependency array in `useEffect`
+
+2. **Improved Balance Fetching**:
+   - Fixed query to not use `.single()` which was causing errors
+   - Added better error handling for missing balance records
+   - Enhanced logging for debugging
+
+3. **Multiple Refresh Mechanisms**:
+   - Primary: Custom balance-updated event with user ID
+   - Secondary: Generic refresh-balance event
+   - Fallback: Page reload after 5 seconds (increased from 3)
+
+4. **User Feedback**:
+   - Added toast notification when balance updates
+   - Added console logging for debugging
+
+## Files Modified
+
+1. **client/src/components/TopUpModal.tsx**
+   - Removed duplicate user messages
+   - Standardized admin welcome message template
+
+2. **client/src/pages/Index.tsx**
+   - Enhanced balance refresh event listeners
+   - Improved `fetchUserBalance` with `useCallback`
+   - Added toast notifications for balance updates
+
+3. **client/src/components/CryptoTopupList.tsx**
+   - Added additional balance refresh event dispatch
+   - Increased fallback reload timeout
+
+## Testing
+
+To verify the fixes:
+1. Create a new top-up request - should only see admin welcome message
+2. Approve a request as admin - balance should update immediately with toast notification
+3. Check browser console for debug logs confirming event dispatch and reception
+
+## Expected Behavior
+
+- **New Tickets**: Only admin sends welcome message with standard template
+- **Approval**: Balance updates within 1-2 seconds with visual confirmation
+- **Fallback**: Page reloads after 5 seconds if events fail
+
 ## Technical Implementation Details:
 
 ### Persistence System

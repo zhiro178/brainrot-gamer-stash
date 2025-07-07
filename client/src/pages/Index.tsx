@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { supabase, handleSupabaseError } from "@/lib/supabase";
 import { Navbar } from "@/components/Navbar";
@@ -180,17 +180,34 @@ const Index = () => {
     const handleBalanceUpdate = (event: any) => {
       console.log('Balance update event received:', event.detail);
       if (user?.id === event.detail?.userId) {
+        console.log('Refreshing balance for user:', user.id);
         // Refresh current user's balance
+        fetchUserBalance(user.id);
+        
+        // Also show a toast notification
+        toast({
+          title: "Balance Updated! 💰",
+          description: "Your balance has been updated. Check the top-right corner.",
+        });
+      }
+    };
+
+    // Also listen for generic balance refresh events
+    const handleGenericBalanceUpdate = () => {
+      if (user?.id) {
+        console.log('Generic balance refresh triggered for user:', user.id);
         fetchUserBalance(user.id);
       }
     };
 
     window.addEventListener('balance-updated', handleBalanceUpdate);
+    window.addEventListener('refresh-balance', handleGenericBalanceUpdate);
     
     return () => {
       window.removeEventListener('balance-updated', handleBalanceUpdate);
+      window.removeEventListener('refresh-balance', handleGenericBalanceUpdate);
     };
-  }, [user]);
+  }, [user, fetchUserBalance]);
 
   // Load announcements
   useEffect(() => {
@@ -219,7 +236,7 @@ const Index = () => {
     }
   }, []);
 
-  const fetchUserBalance = async (userId: string) => {
+  const fetchUserBalance = useCallback(async (userId: string) => {
     try {
       // Import the working client here to avoid import errors
       const { workingSupabase } = await import('@/lib/supabase-backup');
@@ -227,8 +244,7 @@ const Index = () => {
       const { data, error } = await workingSupabase
         .from('user_balances')
         .select('balance')
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
       
       console.log('Fetching balance with working client:', { data, error, userId });
       
@@ -238,12 +254,14 @@ const Index = () => {
         return;
       }
       
-      setUserBalance(parseFloat(data?.balance || '0'));
+      const balance = data && data.length > 0 ? parseFloat(data[0]?.balance || '0') : 0;
+      console.log('Setting balance to:', balance);
+      setUserBalance(balance);
     } catch (error) {
       console.error('Error:', error);
       setUserBalance(0); // Set default balance if any error occurs
     }
-  };
+  }, []);
 
   const handleLogin = async (email: string, password: string) => {
     try {

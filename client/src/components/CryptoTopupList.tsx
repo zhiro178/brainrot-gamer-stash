@@ -219,10 +219,17 @@ export const CryptoTopupList = () => {
       // Force balance refresh for the affected user
       refreshUserBalance(userId);
       
+      // Also trigger a generic balance refresh event
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('refresh-balance'));
+        console.log('Additional balance refresh event dispatched');
+      }, 1000);
+      
       // Force page reload to update balance in navbar (fallback)
       setTimeout(() => {
+        console.log('Fallback page reload triggered');
         window.location.reload();
-      }, 3000);
+      }, 5000);
       
     } catch (error) {
       console.error('Error verifying ticket:', error);
