@@ -191,7 +191,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           <span>💬</span>
           {ticketSubject}
           <Badge variant="outline" className="ml-auto">
-            #{ticketId.slice(-6)}
+            #{String(ticketId).slice(-6)}
           </Badge>
         </CardTitle>
         <div className="text-xs text-muted-foreground">
