@@ -1,8 +1,13 @@
 // Working Supabase client using direct fetch calls
 // This bypasses the broken @supabase/supabase-js client
 
+import { supabase } from "./supabase";
+
 const SUPABASE_URL = "https://uahxenisnppufpswupnz.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
+
+// Use the standard Supabase client for authentication
+const authClient = supabase;
 
 interface QueryBuilder {
   select: (columns: string) => QueryBuilder;
@@ -27,12 +32,28 @@ class WorkingSupabaseClient {
     return `${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`;
   }
 
-  private getHeaders(): Record<string, string> {
-    return {
+  private async getHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
       'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json'
     };
+
+    // Try to get the current session for auth token
+    try {
+      const { data: { session } } = await authClient.auth.getSession();
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+        console.log('Using user auth token for API request');
+      } else {
+        headers['Authorization'] = `Bearer ${SUPABASE_KEY}`;
+        console.log('Using anon key for API request');
+      }
+    } catch (error) {
+      console.log('Could not get session, using anon key:', error);
+      headers['Authorization'] = `Bearer ${SUPABASE_KEY}`;
+    }
+
+    return headers;
   }
 
   private createQueryBuilder(table: string): QueryBuilder {
@@ -74,9 +95,10 @@ class WorkingSupabaseClient {
           const url = this.buildUrl(table, params);
           console.log('Direct API call to:', url);
           
+          const headers = await this.getHeaders();
           const response = await fetch(url, {
             method: 'GET',
-            headers: this.getHeaders()
+            headers: headers
           });
 
           if (!response.ok) {
@@ -118,10 +140,11 @@ class WorkingSupabaseClient {
           const url = this.buildUrl(table, params);
           console.log('Direct update API call to:', url, 'with data:', updateData);
           
+          const baseHeaders = await this.getHeaders();
           const response = await fetch(url, {
             method: 'PATCH',
             headers: {
-              ...this.getHeaders(),
+              ...baseHeaders,
               'Prefer': 'return=minimal'
             },
             body: JSON.stringify(updateData)
@@ -193,10 +216,11 @@ class WorkingSupabaseClient {
           const url = `${SUPABASE_URL}/rest/v1/${table}`;
           console.log('Direct insert to:', url, 'with data:', values);
           
+          const baseHeaders = await this.getHeaders();
           const response = await fetch(url, {
             method: 'POST',
             headers: {
-              ...this.getHeaders(),
+              ...baseHeaders,
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(values)
@@ -242,27 +266,37 @@ class WorkingSupabaseClient {
     return builder;
   }
 
-  // Auth methods (simplified)
+  // Auth methods - now properly integrated with standard Supabase client
   auth = {
     getUser: async () => {
-      // Return cached user data since auth is working
-      const userData = localStorage.getItem('sb-uahxenisnppufpswupnz-auth-token');
-      if (userData) {
-        try {
-          const parsed = JSON.parse(userData);
-          return { data: { user: parsed.user }, error: null };
-        } catch (e) {
-          return { data: { user: null }, error: null };
-        }
+      try {
+        console.log('WorkingSupabase: Getting user from standard auth client...');
+        const { data, error } = await authClient.auth.getUser();
+        console.log('WorkingSupabase: getUser result:', { data, error });
+        return { data, error };
+      } catch (error) {
+        console.error('WorkingSupabase: getUser error:', error);
+        return { data: { user: null }, error };
       }
-      return { data: { user: null }, error: null };
     },
     getSession: async () => {
-      return { data: { session: null }, error: null };
+      try {
+        console.log('WorkingSupabase: Getting session from standard auth client...');
+        const { data, error } = await authClient.auth.getSession();
+        console.log('WorkingSupabase: getSession result:', { data, error });
+        return { data, error };
+      } catch (error) {
+        console.error('WorkingSupabase: getSession error:', error);
+        return { data: { session: null }, error };
+      }
     },
     onAuthStateChange: (callback: any) => {
-      return { data: { subscription: { unsubscribe: () => {} } } };
-    }
+      console.log('WorkingSupabase: Setting up auth state change listener...');
+      return authClient.auth.onAuthStateChange(callback);
+    },
+    signIn: (credentials: any) => authClient.auth.signInWithPassword(credentials),
+    signUp: (credentials: any) => authClient.auth.signUp(credentials),
+    signOut: () => authClient.auth.signOut()
   };
 }
 
