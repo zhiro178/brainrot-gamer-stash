@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { workingSupabase } from "@/lib/supabase-backup";
+import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,10 +119,11 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser, ticketStatus 
       
       // Update ticket status to 'in_progress' if it's the first message
       if (messages.length === 0) {
-        await workingSupabase
+        workingSupabase
           .from('support_tickets')
           .update({ status: 'in_progress' })
-          .eq('id', parseInt(ticketId));
+          .eq('id', parseInt(ticketId))
+          .then(() => console.log('Ticket status updated'));
       }
       
     } catch (error) {

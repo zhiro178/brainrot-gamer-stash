@@ -24,13 +24,15 @@ interface InsertBuilder {
 
 class WorkingSupabaseClient {
   private buildUrl(table: string, params: URLSearchParams): string {
-    return `${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`;
+    const url = `${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`;
+    console.log('Built URL:', url);
+    console.log('URL params:', params.toString());
+    return url;
   }
 
   private async getHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
-      'apikey': SUPABASE_KEY,
-      'Content-Type': 'application/json'
+      'apikey': SUPABASE_KEY
     };
 
     // Try to get auth token from localStorage (Supabase standard storage)
@@ -83,38 +85,36 @@ class WorkingSupabaseClient {
       },
       then: async (callback) => {
         try {
-          const params = new URLSearchParams();
-          params.append('select', selectColumns);
+          // Build URL exactly like direct fetch works
+          let url = `${SUPABASE_URL}/rest/v1/${table}?select=${selectColumns}`;
           
-          // Fix parameter construction for Supabase format
+          // Add where conditions
           whereConditions.forEach(condition => {
-            // condition looks like "user_id=eq.somevalue"
             const [key, ...valueParts] = condition.split('=');
-            const value = valueParts.join('='); // rejoin in case value contains =
-            params.append(key, value);
+            const value = valueParts.join('=');
+            url += `&${key}=${value}`;
           });
           
-          // Fix order parameter construction  
+          // Add order
           if (orderBy) {
             const orderValue = orderBy.replace('order=', '');
-            params.append('order', orderValue);
+            url += `&order=${orderValue}`;
           }
           
-          // Fix limit parameter construction
+          // Add limit
           if (limitCount) {
             const limitValue = limitCount.replace('limit=', '');
-            params.append('limit', limitValue);
+            url += `&limit=${limitValue}`;
           }
-
-          const url = this.buildUrl(table, params);
+          
           console.log('Direct API call to:', url);
           
-          const headers = await this.getHeaders();
-          console.log('Request headers:', headers);
-          
+          // EXACT same fetch call as the working direct fetch
           const response = await fetch(url, {
-            method: 'GET',
-            headers: headers
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
           });
 
           console.log('Response status:', response.status, response.statusText);
@@ -174,6 +174,7 @@ class WorkingSupabaseClient {
             method: 'PATCH',
             headers: {
               ...baseHeaders,
+              'Content-Type': 'application/json',
               'Prefer': 'return=minimal'
             },
             body: JSON.stringify(updateData)
@@ -256,6 +257,7 @@ class WorkingSupabaseClient {
             method: 'POST',
             headers: {
               ...baseHeaders,
+              'Content-Type': 'application/json',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(values)
