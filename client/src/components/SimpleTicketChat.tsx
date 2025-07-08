@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { workingSupabase } from '@/lib/supabase-backup';
+import { simpleSupabase as workingSupabase } from '@/lib/simple-supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

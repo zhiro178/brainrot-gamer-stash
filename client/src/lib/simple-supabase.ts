@@ -109,8 +109,8 @@ class SimpleSupabaseClient {
     }
   }
 
-  private async update(table: string, values: any) {
-    // Return update builder with eq method
+  private update(table: string, values: any) {
+    // Return update builder with eq method (not async)
     return {
       eq: (column: string, value: any) => ({
         then: async (callback: any) => {
@@ -145,7 +145,7 @@ class SimpleSupabaseClient {
 
   // Simple auth methods
   auth = {
-    getUser: async () => {
+    getUser: async (): Promise<{ data: { user: any }, error: any }> => {
       const authKey = 'sb-uahxenisnppufpswupnz-auth-token';
       const authData = localStorage.getItem(authKey);
       
@@ -162,7 +162,7 @@ class SimpleSupabaseClient {
       
       return { data: { user: null }, error: null };
     },
-    getSession: async () => {
+    getSession: async (): Promise<{ data: { session: any }, error: any }> => {
       return { data: { session: null }, error: null };
     },
     onAuthStateChange: (callback: any) => {

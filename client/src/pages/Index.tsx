@@ -250,7 +250,7 @@ const Index = () => {
   const fetchUserBalance = async (userId: string) => {
     try {
       // Import the working client here to avoid import errors
-      const { workingSupabase } = await import('@/lib/supabase-backup');
+      const { simpleSupabase: workingSupabase } = await import('@/lib/simple-supabase');
       
       const { data, error } = await workingSupabase
         .from('user_balances')
