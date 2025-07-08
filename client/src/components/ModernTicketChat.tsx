@@ -49,6 +49,7 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   };
 
   const ticketInfo = extractTicketInfo(ticketSubject);
+  const IconComponent = ticketInfo.icon; // Extract icon for proper React rendering
 
   // Progress steps
   const getProgressSteps = () => {
@@ -167,7 +168,7 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-              <ticketInfo.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">
@@ -193,19 +194,22 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
         {/* Progress Tracker */}
         <div className="flex items-center justify-between">
-          {getProgressSteps().map((step, index) => (
-            <div key={step.label} className="flex items-center">
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-full ${getStatusBgColor(step.status)}`}>
-                <step.icon className={`w-4 h-4 ${getStatusColor(step.status)}`} />
-                <span className={`text-sm font-medium ${getStatusColor(step.status)}`}>
-                  {step.label}
-                </span>
+          {getProgressSteps().map((step, index) => {
+            const StepIcon = step.icon; // Extract for proper React rendering
+            return (
+              <div key={step.label} className="flex items-center">
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-full ${getStatusBgColor(step.status)}`}>
+                  <StepIcon className={`w-4 h-4 ${getStatusColor(step.status)}`} />
+                  <span className={`text-sm font-medium ${getStatusColor(step.status)}`}>
+                    {step.label}
+                  </span>
+                </div>
+                {index < getProgressSteps().length - 1 && (
+                  <div className={`w-8 h-0.5 mx-2 ${step.status === 'completed' ? 'bg-green-300 dark:bg-green-700' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                )}
               </div>
-              {index < getProgressSteps().length - 1 && (
-                <div className={`w-8 h-0.5 mx-2 ${step.status === 'completed' ? 'bg-green-300 dark:bg-green-700' : 'bg-gray-300 dark:bg-gray-600'}`} />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
