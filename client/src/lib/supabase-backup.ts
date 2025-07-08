@@ -111,8 +111,14 @@ class WorkingSupabaseClient {
           const url = this.buildUrl(table, params);
           console.log('Direct API call to:', url);
           
-          const headers = await this.getHeaders();
-          console.log('Request headers:', headers);
+          // Use exact same headers format as working direct fetch
+          const headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          };
+          
+          console.log('Request headers (hardcoded):', headers);
           console.log('About to fetch URL:', url);
           
           const response = await fetch(url, {
