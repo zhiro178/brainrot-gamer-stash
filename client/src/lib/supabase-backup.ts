@@ -85,48 +85,37 @@ class WorkingSupabaseClient {
       },
       then: async (callback) => {
         try {
-          const params = new URLSearchParams();
-          params.append('select', selectColumns);
+          // Build URL exactly like direct fetch works
+          let url = `${SUPABASE_URL}/rest/v1/${table}?select=${selectColumns}`;
           
-          // Fix parameter construction for Supabase format
+          // Add where conditions
           whereConditions.forEach(condition => {
-            // condition looks like "user_id=eq.somevalue"
             const [key, ...valueParts] = condition.split('=');
-            const value = valueParts.join('='); // rejoin in case value contains =
-            params.append(key, value);
+            const value = valueParts.join('=');
+            url += `&${key}=${value}`;
           });
           
-          // Fix order parameter construction  
+          // Add order
           if (orderBy) {
             const orderValue = orderBy.replace('order=', '');
-            params.append('order', orderValue);
+            url += `&order=${orderValue}`;
           }
           
-          // Fix limit parameter construction
+          // Add limit
           if (limitCount) {
             const limitValue = limitCount.replace('limit=', '');
-            params.append('limit', limitValue);
+            url += `&limit=${limitValue}`;
           }
-
-          const url = this.buildUrl(table, params);
+          
           console.log('Direct API call to:', url);
           
-          // Use exact same headers format as working direct fetch
-          const headers = {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          };
-          
-          console.log('Request headers (hardcoded):', headers);
-          console.log('About to fetch URL:', url);
-          
+          // EXACT same fetch call as the working direct fetch
           const response = await fetch(url, {
-            method: 'GET',
-            headers: headers
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
           });
-          
-          console.log('Fetch completed, response:', response);
 
           console.log('Response status:', response.status, response.statusText);
 
