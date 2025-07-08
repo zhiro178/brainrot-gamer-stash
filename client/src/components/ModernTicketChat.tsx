@@ -2,10 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { simpleSupabase as workingSupabase } from '@/lib/simple-supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, User, ShieldCheck, Clock, CheckCircle, AlertCircle, CreditCard, Gift, DollarSign } from 'lucide-react';
+import { Send, User, ShieldCheck, CheckCircle, AlertCircle, CreditCard, Gift, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Message {
@@ -32,34 +31,22 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Extract ticket info from subject
-  const extractTicketInfo = (subject: string) => {
+  // Extract amount from subject
+  const extractAmount = (subject: string) => {
     const amountMatch = subject.match(/\$(\d+(?:\.\d{2})?)/);
-    const amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
-    
-    // Determine type
-    let type = 'Gift Card';
-    let icon = Gift;
+    return amountMatch ? parseFloat(amountMatch[1]) : 0;
+  };
+
+  // Determine ticket type
+  const getTicketType = (subject: string) => {
     if (subject.toLowerCase().includes('crypto')) {
-      type = 'Crypto';
-      icon = CreditCard;
+      return { type: 'Crypto', icon: 'crypto' };
     }
-    
-    return { amount, type, icon };
+    return { type: 'Gift Card', icon: 'gift' };
   };
 
-  const ticketInfo = extractTicketInfo(ticketSubject);
-  const IconComponent = ticketInfo.icon; // Extract icon for proper React rendering
-
-  // Progress steps
-  const getProgressSteps = () => {
-    const steps = [
-      { label: 'Submitted', status: 'completed', icon: CheckCircle },
-      { label: 'Verifying', status: ticketStatus === 'open' ? 'current' : 'completed', icon: AlertCircle },
-      { label: 'Funded', status: ticketStatus === 'resolved' ? 'completed' : 'pending', icon: DollarSign }
-    ];
-    return steps;
-  };
+  const amount = extractAmount(ticketSubject);
+  const ticketType = getTicketType(ticketSubject);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,11 +54,7 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
   useEffect(() => {
     fetchMessages();
-    
-    const interval = setInterval(() => {
-      fetchMessages();
-    }, 3000);
-
+    const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [ticketId]);
 
@@ -96,7 +79,7 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     }
   };
 
-  const sendMessage = async (e: any) => {
+  const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
@@ -137,22 +120,6 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     return date.toLocaleDateString();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'text-green-600 dark:text-green-400';
-      case 'current': return 'text-blue-600 dark:text-blue-400';
-      default: return 'text-gray-400 dark:text-gray-500';
-    }
-  };
-
-  const getStatusBgColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 dark:bg-green-900/20';
-      case 'current': return 'bg-blue-100 dark:bg-blue-900/20';
-      default: return 'bg-gray-100 dark:bg-gray-800/20';
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -162,17 +129,21 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   }
 
   return (
-    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-      {/* Summary Box */}
+    <div className="w-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+      {/* Modern Summary Header */}
       <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-              <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              {ticketType.icon === 'crypto' ? (
+                <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              ) : (
+                <Gift className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              )}
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                {ticketInfo.type} Top-up Request
+                {ticketType.type} Top-up Request
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Ticket #{ticketId.slice(-6)}
@@ -181,35 +152,64 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              ${ticketInfo.amount.toFixed(2)}
+              ${amount.toFixed(2)}
             </div>
             <Badge 
               variant="secondary" 
-              className={`${ticketStatus === 'resolved' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'}`}
+              className={ticketStatus === 'resolved' ? 
+                'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 
+                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+              }
             >
               {ticketStatus === 'resolved' ? 'Completed' : 'Processing'}
             </Badge>
           </div>
         </div>
 
-        {/* Progress Tracker */}
+        {/* Modern Progress Tracker */}
         <div className="flex items-center justify-between">
-          {getProgressSteps().map((step, index) => {
-            const StepIcon = step.icon; // Extract for proper React rendering
-            return (
-              <div key={step.label} className="flex items-center">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-full ${getStatusBgColor(step.status)}`}>
-                  <StepIcon className={`w-4 h-4 ${getStatusColor(step.status)}`} />
-                  <span className={`text-sm font-medium ${getStatusColor(step.status)}`}>
-                    {step.label}
-                  </span>
-                </div>
-                {index < getProgressSteps().length - 1 && (
-                  <div className={`w-8 h-0.5 mx-2 ${step.status === 'completed' ? 'bg-green-300 dark:bg-green-700' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                )}
-              </div>
-            );
-          })}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-green-100 dark:bg-green-900/20">
+            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <span className="text-sm font-medium text-green-600 dark:text-green-400">Submitted</span>
+          </div>
+          <div className="w-8 h-0.5 bg-green-300 dark:bg-green-700" />
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-full ${
+            ticketStatus === 'open' ? 
+            'bg-blue-100 dark:bg-blue-900/20' : 
+            'bg-green-100 dark:bg-green-900/20'
+          }`}>
+            <AlertCircle className={`w-4 h-4 ${
+              ticketStatus === 'open' ? 
+              'text-blue-600 dark:text-blue-400' : 
+              'text-green-600 dark:text-green-400'
+            }`} />
+            <span className={`text-sm font-medium ${
+              ticketStatus === 'open' ? 
+              'text-blue-600 dark:text-blue-400' : 
+              'text-green-600 dark:text-green-400'
+            }`}>Verifying</span>
+          </div>
+          <div className={`w-8 h-0.5 ${
+            ticketStatus === 'resolved' ? 
+            'bg-green-300 dark:bg-green-700' : 
+            'bg-gray-300 dark:bg-gray-600'
+          }`} />
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-full ${
+            ticketStatus === 'resolved' ? 
+            'bg-green-100 dark:bg-green-900/20' : 
+            'bg-gray-100 dark:bg-gray-800/20'
+          }`}>
+            <DollarSign className={`w-4 h-4 ${
+              ticketStatus === 'resolved' ? 
+              'text-green-600 dark:text-green-400' : 
+              'text-gray-400 dark:text-gray-500'
+            }`} />
+            <span className={`text-sm font-medium ${
+              ticketStatus === 'resolved' ? 
+              'text-green-600 dark:text-green-400' : 
+              'text-gray-400 dark:text-gray-500'
+            }`}>Funded</span>
+          </div>
         </div>
       </div>
 
@@ -229,7 +229,7 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           ) : (
             <div className="space-y-4">
               {/* Welcome message for gift card requests */}
-              {ticketInfo.type === 'Gift Card' && messages.length > 0 && (
+              {ticketType.type === 'Gift Card' && messages.length > 0 && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
@@ -237,7 +237,7 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                     </div>
                     <div>
                       <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
-                        ✅ <strong>Thank you!</strong> We've received your ${ticketInfo.amount.toFixed(2)} gift card. 
+                        ✅ <strong>Thank you!</strong> We've received your ${amount.toFixed(2)} gift card. 
                         We'll verify it and credit your account within 24 hours. Message us here if you need help.
                       </p>
                     </div>
