@@ -86,25 +86,43 @@ class WorkingSupabaseClient {
           const params = new URLSearchParams();
           params.append('select', selectColumns);
           
+          // Fix parameter construction for Supabase format
           whereConditions.forEach(condition => {
-            const [key, value] = condition.split('=');
+            // condition looks like "user_id=eq.somevalue"
+            const [key, ...valueParts] = condition.split('=');
+            const value = valueParts.join('='); // rejoin in case value contains =
             params.append(key, value);
           });
           
-          if (orderBy) params.append('order', orderBy.split('=')[1]);
-          if (limitCount) params.append('limit', limitCount.split('=')[1]);
+          // Fix order parameter construction  
+          if (orderBy) {
+            const orderValue = orderBy.replace('order=', '');
+            params.append('order', orderValue);
+          }
+          
+          // Fix limit parameter construction
+          if (limitCount) {
+            const limitValue = limitCount.replace('limit=', '');
+            params.append('limit', limitValue);
+          }
 
           const url = this.buildUrl(table, params);
           console.log('Direct API call to:', url);
           
           const headers = await this.getHeaders();
+          console.log('Request headers:', headers);
+          
           const response = await fetch(url, {
             method: 'GET',
             headers: headers
           });
 
+          console.log('Response status:', response.status, response.statusText);
+
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('API call failed:', { status: response.status, statusText: response.statusText, body: errorText });
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
           }
 
           const data = await response.json();
@@ -113,8 +131,14 @@ class WorkingSupabaseClient {
           return { data, error: null };
         } catch (error) {
           console.error('Direct API error:', error);
-          callback({ data: null, error });
-          return { data: null, error };
+          // Create a more detailed error object
+          const detailedError = {
+            message: error instanceof Error ? error.message : String(error),
+            name: error instanceof Error ? error.name : 'UnknownError',
+            stack: error instanceof Error ? error.stack : undefined
+          };
+          callback({ data: null, error: detailedError });
+          return { data: null, error: detailedError };
         }
       }
     };
@@ -134,8 +158,11 @@ class WorkingSupabaseClient {
         try {
           const params = new URLSearchParams();
           
+          // Fix parameter construction for Supabase format
           whereConditions.forEach(condition => {
-            const [key, value] = condition.split('=');
+            // condition looks like "user_id=eq.somevalue"
+            const [key, ...valueParts] = condition.split('=');
+            const value = valueParts.join('='); // rejoin in case value contains =
             params.append(key, value);
           });
 
@@ -193,8 +220,14 @@ class WorkingSupabaseClient {
           return { data, error: null };
         } catch (error) {
           console.error('Direct update error:', error);
-          callback({ data: null, error });
-          return { data: null, error };
+          // Create a more detailed error object
+          const detailedError = {
+            message: error instanceof Error ? error.message : String(error),
+            name: error instanceof Error ? error.name : 'UnknownError',
+            stack: error instanceof Error ? error.stack : undefined
+          };
+          callback({ data: null, error: detailedError });
+          return { data: null, error: detailedError };
         }
       }
     };
@@ -259,8 +292,14 @@ class WorkingSupabaseClient {
           return { data, error: null };
         } catch (error) {
           console.error('Direct insert error:', error);
-          callback({ data: null, error });
-          return { data: null, error };
+          // Create a more detailed error object
+          const detailedError = {
+            message: error instanceof Error ? error.message : String(error),
+            name: error instanceof Error ? error.name : 'UnknownError',
+            stack: error instanceof Error ? error.stack : undefined
+          };
+          callback({ data: null, error: detailedError });
+          return { data: null, error: detailedError };
         }
       }
     };
