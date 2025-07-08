@@ -24,13 +24,15 @@ interface InsertBuilder {
 
 class WorkingSupabaseClient {
   private buildUrl(table: string, params: URLSearchParams): string {
-    return `${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`;
+    const url = `${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`;
+    console.log('Built URL:', url);
+    console.log('URL params:', params.toString());
+    return url;
   }
 
   private async getHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
-      'apikey': SUPABASE_KEY,
-      'Content-Type': 'application/json'
+      'apikey': SUPABASE_KEY
     };
 
     // Try to get auth token from localStorage (Supabase standard storage)
@@ -111,11 +113,14 @@ class WorkingSupabaseClient {
           
           const headers = await this.getHeaders();
           console.log('Request headers:', headers);
+          console.log('About to fetch URL:', url);
           
           const response = await fetch(url, {
             method: 'GET',
             headers: headers
           });
+          
+          console.log('Fetch completed, response:', response);
 
           console.log('Response status:', response.status, response.statusText);
 
@@ -174,6 +179,7 @@ class WorkingSupabaseClient {
             method: 'PATCH',
             headers: {
               ...baseHeaders,
+              'Content-Type': 'application/json',
               'Prefer': 'return=minimal'
             },
             body: JSON.stringify(updateData)
@@ -256,6 +262,7 @@ class WorkingSupabaseClient {
             method: 'POST',
             headers: {
               ...baseHeaders,
+              'Content-Type': 'application/json',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(values)
