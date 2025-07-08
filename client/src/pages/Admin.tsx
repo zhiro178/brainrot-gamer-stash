@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { TicketChat } from "@/components/TicketChat";
+import { ModernTicketChat } from "@/components/ModernTicketChat";
 import { CryptoTopupList } from "@/components/CryptoTopupList";
 import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
@@ -214,10 +214,11 @@ export default function Admin() {
                               </DialogDescription>
                             </DialogHeader>
                             {currentUser && (
-                              <TicketChat 
+                              <ModernTicketChat 
                                 ticketId={ticket.id}
                                 ticketSubject={ticket.subject}
                                 currentUser={currentUser}
+                                isAdmin={true}
                               />
                             )}
                           </DialogContent>

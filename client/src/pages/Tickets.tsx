@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SimpleTicketChat } from "@/components/SimpleTicketChat";
+import { ModernTicketChat } from "@/components/ModernTicketChat";
 import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -241,70 +241,42 @@ export default function Tickets() {
               {isAdmin || isAdminByEmail ? 'Manage all customer support requests' : 'View and manage your support requests'}
             </p>
             
-            {/* Debug info */}
-            <div className="mt-4 p-2 bg-muted rounded text-xs">
-              <p>Debug Info:</p>
-              <p>User ID: {user?.id}</p>
-              <p>Email: {user?.email}</p>
-              <p>IsAdmin (hook): {String(isAdmin)}</p>
-              <p>IsAdmin (email): {String(isAdminByEmail)}</p>
-              <p>Tickets count: {tickets.length}</p>
-              
-              <Button 
-                onClick={async () => {
-                  console.log('=== SUPABASE DIAGNOSTIC TEST ===');
-                  
-                  // Test 1: Authentication (Working Client)
-                  const { data: { user: authUser }, error: authError } = await workingSupabase.auth.getUser();
-                  console.log('1. Working Auth User:', { authUser, authError });
-                  
-                  // Test 2: Basic query (Working Client)
-                  const { data: testData, error: testError } = await workingSupabase
-                    .from('support_tickets')
-                    .select('*')
-                    .limit(1);
-                  console.log('2. Working Basic Query:', { testData, testError });
-                  
-                                      // Test 3: Insert test (if logged in) - Working Client
-                    if (authUser) {
-                      const { data: insertData, error: insertError } = await workingSupabase
-                        .from('support_tickets')
-                        .insert({
-                          user_id: authUser.id,
-                          subject: 'TEST DIAGNOSTIC',
-                          message: 'This is a test',
-                          status: 'open',
-                          category: 'general'
-                        });
-                      console.log('3. Working Insert Test:', { insertData, insertError });
-                      
-                      // Clean up (skip for now since delete not implemented in working client)
-                      console.log('4. Cleanup skipped (delete not implemented in working client)');
-                    }
-                  
-                                      // Test 4: RLS Status (Direct API)
-                    try {
-                      const response = await fetch(`https://uahxenisnppufpswupnz.supabase.co/rest/v1/support_tickets?select=id&limit=1`, {
-                        headers: {
-                          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q',
-                          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q'
-                        }
-                      });
-                      console.log('4. Direct API Test:', { status: response.status, ok: response.ok });
-                    } catch (e) {
-                      console.log('4. Direct API Test Failed:', e);
-                    }
-                  
-                  console.log('=== END DIAGNOSTIC ===');
-                  alert('Diagnostic complete! Check console (F12) for detailed results.');
-                }}
-                size="sm"
-                variant="outline"
-                className="mt-2"
-              >
-                🔍 Run Diagnostic
-              </Button>
-            </div>
+            {/* Admin Debug info */}
+            {(isAdmin || isAdminByEmail) && (
+              <div className="mt-4 p-2 bg-muted rounded text-xs">
+                <p>Admin Debug Info:</p>
+                <p>User ID: {user?.id}</p>
+                <p>Email: {user?.email}</p>
+                <p>IsAdmin (hook): {String(isAdmin)}</p>
+                <p>IsAdmin (email): {String(isAdminByEmail)}</p>
+                <p>Tickets count: {tickets.length}</p>
+                
+                <Button 
+                  onClick={async () => {
+                    console.log('=== ADMIN DIAGNOSTIC TEST ===');
+                    
+                    // Test 1: Authentication (Working Client)
+                    const { data: { user: authUser }, error: authError } = await workingSupabase.auth.getUser();
+                    console.log('1. Working Auth User:', { authUser, authError });
+                    
+                    // Test 2: Basic query (Working Client)
+                    const { data: testData, error: testError } = await workingSupabase
+                      .from('support_tickets')
+                      .select('*')
+                      .limit(1);
+                    console.log('2. Working Basic Query:', { testData, testError });
+                    
+                    console.log('=== END DIAGNOSTIC ===');
+                    alert('Admin diagnostic complete! Check console (F12) for detailed results.');
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                >
+                  🔍 Admin Diagnostic
+                </Button>
+              </div>
+            )}
           </div>
 
                                 {tickets.length === 0 ? (
@@ -392,7 +364,7 @@ export default function Tickets() {
                             </DialogDescription>
                           </DialogHeader>
                           {selectedTicket && user && (
-                            <SimpleTicketChat 
+                            <ModernTicketChat 
                               ticketId={selectedTicket.id}
                               ticketSubject={selectedTicket.subject}
                               currentUser={user}

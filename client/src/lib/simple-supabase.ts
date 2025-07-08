@@ -112,34 +112,45 @@ class SimpleSupabaseClient {
   private update(table: string, values: any) {
     // Return update builder with eq method (not async)
     return {
-      eq: (column: string, value: any) => ({
-        then: async (callback: any) => {
-          try {
-            const url = `${SUPABASE_URL}/rest/v1/${table}?${column}=eq.${value}`;
-            const response = await fetch(url, {
-              method: 'PATCH',
-              headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-              },
-              body: JSON.stringify(values)
-            });
+      eq: (column: string, value: any) => {
+        return {
+          then: async (callback?: any) => {
+            try {
+              const url = `${SUPABASE_URL}/rest/v1/${table}?${column}=eq.${value}`;
+              console.log('Update URL:', url, 'Values:', values);
+              
+              const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                  'apikey': SUPABASE_KEY,
+                  'Authorization': `Bearer ${SUPABASE_KEY}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(values)
+              });
 
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              console.log('Update response:', response.status, response.statusText);
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Update failed:', errorText);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+
+              const result = { data: null, error: null };
+              if (callback) callback(result);
+              return result;
+            } catch (error) {
+              console.error('Update error:', error);
+              const errorObj = { message: String(error) };
+              const result = { data: null, error: errorObj };
+              if (callback) callback(result);
+              return result;
             }
-
-            callback({ data: null, error: null });
-            return { data: null, error: null };
-          } catch (error) {
-            const errorObj = { message: String(error) };
-            callback({ data: null, error: errorObj });
-            return { data: null, error: errorObj };
           }
-        }
-      })
+        };
+      }
     };
   }
 
