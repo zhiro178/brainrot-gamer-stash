@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Wallet, AlertTriangle, Bitcoin, CreditCard } from "lucide-react";
-import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
+import { robustSupabase as workingSupabase } from "@/lib/robust-supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Your admin email

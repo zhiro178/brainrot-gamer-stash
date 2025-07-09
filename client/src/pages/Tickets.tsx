@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
+import { robustSupabase as workingSupabase } from "@/lib/robust-supabase";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

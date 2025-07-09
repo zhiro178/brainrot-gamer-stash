@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
+import { robustSupabase as workingSupabase } from "@/lib/robust-supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
