@@ -84,17 +84,19 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
         throw new Error('No ticket ID provided');
       }
 
-      const { data, error } = await workingSupabase
+      // Use the robust client with .then() syntax instead of await
+      const result = await workingSupabase
         .from('ticket_messages')
         .select('*')
         .eq('ticket_id', parseInt(ticketId))
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .then((response: { data: any[] | null, error: any | null }) => response);
 
-      if (error) {
-        throw error;
+      if (result.error) {
+        throw result.error;
       }
       
-      setMessages(data || []);
+      setMessages(result.data || []);
       setError(null);
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -116,7 +118,7 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
     setSending(true);
     try {      
-      const { error } = await workingSupabase
+      const result = await workingSupabase
         .from('ticket_messages')
         .insert({
           ticket_id: parseInt(ticketId),
@@ -125,8 +127,8 @@ export const ModernTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           is_admin: isAdmin
         });
 
-      if (error) {
-        throw error;
+      if (result.error) {
+        throw result.error;
       }
       
       setNewMessage('');
