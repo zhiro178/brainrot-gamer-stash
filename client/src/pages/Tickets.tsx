@@ -49,12 +49,21 @@ export default function Tickets() {
       }
     });
     
+    // Add ticket update listener for purchases and other actions
+    const handleTicketsUpdate = (event: CustomEvent) => {
+      console.log('Tickets update event received:', event.detail);
+      fetchUserAndTickets();
+    };
+    
+    window.addEventListener('tickets-updated', handleTicketsUpdate as EventListener);
+    
     // Initial fetch
     fetchUserAndTickets();
     
     // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('tickets-updated', handleTicketsUpdate as EventListener);
     };
   }, []);
 
@@ -96,19 +105,29 @@ export default function Tickets() {
         }
         
         console.log('Executing tickets query with working client...');
-        const { data, error } = await query;
+        const result = await new Promise((resolve) => {
+          query.then(resolve);
+        });
+        const { data, error } = result as any;
         console.log('Working client query result:', { data, error });
         
         if (error) {
           console.error('Error fetching tickets:', error);
+          console.error('Query details:', { 
+            user_id: user.id, 
+            isAdmin: isAdmin || isAdminByEmail,
+            url: 'https://uahxenisnppufpswupnz.supabase.co/rest/v1/support_tickets'
+          });
           toast({
             title: "Error",
             description: `Failed to fetch tickets: ${error.message}`,
             variant: "destructive",
           });
+          setTickets([]);
+        } else {
+          console.log('Successfully fetched tickets:', { count: data?.length || 0, tickets: data });
+          setTickets(data || []);
         }
-        
-        setTickets(data || []);
       } else {
         console.log('No user found');
         setTickets([]);

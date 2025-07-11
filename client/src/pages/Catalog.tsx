@@ -223,6 +223,13 @@ export default function Catalog() {
             });
           }
           
+          // Dispatch ticket refresh event for any listening ticket components
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('tickets-updated', { 
+              detail: { userId: user.id, action: 'purchase', ticketId: ticketId } 
+            }));
+          }, 100);
+          
           const { toast } = await import("@/hooks/use-toast");
           toast({
             title: "🎉 Purchase Successful!",
