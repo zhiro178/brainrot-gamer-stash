@@ -176,18 +176,26 @@ export const approveAndAddFunds = async ({
     }
 
     // Dispatch balance refresh events
-    console.log("Triggering balance refresh events");
+    console.log("=== DISPATCHING BALANCE REFRESH EVENTS ===");
+    console.log("Target userId:", userId);
+    console.log("New balance:", newBalance.toFixed(2));
+    console.log("Added amount:", amount.toFixed(2));
     
+    const eventDetail = { 
+      userId, 
+      newBalance: newBalance.toFixed(2),
+      addedAmount: amount.toFixed(2)
+    };
+    
+    console.log("Event detail object:", eventDetail);
+    
+    // Dispatch multiple events to ensure UI updates
     window.dispatchEvent(new CustomEvent('balance-updated', { 
       detail: { userId } 
     }));
     
     window.dispatchEvent(new CustomEvent('user-balance-updated', { 
-      detail: { 
-        userId, 
-        newBalance: newBalance.toFixed(2),
-        addedAmount: amount.toFixed(2)
-      } 
+      detail: eventDetail
     }));
     
     // Additional event for navbar refresh
@@ -195,7 +203,12 @@ export const approveAndAddFunds = async ({
       detail: { userId } 
     }));
     
-    console.log("All balance refresh events dispatched");
+    // Force a broader refresh event that all components can listen to
+    window.dispatchEvent(new CustomEvent('force-balance-refresh', { 
+      detail: eventDetail
+    }));
+    
+    console.log("=== ALL BALANCE REFRESH EVENTS DISPATCHED ===");
     
     return {
       success: true,
