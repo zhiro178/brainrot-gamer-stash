@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea";
 import { TicketChat } from "@/components/TicketChat";
 import { CryptoTopupList } from "@/components/CryptoTopupList";
-import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard } from "lucide-react";
+import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard, ShoppingBag } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -87,7 +87,11 @@ export default function Admin() {
       case 'payment':
         return <DollarSign className="h-4 w-4" />;
       case 'purchase':
-        return <Ticket className="h-4 w-4" />;
+        return <ShoppingBag className="h-4 w-4" />;
+      case 'crypto_topup':
+        return <Bitcoin className="h-4 w-4" />;
+      case 'giftcard_topup':
+        return <CreditCard className="h-4 w-4" />;
       default:
         return <MessageCircle className="h-4 w-4" />;
     }

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SimpleTicketChat } from "@/components/SimpleTicketChat";
-import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign } from "lucide-react";
+import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign, ShoppingBag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 
@@ -168,6 +168,17 @@ export default function Tickets() {
         amount: amount,
         color: 'text-blue-500',
         bgColor: 'bg-blue-500/10'
+      };
+    }
+    if (category === 'purchase') {
+      const amount = subject.match(/\$(\d+(?:\.\d{2})?)/)?.[1] || 
+                    subject.match(/Price: \$(\d+(?:\.\d{2})?)/)?.[1] || '0.00';
+      return {
+        icon: ShoppingBag,
+        title: 'Purchase Order',
+        amount: amount,
+        color: 'text-green-500',
+        bgColor: 'bg-green-500/10'
       };
     }
     return {
@@ -346,6 +357,7 @@ export default function Tickets() {
                         <Badge variant="outline">
                           {ticket.category === 'crypto_topup' ? 'Crypto' : 
                            ticket.category === 'giftcard_topup' ? 'Gift Card' : 
+                           ticket.category === 'purchase' ? 'Purchase' :
                            ticket.category || 'General'}
                         </Badge>
                       </div>
@@ -387,7 +399,9 @@ export default function Tickets() {
                                 'Chat with our team about your crypto top-up request. You\'ll receive payment instructions and updates here.' :
                                 ticket.category === 'giftcard_topup' ? 
                                 'Chat with our team about your gift card top-up. We\'ll verify your card and update you on the process.' :
-                                `Communicate with ${isAdmin ? 'the user' : 'our support team'} about your ticket`
+                                ticket.category === 'purchase' ?
+                                'Track your purchase order and communicate with our delivery team. You\'ll receive updates on your item delivery here.' :
+                                `Communicate with ${isAdmin || isAdminByEmail ? 'the user' : 'our support team'} about your ticket`
                               }
                             </DialogDescription>
                           </DialogHeader>
