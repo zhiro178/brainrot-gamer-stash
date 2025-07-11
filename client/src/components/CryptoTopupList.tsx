@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { SimpleTicketChat } from "@/components/SimpleTicketChat";
 import { Bitcoin, Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { approveAndAddFunds } from "@/lib/balanceUtils";
 
 interface TopUpTicket {
   id: string;
@@ -30,20 +31,6 @@ export const CryptoTopupList = () => {
     fetchCryptoTickets();
     getCurrentUser();
   }, []);
-
-  // Function to refresh user balance after approval
-  const refreshUserBalance = async (userId: string) => {
-    try {
-      // Trigger a balance refresh event that other components can listen to
-      window.dispatchEvent(new CustomEvent('balance-updated', { 
-        detail: { userId } 
-      }));
-      
-      console.log('Balance refresh event dispatched for user:', userId);
-    } catch (error) {
-      console.error('Error dispatching balance refresh:', error);
-    }
-  };
 
   const getCurrentUser = async () => {
     const { data: { user } } = await workingSupabase.auth.getUser();
@@ -132,119 +119,26 @@ export const CryptoTopupList = () => {
       
       console.log("Starting approval for:", { ticketId, amount, userId, amountNum });
       
-      // Update ticket status to resolved
-      const { error: ticketError } = await workingSupabase
-        .from('support_tickets')
-        .update({ status: 'resolved' })
-        .eq('id', ticketId);
-        
-      if (ticketError) {
-        console.error('Error updating ticket:', ticketError);
-        throw new Error(`Failed to update ticket: ${ticketError.message}`);
-      }
-      
-      console.log("Ticket updated to resolved");
-
-      // Get or create user balance
-      console.log("Fetching existing balance for user:", userId);
-      let { data: existingBalance, error: balanceError } = await workingSupabase
-        .from('user_balances')
-        .select('balance')
-        .eq('user_id', userId);
-
-      console.log("Existing balance query result:", { existingBalance, balanceError });
-
-      if (balanceError) {
-        console.error('Error fetching balance:', balanceError);
-        throw new Error(`Failed to fetch user balance: ${balanceError.message}`);
-      }
-
-      const currentBalance = parseFloat(existingBalance?.[0]?.balance || '0');
-      const newBalance = currentBalance + amountNum;
-      
-      console.log("Balance calculation:", { currentBalance, amountNum, newBalance });
-      
-      let balanceResult, balanceUpdateError;
-      
-      // If balance record exists, update it
-      if (existingBalance && existingBalance.length > 0) {
-        console.log("Updating existing balance record");
-        const updateResult = await workingSupabase
-          .from('user_balances')
-          .update({
-            balance: newBalance.toFixed(2)
-          })
-          .eq('user_id', userId);
-        
-        balanceResult = updateResult.data;
-        balanceUpdateError = updateResult.error;
-        console.log("Balance update result:", { balanceResult, balanceUpdateError });
-      } else {
-        // If no balance record exists, create one
-        console.log("Creating new balance record");
-        const insertResult = await workingSupabase
-          .from('user_balances')
-          .insert({
-            user_id: userId,
-            balance: newBalance.toFixed(2)
-          });
-        
-        balanceResult = insertResult.data;
-        balanceUpdateError = insertResult.error;
-        console.log("Balance insert result:", { balanceResult, balanceUpdateError });
-      }
-      
-      if (balanceUpdateError) {
-        console.error('Error updating balance:', balanceUpdateError);
-        throw new Error(`Failed to update balance: ${balanceUpdateError.message}`);
-      }
-
-      // Add admin confirmation message
-      console.log("Adding admin confirmation message");
-      const { data: messageResult, error: messageError } = await workingSupabase
-        .from('ticket_messages')
-        .insert({
-          ticket_id: parseInt(ticketId),
-          user_id: currentUser.id,
-          message: `✅ Payment approved! $${amountNum.toFixed(2)} added to your account. New balance: $${newBalance.toFixed(2)}`,
-          is_admin: true
-        });
-        
-      console.log("Admin message result:", { messageResult, messageError });
-      
-      if (messageError) {
-        console.error('Error creating admin message:', messageError);
-        // Don't throw error here, balance update is more important
-      }
-
-      toast({
-        title: "Top-up Approved",
-        description: `Successfully added $${amountNum.toFixed(2)} to user balance. New balance: $${newBalance.toFixed(2)}`,
+      const result = await approveAndAddFunds({
+        ticketId: ticketId,
+        userId: userId,
+        amount: amountNum,
+        currentUser: currentUser,
+        reason: 'Payment approved'
       });
 
-      // Refresh tickets to show updated status
-      console.log("Refreshing tickets list");
-      fetchCryptoTickets();
-      
-      // Force balance refresh for the affected user with multiple methods
-      console.log("Triggering balance refresh events");
-      refreshUserBalance(userId);
-      
-      // Also dispatch a more general balance update event
-      window.dispatchEvent(new CustomEvent('user-balance-updated', { 
-        detail: { 
-          userId, 
-          newBalance: newBalance.toFixed(2),
-          addedAmount: amountNum.toFixed(2)
-        } 
-      }));
-      
-      // Additional event for navbar refresh
-      window.dispatchEvent(new CustomEvent('refresh-navbar-balance', { 
-        detail: { userId } 
-      }));
-      
-      console.log("All balance refresh events dispatched");
+      if (result.success) {
+        toast({
+          title: "Top-up Approved",
+          description: result.message,
+        });
+
+        // Refresh tickets to show updated status
+        console.log("Refreshing tickets list");
+        fetchCryptoTickets();
+      } else {
+        throw new Error(result.error || 'Failed to approve top-up');
+      }
       
     } catch (error) {
       console.error('Error verifying ticket:', error);
