@@ -67,9 +67,9 @@ export default function Tickets() {
     };
   }, []);
 
-  const fetchUserAndTickets = async () => {
+  const fetchUserAndTickets = async (retryCount = 0) => {
     try {
-      console.log('Fetching user and tickets...');
+      console.log(`Fetching user and tickets... (attempt ${retryCount + 1})`);
       
       // Try multiple ways to get the user
       const { data: { user: currentUser }, error: userError } = await workingSupabase.auth.getUser();
@@ -105,28 +105,60 @@ export default function Tickets() {
         }
         
         console.log('Executing tickets query with working client...');
-        const result = await new Promise((resolve) => {
-          query.then(resolve);
-        });
-        const { data, error } = result as any;
-        console.log('Working client query result:', { data, error });
         
-        if (error) {
-          console.error('Error fetching tickets:', error);
-          console.error('Query details:', { 
-            user_id: user.id, 
-            isAdmin: isAdmin || isAdminByEmail,
-            url: 'https://uahxenisnppufpswupnz.supabase.co/rest/v1/support_tickets'
+        try {
+          const result = await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Query timeout after 10 seconds'));
+            }, 10000);
+            
+            query.then((result) => {
+              clearTimeout(timeout);
+              resolve(result);
+            }).catch((error) => {
+              clearTimeout(timeout);
+              reject(error);
+            });
           });
+          
+          const { data, error } = result as any;
+          console.log('Working client query result:', { data, error });
+        
+          if (error) {
+            console.error('Error fetching tickets:', error);
+            console.error('Query details:', { 
+              user_id: user.id, 
+              isAdmin: isAdmin || isAdminByEmail,
+              url: 'https://uahxenisnppufpswupnz.supabase.co/rest/v1/support_tickets'
+            });
+            toast({
+              title: "Error",
+              description: `Failed to fetch tickets: ${error.message}`,
+              variant: "destructive",
+            });
+            setTickets([]);
+          } else {
+            console.log('Successfully fetched tickets:', { count: data?.length || 0, tickets: data });
+            setTickets(data || []);
+          }
+        } catch (queryError) {
+          console.error('Query execution failed:', queryError);
+          
+          // Retry mechanism for query failures
+          if (retryCount < 2) {
+            console.log(`Retrying ticket fetch in ${(retryCount + 1) * 1000}ms...`);
+            setTimeout(() => {
+              fetchUserAndTickets(retryCount + 1);
+            }, (retryCount + 1) * 1000);
+            return;
+          }
+          
           toast({
             title: "Error",
-            description: `Failed to fetch tickets: ${error.message}`,
+            description: `Failed to fetch tickets after ${retryCount + 1} attempts: ${queryError instanceof Error ? queryError.message : 'Unknown error'}`,
             variant: "destructive",
           });
           setTickets([]);
-        } else {
-          console.log('Successfully fetched tickets:', { count: data?.length || 0, tickets: data });
-          setTickets(data || []);
         }
       } else {
         console.log('No user found');
@@ -134,9 +166,21 @@ export default function Tickets() {
       }
     } catch (error) {
       console.error('Error in fetchUserAndTickets:', error);
+      
+      // Retry mechanism for general failures
+      if (retryCount < 2) {
+        console.log(`Retrying user and tickets fetch in ${(retryCount + 1) * 1000}ms...`);
+        setTimeout(() => {
+          fetchUserAndTickets(retryCount + 1);
+        }, (retryCount + 1) * 1000);
+        return;
+      }
+      
       setTickets([]);
     } finally {
-      setLoading(false);
+      if (retryCount === 0 || retryCount >= 2) {
+        setLoading(false);
+      }
     }
   };
 

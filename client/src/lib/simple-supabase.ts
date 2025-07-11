@@ -42,44 +42,65 @@ class SimpleSupabaseClient {
         return query;
       },
       then: async (callback) => {
-        try {
-          // Build URL exactly like working direct fetch
-          let url = `${SUPABASE_URL}/rest/v1/${table}?select=${selectColumns}`;
-          if (whereClause) url += '&' + whereClause;
-          if (orderClause) url += '&' + orderClause;
-          if (limitClause) url += '&' + limitClause;
+        const maxRetries = 3;
+        let lastError;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            // Build URL exactly like working direct fetch
+            let url = `${SUPABASE_URL}/rest/v1/${table}?select=${selectColumns}`;
+            if (whereClause) url += '&' + whereClause;
+            if (orderClause) url += '&' + orderClause;
+            if (limitClause) url += '&' + limitClause;
 
-          console.log('Simple client fetching:', url);
+            console.log(`Simple client fetching (attempt ${attempt}/${maxRetries}):`, url);
 
-          // Use exact same fetch as working direct call
-          const response = await fetch(url, {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`
+            // Use exact same fetch as working direct call with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+            const response = await fetch(url, {
+              headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+            console.log('Simple client response:', response.status);
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-          });
 
-          console.log('Simple client response:', response.status);
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const data = await response.json();
+            console.log('Simple client data:', data);
+            
+            const result = { data, error: null };
+            if (callback) callback(result);
+            return result;
+          } catch (error) {
+            lastError = error;
+            console.error(`Simple client error (attempt ${attempt}/${maxRetries}):`, error);
+            
+            if (attempt < maxRetries) {
+              // Wait before retry with exponential backoff
+              const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+              console.log(`Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
           }
-
-          const data = await response.json();
-          console.log('Simple client data:', data);
-          
-          const result = { data, error: null };
-          if (callback) callback(result);
-          return result;
-        } catch (error) {
-          console.error('Simple client error:', error);
-          const errorObj = {
-            message: error instanceof Error ? error.message : String(error)
-          };
-          const result = { data: null, error: errorObj };
-          if (callback) callback(result);
-          return result;
         }
+        
+        // All retries failed
+        const errorObj = {
+          message: lastError instanceof Error ? lastError.message : String(lastError)
+        };
+        const result = { data: null, error: errorObj };
+        if (callback) callback(result);
+        return result;
       }
     };
 
