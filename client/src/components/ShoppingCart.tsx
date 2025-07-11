@@ -260,27 +260,27 @@ function CheckoutDialog({ isOpen, onOpenChange, items, totalPrice }: CheckoutDia
       if (!error && ticketData) {
         const ticketId = Array.isArray(ticketData) ? ticketData[0]?.id : (ticketData as any)?.id;
         
-        if (ticketId) {
-          // Add user message
-          await workingSupabase
-            .from('ticket_messages')
-            .insert({
-              ticket_id: parseInt(ticketId),
-              user_id: String(user.id),
-              message: `I have successfully completed a bulk purchase of ${items.length} items for $${totalPrice.toFixed(2)}. My remaining balance is $${newBalance.toFixed(2)}.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
-              is_admin: false
-            });
-          
-          // Add admin message
-          await workingSupabase
-            .from('ticket_messages')
-            .insert({
-              ticket_id: parseInt(ticketId),
-              user_id: "system",
-              message: `Payment received for bulk order! We'll process your ${items.length} item order and deliver everything to your account within 24 hours. Thank you for your purchase!\n\n${orderSummary}`,
-              is_admin: true
-            });
-        }
+                 if (ticketId) {
+           // Add user message
+           await workingSupabase
+             .from('ticket_messages')
+             .insert({
+               ticket_id: parseInt(ticketId),
+               user_id: String(user.id),
+               message: `I have purchased ${items.length} items for $${totalPrice.toFixed(2)}.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
+               is_admin: false
+             });
+           
+           // Add admin message
+           await workingSupabase
+             .from('ticket_messages')
+             .insert({
+               ticket_id: parseInt(ticketId),
+               user_id: "system",
+               message: `Payment received! We'll process your Order and deliver it to your account within 24 hours. Thank you for your purchase!`,
+               is_admin: true
+             });
+         }
         
         // Clear cart and close dialogs
         clearCart();
