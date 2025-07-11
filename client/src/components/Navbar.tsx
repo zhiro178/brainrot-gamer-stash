@@ -16,12 +16,13 @@ import { UserProfile } from "@/components/UserProfile";
 interface NavbarProps {
   user?: any;
   userBalance?: number;
+  balanceLoading?: boolean;
   onLogin: (email: string, password: string) => void;
   onRegister: (email: string, password: string) => void;
   onLogout: () => void;
 }
 
-export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }: NavbarProps) => {
+export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin, onRegister, onLogout }: NavbarProps) => {
   const [, setLocation] = useLocation();
   const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
   
@@ -140,7 +141,14 @@ export const Navbar = ({ user, userBalance = 0, onLogin, onRegister, onLogout }:
                   <Wallet className="h-4 w-4 text-gaming-success" />
                   <div>
                     <p className="text-xs text-muted-foreground">Balance</p>
-                    <p className="font-semibold text-gaming-success text-sm">${userBalance.toFixed(2)}</p>
+                    {balanceLoading ? (
+                      <div className="flex items-center space-x-1">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b border-gaming-success"></div>
+                        <p className="font-semibold text-gaming-success text-sm">Loading...</p>
+                      </div>
+                    ) : (
+                      <p className="font-semibold text-gaming-success text-sm">${userBalance.toFixed(2)}</p>
+                    )}
                   </div>
                 </div>
                 
