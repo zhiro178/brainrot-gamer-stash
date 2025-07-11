@@ -178,33 +178,74 @@ const Index = () => {
   // Listen for balance refresh events
   useEffect(() => {
     const handleBalanceUpdate = (event: any) => {
-      console.log('Balance update event received:', event.detail);
+      console.log('=== BALANCE UPDATE EVENT RECEIVED ===');
+      console.log('Event detail:', event.detail);
+      console.log('Current user ID:', user?.id);
+      console.log('Event user ID:', event.detail?.userId);
+      console.log('IDs match:', user?.id === event.detail?.userId);
+      
       if (user?.id === event.detail?.userId) {
-        // Refresh current user's balance
-        console.log('Refreshing balance for current user');
+        console.log('✅ User IDs match - refreshing balance for current user');
         fetchUserBalance(user.id);
+      } else {
+        console.log('❌ User IDs do not match - ignoring event');
       }
     };
 
     const handleUserBalanceUpdate = (event: any) => {
-      console.log('User balance update event received:', event.detail);
+      console.log('=== USER BALANCE UPDATE EVENT RECEIVED ===');
+      console.log('Event detail:', event.detail);
+      console.log('Current user ID:', user?.id);
+      console.log('Event user ID:', event.detail?.userId);
+      console.log('IDs match:', user?.id === event.detail?.userId);
+      
       if (user?.id === event.detail?.userId) {
+        console.log('✅ User IDs match - updating balance');
         // Update balance directly if provided, otherwise fetch
         if (event.detail.newBalance) {
-          console.log('Setting balance directly:', event.detail.newBalance);
+          console.log('Setting balance directly to:', event.detail.newBalance);
           setUserBalance(parseFloat(event.detail.newBalance));
         } else {
-          console.log('Fetching updated balance');
+          console.log('No new balance in event - fetching updated balance');
           fetchUserBalance(user.id);
         }
+      } else {
+        console.log('❌ User IDs do not match - ignoring event');
       }
     };
 
     const handleNavbarBalanceRefresh = (event: any) => {
-      console.log('Navbar balance refresh event received:', event.detail);
+      console.log('=== NAVBAR BALANCE REFRESH EVENT RECEIVED ===');
+      console.log('Event detail:', event.detail);
+      console.log('Current user ID:', user?.id);
+      console.log('Event user ID:', event.detail?.userId);
+      console.log('IDs match:', user?.id === event.detail?.userId);
+      
       if (user?.id === event.detail?.userId) {
-        console.log('Refreshing navbar balance');
+        console.log('✅ User IDs match - refreshing navbar balance');
         fetchUserBalance(user.id);
+      } else {
+        console.log('❌ User IDs do not match - ignoring event');
+      }
+    };
+
+    const handleForceBalanceRefresh = (event: any) => {
+      console.log('=== FORCE BALANCE REFRESH EVENT RECEIVED ===');
+      console.log('Event detail:', event.detail);
+      console.log('Current user ID:', user?.id);
+      console.log('Event user ID:', event.detail?.userId);
+      console.log('IDs match:', user?.id === event.detail?.userId);
+      
+      if (user?.id === event.detail?.userId) {
+        console.log('✅ User IDs match - force refreshing balance');
+        if (event.detail.newBalance) {
+          console.log('Setting balance directly to:', event.detail.newBalance);
+          setUserBalance(parseFloat(event.detail.newBalance));
+        }
+        // Also fetch to make sure we have the latest
+        fetchUserBalance(user.id);
+      } else {
+        console.log('❌ User IDs do not match - ignoring event');
       }
     };
 
@@ -212,11 +253,13 @@ const Index = () => {
     window.addEventListener('balance-updated', handleBalanceUpdate);
     window.addEventListener('user-balance-updated', handleUserBalanceUpdate);
     window.addEventListener('refresh-navbar-balance', handleNavbarBalanceRefresh);
+    window.addEventListener('force-balance-refresh', handleForceBalanceRefresh);
     
     return () => {
       window.removeEventListener('balance-updated', handleBalanceUpdate);
       window.removeEventListener('user-balance-updated', handleUserBalanceUpdate);
       window.removeEventListener('refresh-navbar-balance', handleNavbarBalanceRefresh);
+      window.removeEventListener('force-balance-refresh', handleForceBalanceRefresh);
     };
   }, [user]);
 
@@ -249,16 +292,24 @@ const Index = () => {
 
   const fetchUserBalance = async (userId: string) => {
     try {
+      console.log('=== FETCHING USER BALANCE ===');
+      console.log('Fetching balance for userId:', userId);
+      
       // Import the working client here to avoid import errors
       const { simpleSupabase: workingSupabase } = await import('@/lib/simple-supabase');
       
-      const { data, error } = await workingSupabase
-        .from('user_balances')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
+      const result = await new Promise((resolve) => {
+        workingSupabase
+          .from('user_balances')
+          .select('balance')
+          .eq('user_id', userId)
+          .then(resolve);
+      });
       
-      console.log('Fetching balance with working client:', { data, error, userId });
+      const data = (result as any).data;
+      const error = (result as any).error;
+      
+      console.log('Balance fetch result:', { data, error, userId });
       
       // Handle expected errors gracefully (table doesn't exist, no records found)
       if (error && !['PGRST116', '42703', '42P01'].includes(error.code)) {
@@ -266,9 +317,13 @@ const Index = () => {
         return;
       }
       
-      setUserBalance(parseFloat(data?.balance || '0'));
+      const balance = parseFloat(data?.[0]?.balance || '0');
+      console.log('Setting user balance to:', balance);
+      setUserBalance(balance);
+      
+      console.log('=== BALANCE FETCH COMPLETE ===');
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in fetchUserBalance:', error);
       setUserBalance(0); // Set default balance if any error occurs
     }
   };
