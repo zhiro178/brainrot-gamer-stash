@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AdminEditOverlay } from "@/components/AdminEditOverlay";
 import { useAdmin } from "@/contexts/AdminContext";
-import { Trash2 } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { Trash2, ShoppingCart, Plus, Minus, Check } from "lucide-react";
 
 const RARITY_COLORS = {
   "Common": "bg-gray-500",
@@ -28,6 +29,7 @@ interface ItemCardProps {
 
 export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemCardProps) => {
   const { isAdminMode, isAdmin } = useAdmin();
+  const { addToCart, isItemInCart, getItemQuantity, updateQuantity, itemCount } = useCart();
 
   const handleItemUpdate = (value: string) => {
     if (onUpdateItem) {
@@ -39,6 +41,23 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
       onUpdateItem(item.id, updates);
     }
   };
+
+  const handleAddToCart = () => {
+    const success = addToCart(item);
+    if (!success) {
+      // Show toast notification about cart limit
+      import("@/hooks/use-toast").then(({ toast }) => {
+        toast({
+          title: "Cart Full",
+          description: "Maximum 10 items allowed in cart. Remove some items to add more.",
+          variant: "destructive",
+        });
+      });
+    }
+  };
+
+  const inCart = isItemInCart(item.id);
+  const quantity = getItemQuantity(item.id);
 
   return (
     <Card className="group hover:shadow-gaming transition-all duration-300 bg-gradient-card border-primary/20">
@@ -89,12 +108,48 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
           </span>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
+          {!inCart ? (
+            <Button 
+              onClick={handleAddToCart}
+              className="w-full bg-gaming-success hover:bg-gaming-success/80 text-black"
+              disabled={itemCount >= 10}
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Add to Cart
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => updateQuantity(item.id, quantity - 1)}
+                className="h-8 w-8 p-0"
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+                             <div className="flex-1 text-center bg-gaming-success text-black rounded px-2 py-1 text-xs font-semibold flex items-center justify-center gap-1">
+                 <Check className="h-3 w-3" />
+                 {quantity} in cart
+               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => updateQuantity(item.id, quantity + 1)}
+                className="h-8 w-8 p-0"
+                disabled={itemCount >= 10}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+          
           <Button 
             onClick={() => onPurchase(item)}
-            className="flex-1 bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
+            variant="outline"
+            className="w-full border-primary/20 hover:bg-primary/10"
           >
-            Purchase Now
+            Buy Now (Skip Cart)
           </Button>
           
           {isAdmin && isAdminMode && onDeleteItem && (

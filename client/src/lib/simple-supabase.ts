@@ -68,15 +68,17 @@ class SimpleSupabaseClient {
           const data = await response.json();
           console.log('Simple client data:', data);
           
-          callback({ data, error: null });
-          return { data, error: null };
+          const result = { data, error: null };
+          if (callback) callback(result);
+          return result;
         } catch (error) {
           console.error('Simple client error:', error);
           const errorObj = {
             message: error instanceof Error ? error.message : String(error)
           };
-          callback({ data: null, error: errorObj });
-          return { data: null, error: errorObj };
+          const result = { data: null, error: errorObj };
+          if (callback) callback(result);
+          return result;
         }
       }
     };

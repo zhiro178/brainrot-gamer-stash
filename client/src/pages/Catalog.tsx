@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ItemCard } from "@/components/ItemCard";
+import { ShoppingCart } from "@/components/ShoppingCart";
 import { useAdmin } from "@/contexts/AdminContext";
 import { ArrowLeft, Search, Filter, Plus } from "lucide-react";
 
@@ -223,6 +224,13 @@ export default function Catalog() {
             });
           }
           
+          // Dispatch ticket refresh event for any listening ticket components
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('tickets-updated', { 
+              detail: { userId: user.id, action: 'purchase', ticketId: ticketId } 
+            }));
+          }, 100);
+          
           const { toast } = await import("@/hooks/use-toast");
           toast({
             title: "🎉 Purchase Successful!",
@@ -342,6 +350,8 @@ export default function Catalog() {
                 <SelectItem value="Mythical">Mythical</SelectItem>
               </SelectContent>
             </Select>
+
+            <ShoppingCart />
 
             {isAdmin && isAdminMode && (
               <Button 
