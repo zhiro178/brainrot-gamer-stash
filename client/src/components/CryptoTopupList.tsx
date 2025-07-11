@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { SimpleTicketChat } from "@/components/SimpleTicketChat";
-import { Bitcoin, Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle, CreditCard } from "lucide-react";
+import { Bitcoin, Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle, CreditCard, Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { approveAndAddFunds } from "@/lib/balanceUtils";
 
@@ -25,6 +26,7 @@ export const CryptoTopupList = () => {
   const [selectedTicket, setSelectedTicket] = useState<TopUpTicket | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [processingTicket, setProcessingTicket] = useState<string | null>(null);
+  const [clearingAllTickets, setClearingAllTickets] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -186,6 +188,81 @@ export const CryptoTopupList = () => {
     }
   };
 
+  const handleClearAllTickets = async () => {
+    if (clearingAllTickets) return;
+    
+    setClearingAllTickets(true);
+    try {
+      console.log("Clearing all top-up tickets...");
+      
+      // Get all open crypto and gift card topup tickets
+      const openTickets = tickets.filter((ticket: TopUpTicket) => 
+        ticket.status !== 'closed' && ticket.status !== 'resolved'
+      );
+      
+      if (openTickets.length === 0) {
+        toast({
+          title: "No Tickets to Clear",
+          description: "All tickets are already closed or resolved.",
+        });
+        return;
+      }
+
+      // Close all open tickets
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const ticket of openTickets) {
+        try {
+          const result = await new Promise((resolve) => {
+            workingSupabase
+              .from('support_tickets')
+              .update({ status: 'closed' })
+              .eq('id', ticket.id)
+              .then(resolve);
+          });
+          
+          const error = (result as any).error;
+          if (error) {
+            throw new Error(error.message || 'Failed to close ticket');
+          }
+          
+          successCount++;
+        } catch (error) {
+          console.error(`Error closing ticket ${ticket.id}:`, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast({
+          title: "Tickets Cleared Successfully",
+          description: `${successCount} tickets have been closed. ${errorCount > 0 ? `${errorCount} failed to close.` : ''}`,
+        });
+      }
+
+      if (errorCount > 0 && successCount === 0) {
+        toast({
+          title: "Error Clearing Tickets",
+          description: "Failed to close any tickets. Please try again.",
+          variant: "destructive",
+        });
+      }
+
+      // Refresh tickets
+      fetchCryptoTickets();
+    } catch (error) {
+      console.error('Error clearing all tickets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear tickets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setClearingAllTickets(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading crypto top-up requests...</div>;
   }
@@ -200,8 +277,64 @@ export const CryptoTopupList = () => {
     );
   }
 
+  // Count open tickets for the clear all button
+  const openTicketsCount = tickets.filter((ticket: TopUpTicket) => 
+    ticket.status !== 'closed' && ticket.status !== 'resolved'
+  ).length;
+
   return (
     <div className="space-y-4">
+      {/* Clear All Tickets Button */}
+      {tickets.length > 0 && (
+        <div className="flex items-center justify-between bg-muted/50 border border-primary/20 rounded-lg p-4 mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-primary">Top-up Requests Management</h3>
+            <p className="text-sm text-muted-foreground">
+              {tickets.length} total tickets • {openTicketsCount} open tickets
+            </p>
+          </div>
+          
+          {openTicketsCount > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive"
+                  size="sm"
+                  disabled={clearingAllTickets}
+                  className="bg-destructive hover:bg-destructive/80"
+                >
+                  {clearingAllTickets ? (
+                    <AlertCircle className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash className="h-4 w-4 mr-2" />
+                  )}
+                  Clear All Tickets ({openTicketsCount})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear All Top-up Tickets?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will close all {openTicketsCount} open top-up tickets. This action cannot be undone.
+                    Users will no longer be able to interact with these tickets.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleClearAllTickets}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Yes, Clear All Tickets
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      )}
+
+      {/* Tickets List */}
       {tickets.map((ticket) => {
         const amount = extractAmountFromSubject(ticket.subject);
         const requestType = getRequestType(ticket.category, ticket.message);
