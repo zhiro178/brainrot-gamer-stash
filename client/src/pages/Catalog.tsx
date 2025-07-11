@@ -7,8 +7,17 @@ import { ItemCard } from "@/components/ItemCard";
 import { useAdmin } from "@/contexts/AdminContext";
 import { ArrowLeft, Search, Filter, Plus } from "lucide-react";
 
+// Define types for items
+interface CatalogItem {
+  id: number;
+  name: string;
+  price: number;
+  rarity: string;
+  image: string;
+}
+
 // Mock data for demonstration
-const SAMPLE_ITEMS = [
+const SAMPLE_ITEMS: CatalogItem[] = [
   { id: 1, name: "Legendary Dragon Pet", price: 25.99, rarity: "Legendary", image: "🐉" },
   { id: 2, name: "Rainbow Unicorn", price: 19.99, rarity: "Epic", image: "🦄" },
   { id: 3, name: "Golden Crown", price: 15.50, rarity: "Rare", image: "👑" },
@@ -28,7 +37,7 @@ export default function Catalog() {
   const [filterRarity, setFilterRarity] = useState("all");
   const { isAdminMode, isAdmin } = useAdmin();
 
-  const [items, setItems] = useState(() => {
+  const [items, setItems] = useState<CatalogItem[]>(() => {
     // Try to load from localStorage first
     const savedItems = localStorage.getItem(`catalog-items-${gameId}-${categoryId}`);
     return savedItems ? JSON.parse(savedItems) : SAMPLE_ITEMS;
@@ -39,11 +48,11 @@ export default function Catalog() {
     localStorage.setItem(`catalog-items-${gameId}-${categoryId}`, JSON.stringify(items));
   }, [items, gameId, categoryId]);
 
-  const filteredItems = items.filter(item => {
+  const filteredItems = items.filter((item: CatalogItem) => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRarity = filterRarity === "all" || item.rarity === filterRarity;
     return matchesSearch && matchesRarity;
-  }).sort((a, b) => {
+  }).sort((a: CatalogItem, b: CatalogItem) => {
     switch (sortBy) {
       case "price-low":
         return a.price - b.price;
@@ -56,11 +65,11 @@ export default function Catalog() {
     }
   });
 
-  const handlePurchase = async (item: any) => {
+  const handlePurchase = async (item: CatalogItem) => {
     console.log("Purchase item:", item);
     
     try {
-      const { workingSupabase } = await import("@/lib/supabase-backup");
+      const { simpleSupabase: workingSupabase } = await import("@/lib/simple-supabase");
       
       // Get current user using working client
       const { data: { user } } = await workingSupabase.auth.getUser();
@@ -109,12 +118,22 @@ export default function Catalog() {
       console.log('Purchase flow - checking balance for user:', user.id);
       
       // Check user balance using working client
-      const { data: balanceData } = await workingSupabase
-        .from('user_balances')
-        .select('balance')
-        .eq('user_id', String(user.id));
+      const balanceResult = await new Promise((resolve) => {
+        workingSupabase
+          .from('user_balances')
+          .select('balance')
+          .eq('user_id', String(user.id))
+          .then(resolve);
+      });
       
-      console.log('Purchase flow - balance query result:', balanceData);
+      const balanceData = (balanceResult as any).data;
+      const balanceError = (balanceResult as any).error;
+      
+      console.log('Purchase flow - balance query result:', { balanceData, balanceError });
+      
+      if (balanceError) {
+        throw new Error(`Failed to fetch balance: ${balanceError.message}`);
+      }
       
       const currentBalance = parseFloat(balanceData?.[0]?.balance || '0');
       
@@ -122,17 +141,43 @@ export default function Catalog() {
       
       if (currentBalance >= item.price) {
         // Deduct from balance using working client
-        await workingSupabase
-          .from('user_balances')
-          .update({
-            balance: (currentBalance - item.price).toFixed(2)
-          })
-          .eq('user_id', String(user.id));
+        const newBalance = currentBalance - item.price;
+        
+        const updateResult = await new Promise((resolve) => {
+          workingSupabase
+            .from('user_balances')
+            .update({
+              balance: newBalance.toFixed(2)
+            })
+            .eq('user_id', String(user.id))
+            .then(resolve);
+        });
+        
+        const updateError = (updateResult as any).error;
+        if (updateError) {
+          throw new Error(`Failed to update balance: ${updateError.message}`);
+        }
         
         console.log('Purchase flow - balance updated');
         
+        // Dispatch balance refresh events to update UI
+        window.dispatchEvent(new CustomEvent('user-balance-updated', { 
+          detail: { 
+            userId: user.id, 
+            newBalance: newBalance.toFixed(2),
+            deductedAmount: item.price.toFixed(2)
+          } 
+        }));
+        
+        window.dispatchEvent(new CustomEvent('balance-updated', { 
+          detail: { userId: user.id } 
+        }));
+        
+        // Cache the new balance
+        localStorage.setItem(`user_balance_${user.id}`, newBalance.toString());
+        
         // Create purchase ticket using working client
-        const { data: ticketData, error } = await workingSupabase
+        const ticketResult = await workingSupabase
           .from('support_tickets')
           .insert({
             user_id: String(user.id),
@@ -142,6 +187,9 @@ export default function Catalog() {
             category: 'purchase'
           });
         
+        const ticketData = ticketResult.data;
+        const error = ticketResult.error;
+        
         console.log('Purchase flow - ticket creation result:', { ticketData, error });
         
         if (!error && ticketData) {
@@ -150,24 +198,29 @@ export default function Catalog() {
           
           if (ticketId) {
             // Add user message
-            await workingSupabase
+            const userMessageResult = await workingSupabase
               .from('ticket_messages')
               .insert({
-                ticket_id: ticketId,
+                ticket_id: parseInt(ticketId),
                 user_id: String(user.id),
-                message: `I have successfully purchased: ${item.name} for $${item.price}. My remaining balance is $${(currentBalance - item.price).toFixed(2)}. Please deliver the item to my account.`,
+                message: `I have successfully purchased: ${item.name} for $${item.price}. My remaining balance is $${newBalance.toFixed(2)}. Please deliver the item to my account.`,
                 is_admin: false
               });
             
             // Add admin message
-            await workingSupabase
+            const adminMessageResult = await workingSupabase
               .from('ticket_messages')
               .insert({
-                ticket_id: ticketId,
+                ticket_id: parseInt(ticketId),
                 user_id: "system",
                 message: `Payment received! We'll process your ${item.name} order and deliver it to your account within 24 hours. Thank you for your purchase!`,
                 is_admin: true
               });
+            
+            console.log('Purchase flow - messages created:', { 
+              userMessage: userMessageResult.error, 
+              adminMessage: adminMessageResult.error 
+            });
           }
           
           const { toast } = await import("@/hooks/use-toast");
@@ -181,23 +234,18 @@ export default function Catalog() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Amount Paid:</span>
-                  <span className="font-bold text-destructive">${item.price}</span>
+                  <span className="font-bold text-destructive">${item.price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">New Balance:</span>
-                  <span className="font-bold text-gaming-success">${(currentBalance - item.price).toFixed(2)}</span>
+                  <span className="font-bold text-gaming-success">${newBalance.toFixed(2)}</span>
                 </div>
                 <p className="text-xs text-center text-muted-foreground mt-3 italic">
-                  🎫 Check 'My Tickets' for delivery updates
+                  🎫 Check 'My Tickets' for delivery updates and chat with support
                 </p>
               </div>
             ),
           });
-          
-          // Refresh page to update balance in navbar
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
         }
       } else {
         const { toast } = await import("@/hooks/use-toast");
@@ -220,14 +268,14 @@ export default function Catalog() {
   };
 
   const handleAddItem = () => {
-    const newItem = {
-      id: Math.max(...items.map(i => i.id)) + 1,
+    const newItem: CatalogItem = {
+      id: Math.max(...items.map((i: CatalogItem) => i.id)) + 1,
       name: "New Item",
       price: 9.99,
       rarity: "Common",
       image: "🎁"
     };
-    setItems(prev => [...prev, newItem]);
+    setItems((prev: CatalogItem[]) => [...prev, newItem]);
   };
 
   return (
@@ -309,18 +357,18 @@ export default function Catalog() {
 
         {/* Items Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map((item) => (
+          {filteredItems.map((item: CatalogItem) => (
             <ItemCard
               key={item.id}
               item={item}
               onPurchase={handlePurchase}
-              onUpdateItem={(itemId, updates) => {
-                setItems(prev => prev.map(item => 
+              onUpdateItem={(itemId: number, updates: Partial<CatalogItem>) => {
+                setItems((prev: CatalogItem[]) => prev.map((item: CatalogItem) => 
                   item.id === itemId ? { ...item, ...updates } : item
                 ));
               }}
-              onDeleteItem={(itemId) => {
-                setItems(prev => prev.filter(item => item.id !== itemId));
+              onDeleteItem={(itemId: number) => {
+                setItems((prev: CatalogItem[]) => prev.filter((item: CatalogItem) => item.id !== itemId));
               }}
             />
           ))}
