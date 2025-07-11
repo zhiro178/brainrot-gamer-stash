@@ -62,6 +62,45 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
   return (
     <Card className="group hover:shadow-gaming transition-all duration-300 bg-gradient-card border-primary/20">
       <CardHeader className="text-center relative">
+        {/* Small Add to Cart button at top */}
+        <div className="absolute top-2 right-2">
+          {!inCart ? (
+            <Button 
+              onClick={handleAddToCart}
+              size="sm"
+              className="h-8 px-2 bg-gaming-success hover:bg-gaming-success/80 text-black text-xs"
+              disabled={itemCount >= 10}
+            >
+              <ShoppingCart className="h-3 w-3 mr-1" />
+              Add
+            </Button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => updateQuantity(item.id, quantity - 1)}
+                className="h-6 w-6 p-0"
+              >
+                <Minus className="h-2 w-2" />
+              </Button>
+              <div className="bg-gaming-success text-black rounded px-1 py-0.5 text-[10px] font-semibold flex items-center gap-0.5 min-w-[30px] justify-center">
+                <Check className="h-2 w-2" />
+                {quantity}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => updateQuantity(item.id, quantity + 1)}
+                className="h-6 w-6 p-0"
+                disabled={itemCount >= 10}
+              >
+                <Plus className="h-2 w-2" />
+              </Button>
+            </div>
+          )}
+        </div>
+        
         <div className="text-4xl mb-2 h-16 flex items-center justify-center">
           {item.image.startsWith('http') ? (
             <img 
@@ -108,48 +147,12 @@ export const ItemCard = ({ item, onPurchase, onUpdateItem, onDeleteItem }: ItemC
           </span>
         </div>
         
-        <div className="flex flex-col gap-2">
-          {!inCart ? (
-            <Button 
-              onClick={handleAddToCart}
-              className="w-full bg-gaming-success hover:bg-gaming-success/80 text-black"
-              disabled={itemCount >= 10}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Cart
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => updateQuantity(item.id, quantity - 1)}
-                className="h-8 w-8 p-0"
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-                             <div className="flex-1 text-center bg-gaming-success text-black rounded px-2 py-1 text-xs font-semibold flex items-center justify-center gap-1">
-                 <Check className="h-3 w-3" />
-                 {quantity} in cart
-               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => updateQuantity(item.id, quantity + 1)}
-                className="h-8 w-8 p-0"
-                disabled={itemCount >= 10}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-          
+                <div className="flex gap-2">
           <Button 
             onClick={() => onPurchase(item)}
-            variant="outline"
-            className="w-full border-primary/20 hover:bg-primary/10"
+            className="flex-1 bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
           >
-            Buy Now (Skip Cart)
+            Buy Now
           </Button>
           
           {isAdmin && isAdminMode && onDeleteItem && (
