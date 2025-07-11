@@ -236,23 +236,23 @@ function CheckoutDialog({ isOpen, onOpenChange, items, totalPrice }: CheckoutDia
       // Cache the new balance
       localStorage.setItem(`user_balance_${user.id}`, newBalance.toString());
       
-      // Create order summary for ticket
-      const itemsList = items.map(item => 
-        `• ${item.name} (${item.rarity}) - Qty: ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`
-      ).join('\n');
+             // Create order summary for ticket
+       const itemsList = items.map(item => 
+         `• ${item.name} (${item.rarity}) - Qty: ${item.quantity}`
+       ).join('\n');
+       
+       const orderSummary = `ORDER SUMMARY:\n${itemsList}`;
       
-      const orderSummary = `ORDER SUMMARY:\n${itemsList}\n\nTOTAL: $${totalPrice.toFixed(2)}`;
-      
-      // Create purchase ticket
-      const ticketResult = await workingSupabase
-        .from('support_tickets')
-        .insert({
-          user_id: String(user.id),
-          subject: `Bulk Purchase Order - ${items.length} items - $${totalPrice.toFixed(2)}`,
-          message: `Bulk purchase completed.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
-          status: 'open',
-          category: 'purchase'
-        });
+             // Create purchase ticket
+       const ticketResult = await workingSupabase
+         .from('support_tickets')
+         .insert({
+           user_id: String(user.id),
+           subject: `Bulk Purchase Order - ${items.length} items`,
+           message: `Bulk purchase completed.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
+           status: 'open',
+           category: 'purchase'
+         });
       
       const ticketData = ticketResult.data;
       const error = ticketResult.error;
@@ -260,27 +260,28 @@ function CheckoutDialog({ isOpen, onOpenChange, items, totalPrice }: CheckoutDia
       if (!error && ticketData) {
         const ticketId = Array.isArray(ticketData) ? ticketData[0]?.id : (ticketData as any)?.id;
         
-                 if (ticketId) {
-           // Add user message
-           await workingSupabase
-             .from('ticket_messages')
-             .insert({
-               ticket_id: parseInt(ticketId),
-               user_id: String(user.id),
-               message: `I have purchased ${items.length} items for $${totalPrice.toFixed(2)}.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
-               is_admin: false
-             });
-           
-           // Add admin message
-           await workingSupabase
-             .from('ticket_messages')
-             .insert({
-               ticket_id: parseInt(ticketId),
-               user_id: "system",
-               message: `Payment received! We'll process your Order and deliver it to your account within 24 hours. Thank you for your purchase!`,
-               is_admin: true
-             });
-         }
+                           if (ticketId) {
+            // Add user message  
+            await workingSupabase
+              .from('ticket_messages')
+              .insert({
+                ticket_id: parseInt(ticketId),
+                user_id: String(user.id),
+                message: `I have ordered ${items.length} items.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
+                is_admin: false
+              });
+            
+            // Add admin message
+            const itemNames = items.map(item => item.name).join(', ');
+            await workingSupabase
+              .from('ticket_messages')
+              .insert({
+                ticket_id: parseInt(ticketId),
+                user_id: "system",
+                message: `✅ Payment received!\nYour order for ${itemNames} has been confirmed. We'll deliver the items to your account within **24 hours**.\nThank you for your purchase!`,
+                is_admin: true
+              });
+          }
         
         // Clear cart and close dialogs
         clearCart();

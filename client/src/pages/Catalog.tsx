@@ -204,7 +204,7 @@ export default function Catalog() {
               .insert({
                 ticket_id: parseInt(ticketId),
                 user_id: String(user.id),
-                message: `I have purchased: ${item.name} for $${item.price.toFixed(2)}. Please deliver the item to my account.`,
+                message: `I have ordered ${item.name}. Please deliver the item to my account.`,
                 is_admin: false
               });
             
@@ -214,7 +214,7 @@ export default function Catalog() {
               .insert({
                 ticket_id: parseInt(ticketId),
                 user_id: "system",
-                message: `Payment received! We'll process your Order and deliver it to your account within 24 hours. Thank you for your purchase!`,
+                message: `✅ Payment received!\nYour order for ${item.name} has been confirmed. We'll deliver the item to your account within **24 hours**.\nThank you for your purchase!`,
                 is_admin: true
               });
             
