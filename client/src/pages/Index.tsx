@@ -55,7 +55,8 @@ const GAMES = [
 
 const Index = () => {
   const [user, setUser] = useState<any>(null);
-  const [userBalance, setUserBalance] = useState(0);
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
   const [games, setGames] = useState(GAMES);
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
@@ -140,23 +141,14 @@ const Index = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserBalance(session.user.id);
-        // Set admin status if user is admin
-        if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
-          setIsAdmin(true);
-          // Auto-enable admin mode for admin users
-          if (!isAdminMode) {
-            toggleAdminMode();
-          }
+        // Load cached balance immediately if available
+        const cachedBalance = localStorage.getItem(`user_balance_${session.user.id}`);
+        if (cachedBalance) {
+          console.log('Loading cached balance on initial session:', cachedBalance);
+          setUserBalance(parseFloat(cachedBalance));
+          setBalanceLoading(false);
         }
-      }
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
+        // Then fetch fresh balance
         fetchUserBalance(session.user.id);
         // Set admin status if user is admin
         if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
@@ -167,13 +159,60 @@ const Index = () => {
           }
         }
       } else {
-        setUserBalance(0);
+        setBalanceLoading(false);
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Load cached balance immediately if available
+        const cachedBalance = localStorage.getItem(`user_balance_${session.user.id}`);
+        if (cachedBalance) {
+          console.log('Loading cached balance on auth change:', cachedBalance);
+          setUserBalance(parseFloat(cachedBalance));
+          setBalanceLoading(false);
+        }
+        // Then fetch fresh balance
+        fetchUserBalance(session.user.id);
+        // Set admin status if user is admin
+        if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
+          setIsAdmin(true);
+          // Auto-enable admin mode for admin users
+          if (!isAdminMode) {
+            toggleAdminMode();
+          }
+        }
+      } else {
+        setUserBalance(null);
+        setBalanceLoading(false);
         setIsAdmin(false);
+        // Clear cached balance on logout
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('user_balance_')) {
+            localStorage.removeItem(key);
+          }
+        });
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load cached balance immediately when user is detected
+  useEffect(() => {
+    if (user?.id && userBalance === null) {
+      console.log('Loading cached balance for user on component mount');
+      const cachedBalance = localStorage.getItem(`user_balance_${user.id}`);
+      if (cachedBalance) {
+        console.log('Found cached balance:', cachedBalance);
+        setUserBalance(parseFloat(cachedBalance));
+        setBalanceLoading(false);
+      }
+    }
+  }, [user?.id, userBalance]);
 
   // Listen for balance refresh events
   useEffect(() => {
@@ -204,7 +243,11 @@ const Index = () => {
         // Update balance directly if provided, otherwise fetch
         if (event.detail.newBalance) {
           console.log('Setting balance directly to:', event.detail.newBalance);
-          setUserBalance(parseFloat(event.detail.newBalance));
+          const newBalance = parseFloat(event.detail.newBalance);
+          setUserBalance(newBalance);
+          setBalanceLoading(false);
+          // Cache the new balance
+          localStorage.setItem(`user_balance_${user.id}`, newBalance.toString());
         } else {
           console.log('No new balance in event - fetching updated balance');
           fetchUserBalance(user.id);
@@ -240,7 +283,11 @@ const Index = () => {
         console.log('✅ User IDs match - force refreshing balance');
         if (event.detail.newBalance) {
           console.log('Setting balance directly to:', event.detail.newBalance);
-          setUserBalance(parseFloat(event.detail.newBalance));
+          const newBalance = parseFloat(event.detail.newBalance);
+          setUserBalance(newBalance);
+          setBalanceLoading(false);
+          // Cache the new balance
+          localStorage.setItem(`user_balance_${user.id}`, newBalance.toString());
         }
         // Also fetch to make sure we have the latest
         fetchUserBalance(user.id);
@@ -295,6 +342,13 @@ const Index = () => {
       console.log('=== FETCHING USER BALANCE ===');
       console.log('Fetching balance for userId:', userId);
       
+      // Try to get cached balance first to prevent zero flash
+      const cachedBalance = localStorage.getItem(`user_balance_${userId}`);
+      if (cachedBalance && userBalance === null) {
+        console.log('Using cached balance:', cachedBalance);
+        setUserBalance(parseFloat(cachedBalance));
+      }
+      
       // Import the working client here to avoid import errors
       const { simpleSupabase: workingSupabase } = await import('@/lib/simple-supabase');
       
@@ -314,17 +368,24 @@ const Index = () => {
       // Handle expected errors gracefully (table doesn't exist, no records found)
       if (error && !['PGRST116', '42703', '42P01'].includes(error.code)) {
         console.error('Error fetching balance:', error);
+        setBalanceLoading(false);
         return;
       }
       
       const balance = parseFloat(data?.[0]?.balance || '0');
       console.log('Setting user balance to:', balance);
+      
+      // Cache the balance to prevent zero flash on navigation
+      localStorage.setItem(`user_balance_${userId}`, balance.toString());
+      
       setUserBalance(balance);
+      setBalanceLoading(false);
       
       console.log('=== BALANCE FETCH COMPLETE ===');
     } catch (error) {
       console.error('Error in fetchUserBalance:', error);
       setUserBalance(0); // Set default balance if any error occurs
+      setBalanceLoading(false);
     }
   };
 
@@ -487,12 +548,20 @@ const Index = () => {
     try {
       // Clear local state immediately
       setUser(null);
-      setUserBalance(0);
+      setUserBalance(null);
+      setBalanceLoading(false);
       setIsAdmin(false);
       
       // Clear any localStorage that might contain session data
       localStorage.removeItem('admin_users');
       localStorage.removeItem('user_balances');
+      
+      // Clear cached user balances
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('user_balance_')) {
+          localStorage.removeItem(key);
+        }
+      });
       
       // Clear any Supabase auth tokens from localStorage
       Object.keys(localStorage).forEach(key => {
@@ -520,12 +589,20 @@ const Index = () => {
       
       // Force logout by clearing everything and reloading
       setUser(null);
-      setUserBalance(0);
+      setUserBalance(null);
+      setBalanceLoading(false);
       setIsAdmin(false);
       
       // Clear all localStorage
       localStorage.removeItem('admin_users');
       localStorage.removeItem('user_balances');
+      
+      // Clear cached user balances
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('user_balance_')) {
+          localStorage.removeItem(key);
+        }
+      });
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-') || key.includes('supabase')) {
           localStorage.removeItem(key);
@@ -717,7 +794,8 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar
         user={user}
-        userBalance={userBalance}
+        userBalance={userBalance ?? 0}
+        balanceLoading={balanceLoading}
         onLogin={handleLogin}
         onRegister={handleRegister}
         onLogout={handleLogout}
