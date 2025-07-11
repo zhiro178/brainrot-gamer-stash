@@ -45,10 +45,16 @@ export const approveAndAddFunds = async ({
 
     // Get or create user balance
     console.log("Fetching existing balance for user:", userId);
-    let { data: existingBalance, error: balanceError } = await workingSupabase
-      .from('user_balances')
-      .select('balance')
-      .eq('user_id', userId);
+    const fetchResult = await new Promise((resolve) => {
+      workingSupabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .then(resolve);
+    });
+
+    const existingBalance = (fetchResult as any).data;
+    const balanceError = (fetchResult as any).error;
 
     console.log("Existing balance query result:", { existingBalance, balanceError });
 
@@ -62,34 +68,88 @@ export const approveAndAddFunds = async ({
     
     console.log("Balance calculation:", { currentBalance, amount, newBalance });
     
-    let balanceResult, balanceUpdateError;
+    let operationResult, balanceUpdateError;
     
     // If balance record exists, update it
     if (existingBalance && existingBalance.length > 0) {
-      console.log("Updating existing balance record");
-      const updateResult = await workingSupabase
-        .from('user_balances')
-        .update({
-          balance: newBalance.toFixed(2)
-        })
-        .eq('user_id', userId);
+      console.log("Updating existing balance record with new balance:", newBalance.toFixed(2));
       
-      balanceResult = updateResult.data;
-      balanceUpdateError = updateResult.error;
-      console.log("Balance update result:", { balanceResult, balanceUpdateError });
+      try {
+        // Use the simple-supabase update API correctly
+        const updateResult = await new Promise((resolve) => {
+          workingSupabase
+            .from('user_balances')
+            .update({
+              balance: newBalance.toFixed(2)
+            })
+            .eq('user_id', userId)
+            .then(resolve);
+        });
+        
+        operationResult = (updateResult as any).data;
+        balanceUpdateError = (updateResult as any).error;
+        console.log("Balance update result:", { operationResult, balanceUpdateError });
+        
+        // Verify the update worked by fetching the balance again
+        const verifyResult = await new Promise((resolve) => {
+          workingSupabase
+            .from('user_balances')
+            .select('balance')
+            .eq('user_id', userId)
+            .then(resolve);
+        });
+        
+        const verifyBalance = (verifyResult as any).data;
+        const verifyError = (verifyResult as any).error;
+        
+        console.log("Verification of updated balance:", { verifyBalance, verifyError });
+        
+        if (verifyError) {
+          console.error('Error verifying balance update:', verifyError);
+        } else if (verifyBalance && verifyBalance[0]) {
+          const actualBalance = parseFloat(verifyBalance[0].balance);
+          console.log("Actual balance after update:", actualBalance, "Expected:", newBalance);
+          if (Math.abs(actualBalance - newBalance) > 0.01) {
+            console.warn("Balance mismatch detected!");
+          }
+        }
+      } catch (error) {
+        console.error('Exception during balance update:', error);
+        balanceUpdateError = { message: error instanceof Error ? error.message : String(error) };
+      }
     } else {
       // If no balance record exists, create one
-      console.log("Creating new balance record");
-      const insertResult = await workingSupabase
-        .from('user_balances')
-        .insert({
-          user_id: userId,
-          balance: newBalance.toFixed(2)
-        });
+      console.log("Creating new balance record with balance:", newBalance.toFixed(2));
       
-      balanceResult = insertResult.data;
-      balanceUpdateError = insertResult.error;
-      console.log("Balance insert result:", { balanceResult, balanceUpdateError });
+      try {
+        const insertResult = await workingSupabase
+          .from('user_balances')
+          .insert({
+            user_id: userId,
+            balance: newBalance.toFixed(2)
+          });
+        
+        operationResult = insertResult.data;
+        balanceUpdateError = insertResult.error;
+        console.log("Balance insert result:", { operationResult, balanceUpdateError });
+        
+        // Verify the insert worked
+        const verifyResult = await new Promise((resolve) => {
+          workingSupabase
+            .from('user_balances')
+            .select('balance')
+            .eq('user_id', userId)
+            .then(resolve);
+        });
+        
+        const verifyBalance = (verifyResult as any).data;
+        const verifyError = (verifyResult as any).error;
+        
+        console.log("Verification of inserted balance:", { verifyBalance, verifyError });
+      } catch (error) {
+        console.error('Exception during balance insert:', error);
+        balanceUpdateError = { message: error instanceof Error ? error.message : String(error) };
+      }
     }
     
     if (balanceUpdateError) {
