@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ItemCard } from "@/components/ItemCard";
+import { ShoppingCart } from "@/components/ShoppingCart";
 import { useAdmin } from "@/contexts/AdminContext";
 import { ArrowLeft, Search, Filter, Plus } from "lucide-react";
 
@@ -349,6 +350,8 @@ export default function Catalog() {
                 <SelectItem value="Mythical">Mythical</SelectItem>
               </SelectContent>
             </Select>
+
+            <ShoppingCart />
 
             {isAdmin && isAdminMode && (
               <Button 
