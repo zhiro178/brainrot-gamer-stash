@@ -5,11 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Send, User, UserCog, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
+import { Send, User, UserCog } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { approveAndAddFunds, type ApproveAndAddFundsParams } from '@/lib/balanceUtils';
 
 interface Message {
   id: string;
@@ -35,10 +32,6 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userCache, setUserCache] = useState<{[key: string]: any}>({});
-  const [isApproveFundsDialogOpen, setIsApproveFundsDialogOpen] = useState(false);
-  const [approveAmount, setApproveAmount] = useState('');
-  const [approveReason, setApproveReason] = useState('');
-  const [isProcessingApproval, setIsProcessingApproval] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -299,73 +292,6 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleApproveFunds = async () => {
-    if (!approveAmount || !currentUser || !isAdmin) return;
-    
-    const amount = parseFloat(approveAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount greater than 0",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsProcessingApproval(true);
-    
-    try {
-      // Get the ticket user ID (first non-admin message sender)
-      const firstUserMessage = messages.find((msg: Message) => !msg.is_admin);
-      const ticketUserId = firstUserMessage?.user_id;
-      
-      if (!ticketUserId) {
-        throw new Error('Could not determine ticket user ID');
-      }
-
-      const result = await approveAndAddFunds({
-        ticketId: ticketId,
-        userId: ticketUserId,
-        amount: amount,
-        currentUser: currentUser,
-        reason: approveReason || 'Funds approved by admin'
-      });
-
-      if (result.success) {
-        toast({
-          title: "Funds Approved",
-          description: result.message,
-        });
-        
-        // Reset form
-        setApproveAmount('');
-        setApproveReason('');
-        setIsApproveFundsDialogOpen(false);
-        
-        // Refresh messages to show the new admin message
-        setTimeout(() => {
-          fetchMessages();
-        }, 500);
-      } else {
-        throw new Error(result.error || 'Failed to approve funds');
-      }
-    } catch (error) {
-      console.error('Error approving funds:', error);
-      toast({
-        title: "Error",
-        description: `Failed to approve funds: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessingApproval(false);
-    }
-  };
-
-  const extractAmountFromSubject = (subject: string) => {
-    const match = subject.match(/\$(\d+(?:\.\d{2})?)/);
-    return match ? match[1] : '';
-  };
-
   // Show error state
   if (error && !loading) {
     return (
@@ -531,101 +457,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
             </div>
           )}
           
-          {/* Admin Controls */}
-          {isAdmin && canMessage && (
-            <div className="mb-3 p-3 bg-gaming-accent/10 border border-gaming-accent/20 rounded-lg">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-gaming-accent" />
-                  <span className="text-sm font-medium text-gaming-accent">Admin Controls</span>
-                </div>
-                <Dialog open={isApproveFundsDialogOpen} onOpenChange={setIsApproveFundsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      className="bg-gaming-success hover:bg-gaming-success/80 text-black"
-                      onClick={() => {
-                        // Pre-fill amount if it can be extracted from subject
-                        const suggestedAmount = extractAmountFromSubject(ticketSubject);
-                        if (suggestedAmount) {
-                          setApproveAmount(suggestedAmount);
-                        }
-                        setIsApproveFundsDialogOpen(true);
-                      }}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Approve & Add Funds
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-gaming-success" />
-                        Approve & Add Funds
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="approve-amount" className="text-sm font-medium">
-                          Amount to Add ($)
-                        </Label>
-                        <Input
-                          id="approve-amount"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={approveAmount}
-                          onChange={(e) => setApproveAmount(e.target.value)}
-                          placeholder="Enter amount..."
-                          className="mt-1"
-                          disabled={isProcessingApproval}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="approve-reason" className="text-sm font-medium">
-                          Reason (optional)
-                        </Label>
-                        <Input
-                          id="approve-reason"
-                          value={approveReason}
-                          onChange={(e) => setApproveReason(e.target.value)}
-                          placeholder="Funds approved by admin"
-                          className="mt-1"
-                          disabled={isProcessingApproval}
-                        />
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsApproveFundsDialogOpen(false)}
-                          disabled={isProcessingApproval}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleApproveFunds}
-                          disabled={isProcessingApproval || !approveAmount || parseFloat(approveAmount) <= 0}
-                          className="bg-gaming-success hover:bg-gaming-success/80 text-black"
-                        >
-                          {isProcessingApproval ? (
-                            <div className="flex items-center gap-2">
-                              <AlertCircle className="h-4 w-4 animate-spin" />
-                              Processing...
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="h-4 w-4" />
-                              Approve ${parseFloat(approveAmount || '0').toFixed(2)}
-                            </div>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
-          )}
+
           
           <div className="flex gap-3">
             <Input
