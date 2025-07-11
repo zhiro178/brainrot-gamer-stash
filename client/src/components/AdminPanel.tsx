@@ -82,40 +82,113 @@ export const AdminPanel = () => {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        // Load users from localStorage first
-        const savedUsers = localStorage.getItem('admin_users');
-        let parsedUsers = [];
+        console.log('Loading all registered users...');
+        let allUsers: any[] = [];
         
-        if (savedUsers) {
-          parsedUsers = JSON.parse(savedUsers);
-        }
-        
-        // Also try to load users from Supabase auth (if possible)
+        // Method 1: Try to get users from Supabase auth admin endpoint
         try {
           const { data: authUsers } = await supabase.auth.admin.listUsers();
           if (authUsers?.users) {
-            // Merge auth users with localStorage users
-            const authUsersList = authUsers.users.map((user: any) => ({
+            console.log('Got users from auth admin:', authUsers.users.length);
+            allUsers = authUsers.users.map((user: any) => ({
               id: user.id,
               email: user.email,
               created_at: user.created_at,
               email_confirmed_at: user.email_confirmed_at,
-              last_sign_in_at: user.last_sign_in_at
+              last_sign_in_at: user.last_sign_in_at,
+              source: 'auth_admin'
             }));
-            
-            // Update localStorage with fresh data
-            localStorage.setItem('admin_users', JSON.stringify(authUsersList));
-            parsedUsers = authUsersList;
           }
         } catch (authError) {
-          console.log('Could not fetch auth users (using localStorage):', authError);
+          console.log('Auth admin not accessible:', authError);
         }
         
-        setUsers(parsedUsers);
+        // Method 2: Try to get users from user_profiles table
+        try {
+          const { data: profileUsers, error } = await supabase
+            .from('user_profiles')
+            .select('user_id, username, display_name, created_at, email')
+            .order('created_at', { ascending: false });
+          
+          if (!error && profileUsers) {
+            console.log('Got users from profiles table:', profileUsers.length);
+            const profileUsersList = profileUsers.map((profile: any) => ({
+              id: profile.user_id,
+              email: profile.email || `${profile.username}@unknown.com`,
+              username: profile.username,
+              display_name: profile.display_name,
+              created_at: profile.created_at,
+              email_confirmed_at: null, // Will try to get this from auth
+              last_sign_in_at: null,
+              source: 'profiles'
+            }));
+            
+            // Merge with auth users (auth users take precedence)
+                         const authUserIds = new Set(allUsers.map((u: any) => u.id));
+             const newProfileUsers = profileUsersList.filter((u: any) => !authUserIds.has(u.id));
+            allUsers = [...allUsers, ...newProfileUsers];
+          }
+        } catch (profileError) {
+          console.log('Could not fetch from user_profiles:', profileError);
+        }
+        
+        // Method 3: Get users from localStorage (fallback for users who logged in before)
+        try {
+          const savedUsers = localStorage.getItem('admin_users');
+          if (savedUsers) {
+            const localUsers = JSON.parse(savedUsers);
+            console.log('Got users from localStorage:', localUsers.length);
+            
+            // Merge with existing users (existing users take precedence)
+            const existingUserIds = new Set(allUsers.map(u => u.id));
+            const newLocalUsers = localUsers
+              .filter((u: any) => !existingUserIds.has(u.id))
+              .map((u: any) => ({ ...u, source: 'localStorage' }));
+            allUsers = [...allUsers, ...newLocalUsers];
+          }
+        } catch (localError) {
+          console.log('Could not load from localStorage:', localError);
+        }
+        
+        // Method 4: Get users who have balances (might be users we missed)
+        try {
+          const { data: balanceUsers, error } = await supabase
+            .from('user_balances')
+            .select('user_id')
+            .order('created_at', { ascending: false });
+          
+          if (!error && balanceUsers) {
+            console.log('Got users from balances table:', balanceUsers.length);
+            const existingUserIds = new Set(allUsers.map(u => u.id));
+            const newBalanceUsers = balanceUsers
+              .filter((b: any) => !existingUserIds.has(b.user_id))
+              .map((b: any) => ({
+                id: b.user_id,
+                email: `user_${b.user_id.slice(0, 8)}@unknown.com`,
+                created_at: null,
+                email_confirmed_at: null,
+                last_sign_in_at: null,
+                source: 'balances'
+              }));
+            allUsers = [...allUsers, ...newBalanceUsers];
+          }
+        } catch (balanceError) {
+          console.log('Could not fetch from user_balances:', balanceError);
+        }
+        
+        // Sort by created_at (newest first)
+        allUsers.sort((a, b) => {
+          const aDate = new Date(a.created_at || 0);
+          const bDate = new Date(b.created_at || 0);
+          return bDate.getTime() - aDate.getTime();
+        });
+        
+        console.log('Total users found:', allUsers.length);
+        setUsers(allUsers);
         
         // Load balances for each user
         const balances: {[key: string]: number} = {};
-        for (const user of parsedUsers) {
+        for (const user of allUsers) {
           try {
             const { data, error } = await supabase
               .from('user_balances')
@@ -371,6 +444,11 @@ export const AdminPanel = () => {
                           {user.last_sign_in_at && (
                             <p className="text-xs text-muted-foreground">
                               Last login: {new Date(user.last_sign_in_at).toLocaleDateString()}
+                            </p>
+                          )}
+                          {user.source && (
+                            <p className="text-xs text-muted-foreground">
+                              Source: {user.source}
                             </p>
                           )}
                           <div className="flex items-center space-x-2 mt-2">

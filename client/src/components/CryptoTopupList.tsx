@@ -27,6 +27,7 @@ export const CryptoTopupList = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [processingTicket, setProcessingTicket] = useState<string | null>(null);
   const [clearingAllTickets, setClearingAllTickets] = useState(false);
+  const [purgingApprovedTickets, setPurgingApprovedTickets] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,7 +53,10 @@ export const CryptoTopupList = () => {
       console.log('Crypto tickets query result:', { data, error });
 
       if (error) throw error;
-      setTickets(data || []);
+      
+      // Filter out purged tickets
+      const filteredCryptoTickets = (data || []).filter((ticket: TopUpTicket) => ticket.status !== 'purged');
+      setTickets(filteredCryptoTickets);
 
       // Also fetch gift card topups
       const { data: giftCardData, error: giftCardError } = await workingSupabase
@@ -64,7 +68,9 @@ export const CryptoTopupList = () => {
       console.log('Gift card tickets query result:', { giftCardData, giftCardError });
 
       if (!giftCardError && giftCardData) {
-        setTickets((prev: TopUpTicket[]) => [...prev, ...giftCardData].sort((a, b) => 
+        // Filter out purged tickets from gift card data too
+        const filteredGiftCardTickets = giftCardData.filter((ticket: TopUpTicket) => ticket.status !== 'purged');
+        setTickets((prev: TopUpTicket[]) => [...prev, ...filteredGiftCardTickets].sort((a, b) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ));
       }
@@ -263,6 +269,86 @@ export const CryptoTopupList = () => {
     }
   };
 
+  const handlePurgeApprovedTickets = async () => {
+    if (purgingApprovedTickets) return;
+    
+    setPurgingApprovedTickets(true);
+    try {
+      console.log("Purging approved top-up tickets...");
+      
+      // Get all resolved/closed crypto and gift card topup tickets
+      const approvedTickets = tickets.filter((ticket: TopUpTicket) => 
+        ticket.status === 'closed' || ticket.status === 'resolved'
+      );
+      
+      if (approvedTickets.length === 0) {
+        toast({
+          title: "No Tickets to Purge",
+          description: "No approved/closed tickets found to purge.",
+        });
+        return;
+      }
+
+      // Delete all approved tickets permanently
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const ticket of approvedTickets) {
+        try {
+          // Mark ticket as purged and clear its content (balances remain intact)
+          const result = await new Promise((resolve) => {
+            workingSupabase
+              .from('support_tickets')
+              .update({ 
+                status: 'purged',
+                message: '[PURGED] - Ticket history removed by admin',
+                subject: '[PURGED] - Ticket history removed'
+              })
+              .eq('id', ticket.id)
+              .then(resolve);
+          });
+          
+          const error = (result as any).error;
+          if (error) {
+            throw new Error(error.message || 'Failed to purge ticket');
+          }
+          
+          successCount++;
+        } catch (error) {
+          console.error(`Error purging ticket ${ticket.id}:`, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast({
+          title: "Tickets Purged Successfully",
+          description: `${successCount} approved tickets have been purged from history. ${errorCount > 0 ? `${errorCount} failed to purge.` : ''}`,
+        });
+      }
+
+      if (errorCount > 0 && successCount === 0) {
+        toast({
+          title: "Error Purging Tickets",
+          description: "Failed to purge any tickets. Please try again.",
+          variant: "destructive",
+        });
+      }
+
+      // Refresh tickets
+      fetchCryptoTickets();
+    } catch (error) {
+      console.error('Error purging approved tickets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to purge tickets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setPurgingApprovedTickets(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading crypto top-up requests...</div>;
   }
@@ -277,9 +363,13 @@ export const CryptoTopupList = () => {
     );
   }
 
-  // Count open tickets for the clear all button
+  // Count open and approved tickets for buttons
   const openTicketsCount = tickets.filter((ticket: TopUpTicket) => 
     ticket.status !== 'closed' && ticket.status !== 'resolved'
+  ).length;
+  
+  const approvedTicketsCount = tickets.filter((ticket: TopUpTicket) => 
+    ticket.status === 'closed' || ticket.status === 'resolved'
   ).length;
 
   return (
@@ -290,47 +380,88 @@ export const CryptoTopupList = () => {
           <div>
             <h3 className="text-lg font-semibold text-primary">Top-up Requests Management</h3>
             <p className="text-sm text-muted-foreground">
-              {tickets.length} total tickets • {openTicketsCount} open tickets
+              {tickets.length} total tickets • {openTicketsCount} open • {approvedTicketsCount} approved
             </p>
           </div>
           
-          {openTicketsCount > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive"
-                  size="sm"
-                  disabled={clearingAllTickets}
-                  className="bg-destructive hover:bg-destructive/80"
-                >
-                  {clearingAllTickets ? (
-                    <AlertCircle className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Trash className="h-4 w-4 mr-2" />
-                  )}
-                  Clear All Tickets ({openTicketsCount})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear All Top-up Tickets?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will close all {openTicketsCount} open top-up tickets. This action cannot be undone.
-                    Users will no longer be able to interact with these tickets.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleClearAllTickets}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          <div className="flex items-center gap-2">
+            {openTicketsCount > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive"
+                    size="sm"
+                    disabled={clearingAllTickets}
+                    className="bg-destructive hover:bg-destructive/80"
                   >
-                    Yes, Clear All Tickets
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+                    {clearingAllTickets ? (
+                      <AlertCircle className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash className="h-4 w-4 mr-2" />
+                    )}
+                    Clear All Open ({openTicketsCount})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear All Open Top-up Tickets?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will close all {openTicketsCount} open top-up tickets. This action cannot be undone.
+                      Users will no longer be able to interact with these tickets.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleClearAllTickets}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Yes, Clear All Open Tickets
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
+            {approvedTicketsCount > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    disabled={purgingApprovedTickets}
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500/10"
+                  >
+                    {purgingApprovedTickets ? (
+                      <AlertCircle className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Purge Approved ({approvedTicketsCount})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Purge Approved Ticket History?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove {approvedTicketsCount} approved/closed tickets from the system. 
+                      <strong className="text-orange-500"> This will NOT affect user balances</strong> - only ticket history will be removed.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handlePurgeApprovedTickets}
+                      className="bg-orange-500 text-white hover:bg-orange-600"
+                    >
+                      Yes, Purge History
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
       )}
 
