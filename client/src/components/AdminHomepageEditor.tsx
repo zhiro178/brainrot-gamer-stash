@@ -20,6 +20,12 @@ interface HomepageContent {
       color: string;
       emoji: string;
     }>;
+    layout: {
+      titlePosition: { x: number; y: number };
+      subtitlePosition: { x: number; y: number };
+      badgesPosition: { x: number; y: number };
+      containerClass: string;
+    };
   };
   features: {
     title: string;
@@ -30,6 +36,11 @@ interface HomepageContent {
       title: string;
       description: string;
     }>;
+    layout: {
+      titlePosition: { x: number; y: number };
+      subtitlePosition: { x: number; y: number };
+      containerClass: string;
+    };
   };
 }
 
@@ -46,7 +57,13 @@ const DEFAULT_CONTENT: HomepageContent = {
       { id: "1", text: "Most Popular", color: "bg-gaming-success", emoji: "🎮" },
       { id: "2", text: "Guaranteed Items", color: "bg-gaming-accent", emoji: "📦" },
       { id: "3", text: "Secure Payments", color: "bg-gaming-warning", emoji: "💰" }
-    ]
+    ],
+    layout: {
+      titlePosition: { x: 50, y: 30 },
+      subtitlePosition: { x: 50, y: 50 },
+      badgesPosition: { x: 50, y: 70 },
+      containerClass: "text-center"
+    }
   },
   features: {
     title: "Why Choose 592 Stock?",
@@ -70,7 +87,12 @@ const DEFAULT_CONTENT: HomepageContent = {
         title: "24/7 Support",
         description: "Our AI-powered support mascot is always here to help with your questions"
       }
-    ]
+    ],
+    layout: {
+      titlePosition: { x: 50, y: 20 },
+      subtitlePosition: { x: 50, y: 40 },
+      containerClass: "text-center"
+    }
   }
 };
 
@@ -182,6 +204,48 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
     });
   };
 
+  const updateHeroLayout = (field: string, value: any) => {
+    setEditingContent({
+      ...editingContent,
+      hero: {
+        ...editingContent.hero,
+        layout: {
+          ...editingContent.hero.layout,
+          [field]: value
+        }
+      }
+    });
+  };
+
+  const updateFeaturesLayout = (field: string, value: any) => {
+    setEditingContent({
+      ...editingContent,
+      features: {
+        ...editingContent.features,
+        layout: {
+          ...editingContent.features.layout,
+          [field]: value
+        }
+      }
+    });
+  };
+
+  const handleDragEnd = (section: 'hero' | 'features', element: string, e: React.DragEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const container = e.currentTarget.parentElement?.getBoundingClientRect();
+    
+    if (container) {
+      const x = Math.round(((e.clientX - container.left) / container.width) * 100);
+      const y = Math.round(((e.clientY - container.top) / container.height) * 100);
+      
+      if (section === 'hero') {
+        updateHeroLayout(`${element}Position`, { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+      } else {
+        updateFeaturesLayout(`${element}Position`, { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+      }
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -196,9 +260,10 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="hero" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="hero">Hero Section</TabsTrigger>
             <TabsTrigger value="features">Features Section</TabsTrigger>
+            <TabsTrigger value="layout">Layout & Positioning</TabsTrigger>
           </TabsList>
           
           <TabsContent value="hero" className="space-y-4">
@@ -358,6 +423,327 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                         </div>
                       </Card>
                     ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="layout" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Layout & Positioning</CardTitle>
+                <CardDescription>Drag elements or use sliders to position them anywhere on the page</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Hero Section Layout */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Hero Section Layout</h3>
+                  
+                  {/* Preview Container */}
+                  <div className="relative bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-dashed border-gray-300 rounded-lg h-64 mb-4 overflow-hidden">
+                    <div className="text-xs text-gray-500 absolute top-2 left-2">Preview (drag to reposition)</div>
+                    
+                    {/* Draggable Title */}
+                    <div
+                      draggable
+                      onDragEnd={(e) => handleDragEnd('hero', 'title', e)}
+                      className="absolute cursor-move bg-white/90 border border-gray-300 rounded px-2 py-1 text-sm font-bold shadow-sm hover:shadow-md transition-shadow"
+                      style={{
+                        left: `${editingContent.hero.layout.titlePosition.x}%`,
+                        top: `${editingContent.hero.layout.titlePosition.y}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    >
+                      📝 {editingContent.hero.title.substring(0, 20)}...
+                    </div>
+                    
+                    {/* Draggable Subtitle */}
+                    <div
+                      draggable
+                      onDragEnd={(e) => handleDragEnd('hero', 'subtitle', e)}
+                      className="absolute cursor-move bg-white/90 border border-gray-300 rounded px-2 py-1 text-xs shadow-sm hover:shadow-md transition-shadow"
+                      style={{
+                        left: `${editingContent.hero.layout.subtitlePosition.x}%`,
+                        top: `${editingContent.hero.layout.subtitlePosition.y}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    >
+                      📄 {editingContent.hero.subtitle.substring(0, 30)}...
+                    </div>
+                    
+                    {/* Draggable Badges */}
+                    <div
+                      draggable
+                      onDragEnd={(e) => handleDragEnd('hero', 'badges', e)}
+                      className="absolute cursor-move bg-white/90 border border-gray-300 rounded px-2 py-1 text-xs shadow-sm hover:shadow-md transition-shadow"
+                      style={{
+                        left: `${editingContent.hero.layout.badgesPosition.x}%`,
+                        top: `${editingContent.hero.layout.badgesPosition.y}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    >
+                      🏷️ Badges ({editingContent.hero.badges.length})
+                    </div>
+                  </div>
+                  
+                  {/* Position Controls */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Title Position</Label>
+                      <div className="space-y-2">
+                        <div>
+                          <Label className="text-xs">X: {editingContent.hero.layout.titlePosition.x}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.hero.layout.titlePosition.x}
+                            onChange={(e) => updateHeroLayout('titlePosition', { 
+                              ...editingContent.hero.layout.titlePosition, 
+                              x: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Y: {editingContent.hero.layout.titlePosition.y}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.hero.layout.titlePosition.y}
+                            onChange={(e) => updateHeroLayout('titlePosition', { 
+                              ...editingContent.hero.layout.titlePosition, 
+                              y: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">Subtitle Position</Label>
+                      <div className="space-y-2">
+                        <div>
+                          <Label className="text-xs">X: {editingContent.hero.layout.subtitlePosition.x}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.hero.layout.subtitlePosition.x}
+                            onChange={(e) => updateHeroLayout('subtitlePosition', { 
+                              ...editingContent.hero.layout.subtitlePosition, 
+                              x: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Y: {editingContent.hero.layout.subtitlePosition.y}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.hero.layout.subtitlePosition.y}
+                            onChange={(e) => updateHeroLayout('subtitlePosition', { 
+                              ...editingContent.hero.layout.subtitlePosition, 
+                              y: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">Badges Position</Label>
+                      <div className="space-y-2">
+                        <div>
+                          <Label className="text-xs">X: {editingContent.hero.layout.badgesPosition.x}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.hero.layout.badgesPosition.x}
+                            onChange={(e) => updateHeroLayout('badgesPosition', { 
+                              ...editingContent.hero.layout.badgesPosition, 
+                              x: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Y: {editingContent.hero.layout.badgesPosition.y}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.hero.layout.badgesPosition.y}
+                            onChange={(e) => updateHeroLayout('badgesPosition', { 
+                              ...editingContent.hero.layout.badgesPosition, 
+                              y: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Features Section Layout */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Features Section Layout</h3>
+                  
+                  <div className="relative bg-gradient-to-r from-blue-500/20 to-green-500/20 border-2 border-dashed border-gray-300 rounded-lg h-48 mb-4 overflow-hidden">
+                    <div className="text-xs text-gray-500 absolute top-2 left-2">Preview (drag to reposition)</div>
+                    
+                    {/* Draggable Features Title */}
+                    <div
+                      draggable
+                      onDragEnd={(e) => handleDragEnd('features', 'title', e)}
+                      className="absolute cursor-move bg-white/90 border border-gray-300 rounded px-2 py-1 text-sm font-bold shadow-sm hover:shadow-md transition-shadow"
+                      style={{
+                        left: `${editingContent.features.layout.titlePosition.x}%`,
+                        top: `${editingContent.features.layout.titlePosition.y}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    >
+                      🎯 {editingContent.features.title}
+                    </div>
+                    
+                    {/* Draggable Features Subtitle */}
+                    <div
+                      draggable
+                      onDragEnd={(e) => handleDragEnd('features', 'subtitle', e)}
+                      className="absolute cursor-move bg-white/90 border border-gray-300 rounded px-2 py-1 text-xs shadow-sm hover:shadow-md transition-shadow"
+                      style={{
+                        left: `${editingContent.features.layout.subtitlePosition.x}%`,
+                        top: `${editingContent.features.layout.subtitlePosition.y}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    >
+                      📝 {editingContent.features.subtitle}
+                    </div>
+                  </div>
+                  
+                  {/* Features Position Controls */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Title Position</Label>
+                      <div className="space-y-2">
+                        <div>
+                          <Label className="text-xs">X: {editingContent.features.layout.titlePosition.x}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.features.layout.titlePosition.x}
+                            onChange={(e) => updateFeaturesLayout('titlePosition', { 
+                              ...editingContent.features.layout.titlePosition, 
+                              x: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Y: {editingContent.features.layout.titlePosition.y}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.features.layout.titlePosition.y}
+                            onChange={(e) => updateFeaturesLayout('titlePosition', { 
+                              ...editingContent.features.layout.titlePosition, 
+                              y: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">Subtitle Position</Label>
+                      <div className="space-y-2">
+                        <div>
+                          <Label className="text-xs">X: {editingContent.features.layout.subtitlePosition.x}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.features.layout.subtitlePosition.x}
+                            onChange={(e) => updateFeaturesLayout('subtitlePosition', { 
+                              ...editingContent.features.layout.subtitlePosition, 
+                              x: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Y: {editingContent.features.layout.subtitlePosition.y}%</Label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={editingContent.features.layout.subtitlePosition.y}
+                            onChange={(e) => updateFeaturesLayout('subtitlePosition', { 
+                              ...editingContent.features.layout.subtitlePosition, 
+                              y: parseInt(e.target.value) 
+                            })}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Layout Presets */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Quick Layout Presets</Label>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => {
+                        updateHeroLayout('titlePosition', { x: 50, y: 30 });
+                        updateHeroLayout('subtitlePosition', { x: 50, y: 50 });
+                        updateHeroLayout('badgesPosition', { x: 50, y: 70 });
+                        updateFeaturesLayout('titlePosition', { x: 50, y: 20 });
+                        updateFeaturesLayout('subtitlePosition', { x: 50, y: 40 });
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Center Layout
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        updateHeroLayout('titlePosition', { x: 20, y: 30 });
+                        updateHeroLayout('subtitlePosition', { x: 20, y: 50 });
+                        updateHeroLayout('badgesPosition', { x: 20, y: 70 });
+                        updateFeaturesLayout('titlePosition', { x: 20, y: 20 });
+                        updateFeaturesLayout('subtitlePosition', { x: 20, y: 40 });
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Left Layout
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        updateHeroLayout('titlePosition', { x: 80, y: 30 });
+                        updateHeroLayout('subtitlePosition', { x: 80, y: 50 });
+                        updateHeroLayout('badgesPosition', { x: 80, y: 70 });
+                        updateFeaturesLayout('titlePosition', { x: 80, y: 20 });
+                        updateFeaturesLayout('subtitlePosition', { x: 80, y: 40 });
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Right Layout
+                    </Button>
                   </div>
                 </div>
               </CardContent>
