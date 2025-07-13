@@ -28,6 +28,7 @@ export const AdminPanel = () => {
     active: true,
     expires_at: ''
   });
+  const [purgingAllTickets, setPurgingAllTickets] = useState(false);
   const { toast } = useToast();
 
   const createAnnouncement = () => {
@@ -393,6 +394,93 @@ export const AdminPanel = () => {
     setIsAnnouncementDialogOpen(true);
   };
 
+  const purgeAllResolvedTickets = async () => {
+    if (purgingAllTickets) return;
+    
+    setPurgingAllTickets(true);
+    try {
+      console.log("Purging all resolved/closed tickets...");
+      
+      // Get all resolved/closed tickets across all categories
+      const { data: allTickets, error: fetchError } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .in('status', ['resolved', 'closed']);
+      
+      if (fetchError) {
+        console.error('Error fetching tickets for purging:', fetchError);
+        toast({
+          title: "Error",
+          description: "Failed to fetch tickets for purging.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!allTickets || allTickets.length === 0) {
+        toast({
+          title: "No Tickets to Purge",
+          description: "No resolved/closed tickets found to purge.",
+        });
+        return;
+      }
+
+      // Purge all resolved/closed tickets by marking them as purged
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const ticket of allTickets) {
+        try {
+          const { error: updateError } = await supabase
+            .from('support_tickets')
+            .update({ 
+              status: 'purged',
+              message: '[PURGED] - Ticket history removed by admin',
+              subject: '[PURGED] - Ticket history removed'
+            })
+            .eq('id', ticket.id);
+          
+          if (updateError) {
+            throw new Error(updateError.message || 'Failed to purge ticket');
+          }
+          
+          successCount++;
+        } catch (error) {
+          console.error(`Error purging ticket ${ticket.id}:`, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast({
+          title: "Tickets Purged Successfully",
+          description: `${successCount} tickets have been purged from user view. ${errorCount > 0 ? `${errorCount} failed to purge.` : ''}`,
+        });
+        
+        // Log the admin action
+        logAdminAction('PURGE_ALL_TICKETS', `Purged ${successCount} resolved/closed tickets from all categories`, 'admin');
+      }
+
+      if (errorCount > 0 && successCount === 0) {
+        toast({
+          title: "Error Purging Tickets",
+          description: "Failed to purge any tickets. Please try again.",
+          variant: "destructive",
+        });
+      }
+
+    } catch (error) {
+      console.error('Error purging all tickets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to purge tickets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setPurgingAllTickets(false);
+    }
+  };
+
   return (
     <div className="flex items-center space-x-2">
       {/* Users Dialog */}
@@ -668,6 +756,15 @@ export const AdminPanel = () => {
           <DropdownMenuItem className="flex items-center cursor-pointer" onClick={openAnnouncementDialog}>
             <Megaphone className="h-4 w-4 mr-2" />
             Create Announcement
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem 
+            className="flex items-center cursor-pointer text-destructive hover:text-destructive" 
+            onClick={purgeAllResolvedTickets}
+            disabled={purgingAllTickets}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {purgingAllTickets ? 'Purging...' : 'Purge All Resolved Tickets'}
           </DropdownMenuItem>
           
                       <div className="px-2 py-1.5 border-t border-primary/20">

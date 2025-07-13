@@ -15,7 +15,7 @@ interface Ticket {
   id: string;
   subject: string;
   message: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  status: 'open' | 'in_progress' | 'resolved' | 'closed' | 'purged';
   category: string;
   created_at: string;
   user_id: string;
@@ -139,7 +139,11 @@ export default function Tickets() {
             setTickets([]);
           } else {
             console.log('Successfully fetched tickets:', { count: data?.length || 0, tickets: data });
-            setTickets(data || []);
+            // Filter out purged tickets for non-admin users
+            const filteredTickets = (isAdmin || isAdminByEmail) 
+              ? (data || []) 
+              : (data || []).filter((ticket: Ticket) => ticket.status !== 'purged');
+            setTickets(filteredTickets);
           }
         } catch (queryError) {
           console.error('Query execution failed:', queryError);
@@ -315,70 +319,72 @@ export default function Tickets() {
               {isAdmin || isAdminByEmail ? 'Manage all customer support requests' : 'View and manage your support requests'}
             </p>
             
-            {/* Debug info */}
-            <div className="mt-4 p-2 bg-muted rounded text-xs">
-              <p>Debug Info:</p>
-              <p>User ID: {user?.id}</p>
-              <p>Email: {user?.email}</p>
-              <p>IsAdmin (hook): {String(isAdmin)}</p>
-              <p>IsAdmin (email): {String(isAdminByEmail)}</p>
-              <p>Tickets count: {tickets.length}</p>
-              
-              <Button 
-                onClick={async () => {
-                  console.log('=== SUPABASE DIAGNOSTIC TEST ===');
-                  
-                  // Test 1: Authentication (Working Client)
-                  const { data: { user: authUser }, error: authError } = await workingSupabase.auth.getUser();
-                  console.log('1. Working Auth User:', { authUser, authError });
-                  
-                  // Test 2: Basic query (Working Client)
-                  const { data: testData, error: testError } = await workingSupabase
-                    .from('support_tickets')
-                    .select('*')
-                    .limit(1);
-                  console.log('2. Working Basic Query:', { testData, testError });
-                  
-                                      // Test 3: Insert test (if logged in) - Working Client
-                    if (authUser) {
-                      const { data: insertData, error: insertError } = await workingSupabase
-                        .from('support_tickets')
-                        .insert({
-                          user_id: authUser.id,
-                          subject: 'TEST DIAGNOSTIC',
-                          message: 'This is a test',
-                          status: 'open',
-                          category: 'general'
+            {/* Debug info - Only visible to admins */}
+            {(isAdmin || isAdminByEmail) && (
+              <div className="mt-4 p-2 bg-muted rounded text-xs">
+                <p>Debug Info:</p>
+                <p>User ID: {user?.id}</p>
+                <p>Email: {user?.email}</p>
+                <p>IsAdmin (hook): {String(isAdmin)}</p>
+                <p>IsAdmin (email): {String(isAdminByEmail)}</p>
+                <p>Tickets count: {tickets.length}</p>
+                
+                <Button 
+                  onClick={async () => {
+                    console.log('=== SUPABASE DIAGNOSTIC TEST ===');
+                    
+                    // Test 1: Authentication (Working Client)
+                    const { data: { user: authUser }, error: authError } = await workingSupabase.auth.getUser();
+                    console.log('1. Working Auth User:', { authUser, authError });
+                    
+                    // Test 2: Basic query (Working Client)
+                    const { data: testData, error: testError } = await workingSupabase
+                      .from('support_tickets')
+                      .select('*')
+                      .limit(1);
+                    console.log('2. Working Basic Query:', { testData, testError });
+                    
+                                        // Test 3: Insert test (if logged in) - Working Client
+                      if (authUser) {
+                        const { data: insertData, error: insertError } = await workingSupabase
+                          .from('support_tickets')
+                          .insert({
+                            user_id: authUser.id,
+                            subject: 'TEST DIAGNOSTIC',
+                            message: 'This is a test',
+                            status: 'open',
+                            category: 'general'
+                          });
+                        console.log('3. Working Insert Test:', { insertData, insertError });
+                        
+                        // Clean up (skip for now since delete not implemented in working client)
+                        console.log('4. Cleanup skipped (delete not implemented in working client)');
+                      }
+                    
+                                        // Test 4: RLS Status (Direct API)
+                      try {
+                        const response = await fetch(`https://uahxenisnppufpswupnz.supabase.co/rest/v1/support_tickets?select=id&limit=1`, {
+                          headers: {
+                            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q',
+                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q'
+                          }
                         });
-                      console.log('3. Working Insert Test:', { insertData, insertError });
-                      
-                      // Clean up (skip for now since delete not implemented in working client)
-                      console.log('4. Cleanup skipped (delete not implemented in working client)');
-                    }
-                  
-                                      // Test 4: RLS Status (Direct API)
-                    try {
-                      const response = await fetch(`https://uahxenisnppufpswupnz.supabase.co/rest/v1/support_tickets?select=id&limit=1`, {
-                        headers: {
-                          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q',
-                          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q'
-                        }
-                      });
-                      console.log('4. Direct API Test:', { status: response.status, ok: response.ok });
-                    } catch (e) {
-                      console.log('4. Direct API Test Failed:', e);
-                    }
-                  
-                  console.log('=== END DIAGNOSTIC ===');
-                  alert('Diagnostic complete! Check console (F12) for detailed results.');
-                }}
-                size="sm"
-                variant="outline"
-                className="mt-2"
-              >
-                🔍 Run Diagnostic
-              </Button>
-            </div>
+                        console.log('4. Direct API Test:', { status: response.status, ok: response.ok });
+                      } catch (e) {
+                        console.log('4. Direct API Test Failed:', e);
+                      }
+                    
+                    console.log('=== END DIAGNOSTIC ===');
+                    alert('Diagnostic complete! Check console (F12) for detailed results.');
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                >
+                  🔍 Run Diagnostic
+                </Button>
+              </div>
+            )}
           </div>
 
                                 {tickets.length === 0 ? (
@@ -392,99 +398,380 @@ export default function Tickets() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6">
-              {tickets.map((ticket) => {
-                const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
-                const IconComponent = typeInfo.icon;
-                
-                return (
-                <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
-                        <div className="flex items-center gap-2">
-                          <IconComponent className="h-5 w-5" />
-                          {typeInfo.title}
-                        </div>
-                        {typeInfo.amount && (
-                          <div className="flex items-center gap-1 text-gaming-success font-bold">
-                            <DollarSign className="h-4 w-4" />
-                            {parseFloat(typeInfo.amount).toFixed(2)}
-                          </div>
-                        )}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge className={`${getStatusColor(ticket.status)} text-white`}>
-                          {ticket.status.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                        <Badge variant="outline">
-                          {ticket.category === 'crypto_topup' ? 'Crypto' : 
-                           ticket.category === 'giftcard_topup' ? 'Gift Card' : 
-                           ticket.category === 'purchase' ? 'Purchase' :
-                           ticket.category || 'General'}
-                        </Badge>
+            // Organize tickets by sections for non-admin users
+            !(isAdmin || isAdminByEmail) ? (
+              <div className="space-y-8">
+                {/* Top-up Tickets Section */}
+                {(() => {
+                  const topUpTickets = tickets.filter(ticket => 
+                    ticket.category === 'crypto_topup' || ticket.category === 'giftcard_topup'
+                  );
+                  return topUpTickets.length > 0 && (
+                    <div>
+                      <h2 className="text-xl font-semibold mb-4 text-gaming-accent">💰 Top-up Requests</h2>
+                      <div className="grid gap-4">
+                        {topUpTickets.map((ticket) => {
+                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                          const IconComponent = typeInfo.icon;
+                          
+                          return (
+                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
+                              <CardHeader>
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
+                                    <div className="flex items-center gap-2">
+                                      <IconComponent className="h-5 w-5" />
+                                      {typeInfo.title}
+                                    </div>
+                                    {typeInfo.amount && (
+                                      <div className="flex items-center gap-1 text-gaming-success font-bold">
+                                        <DollarSign className="h-4 w-4" />
+                                        {parseFloat(typeInfo.amount).toFixed(2)}
+                                      </div>
+                                    )}
+                                  </CardTitle>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`${getStatusColor(ticket.status)} text-white`}>
+                                      {ticket.status.replace('_', ' ').toUpperCase()}
+                                    </Badge>
+                                    <Badge variant="outline">
+                                      {ticket.category === 'crypto_topup' ? 'Crypto' : 'Gift Card'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <CardDescription className="text-muted-foreground">
+                                  Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                                </CardDescription>
+                              </CardHeader>
+                              
+                              <CardContent>
+                                <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
+                                
+                                <div className="flex gap-2">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button 
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedTicket(ticket)}
+                                        className="border-primary/20 hover:bg-primary/10"
+                                      >
+                                        <MessageCircle className="h-4 w-4 mr-2" />
+                                        Open Chat
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                                      <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2">
+                                          <IconComponent className="h-5 w-5" />
+                                          {typeInfo.title} Chat
+                                          {typeInfo.amount && (
+                                            <span className="text-gaming-success font-bold">
+                                              - ${parseFloat(typeInfo.amount).toFixed(2)}
+                                            </span>
+                                          )}
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                          {ticket.category === 'crypto_topup' ? 
+                                            'Chat with our team about your crypto top-up request. You\'ll receive payment instructions and updates here.' :
+                                            'Chat with our team about your gift card top-up. We\'ll verify your card and update you on the process.'
+                                          }
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      {selectedTicket && user && (
+                                        <SimpleTicketChat 
+                                          ticketId={selectedTicket.id}
+                                          ticketSubject={selectedTicket.subject}
+                                          currentUser={user}
+                                          isAdmin={isAdmin || isAdminByEmail}
+                                          ticketStatus={selectedTicket.status}
+                                        />
+                                      )}
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
                     </div>
-                    <CardDescription className="text-muted-foreground">
-                      Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
-                    
-                    <div className="flex gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedTicket(ticket)}
-                            className="border-primary/20 hover:bg-primary/10"
-                          >
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Open Chat
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
-                          <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                              <IconComponent className="h-5 w-5" />
-                              {typeInfo.title} Chat
-                              {typeInfo.amount && (
-                                <span className="text-gaming-success font-bold">
-                                  - ${parseFloat(typeInfo.amount).toFixed(2)}
-                                </span>
-                              )}
-                            </DialogTitle>
-                            <DialogDescription>
-                              {ticket.category === 'crypto_topup' ? 
-                                'Chat with our team about your crypto top-up request. You\'ll receive payment instructions and updates here.' :
-                                ticket.category === 'giftcard_topup' ? 
-                                'Chat with our team about your gift card top-up. We\'ll verify your card and update you on the process.' :
-                                ticket.category === 'purchase' ?
-                                'Track your purchase order and communicate with our delivery team. You\'ll receive updates on your item delivery here.' :
-                                `Communicate with ${isAdmin || isAdminByEmail ? 'the user' : 'our support team'} about your ticket`
-                              }
-                            </DialogDescription>
-                          </DialogHeader>
-                          {selectedTicket && user && (
-                            <SimpleTicketChat 
-                              ticketId={selectedTicket.id}
-                              ticketSubject={selectedTicket.subject}
-                              currentUser={user}
-                              isAdmin={isAdmin || isAdminByEmail}
-                              ticketStatus={selectedTicket.status}
-                            />
-                          )}
-                        </DialogContent>
-                      </Dialog>
+                  );
+                })()}
+
+                {/* Support Tickets Section */}
+                {(() => {
+                  const supportTickets = tickets.filter(ticket => 
+                    !['crypto_topup', 'giftcard_topup', 'purchase'].includes(ticket.category)
+                  );
+                  return supportTickets.length > 0 && (
+                    <div>
+                      <h2 className="text-xl font-semibold mb-4 text-blue-400">🎧 Support Tickets</h2>
+                      <div className="grid gap-4">
+                        {supportTickets.map((ticket) => {
+                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                          const IconComponent = typeInfo.icon;
+                          
+                          return (
+                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
+                              <CardHeader>
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
+                                    <div className="flex items-center gap-2">
+                                      <IconComponent className="h-5 w-5" />
+                                      {typeInfo.title}
+                                    </div>
+                                  </CardTitle>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`${getStatusColor(ticket.status)} text-white`}>
+                                      {ticket.status.replace('_', ' ').toUpperCase()}
+                                    </Badge>
+                                    <Badge variant="outline">
+                                      {ticket.category || 'General'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <CardDescription className="text-muted-foreground">
+                                  Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                                </CardDescription>
+                              </CardHeader>
+                              
+                              <CardContent>
+                                <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
+                                
+                                <div className="flex gap-2">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button 
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedTicket(ticket)}
+                                        className="border-primary/20 hover:bg-primary/10"
+                                      >
+                                        <MessageCircle className="h-4 w-4 mr-2" />
+                                        Open Chat
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                                      <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2">
+                                          <IconComponent className="h-5 w-5" />
+                                          {typeInfo.title} Chat
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                          Communicate with our support team about your ticket
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      {selectedTicket && user && (
+                                        <SimpleTicketChat 
+                                          ticketId={selectedTicket.id}
+                                          ticketSubject={selectedTicket.subject}
+                                          currentUser={user}
+                                          isAdmin={isAdmin || isAdminByEmail}
+                                          ticketStatus={selectedTicket.status}
+                                        />
+                                      )}
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-                );
-              })}
-            </div>
+                  );
+                })()}
+
+                {/* Purchase Orders Section */}
+                {(() => {
+                  const purchaseTickets = tickets.filter(ticket => ticket.category === 'purchase');
+                  return purchaseTickets.length > 0 && (
+                    <div>
+                      <h2 className="text-xl font-semibold mb-4 text-green-400">🛍️ Purchase Orders</h2>
+                      <div className="grid gap-4">
+                        {purchaseTickets.map((ticket) => {
+                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                          const IconComponent = typeInfo.icon;
+                          
+                          return (
+                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
+                              <CardHeader>
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
+                                    <div className="flex items-center gap-2">
+                                      <IconComponent className="h-5 w-5" />
+                                      {typeInfo.title}
+                                    </div>
+                                    {typeInfo.amount && (
+                                      <div className="flex items-center gap-1 text-gaming-success font-bold">
+                                        <DollarSign className="h-4 w-4" />
+                                        {parseFloat(typeInfo.amount).toFixed(2)}
+                                      </div>
+                                    )}
+                                  </CardTitle>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`${getStatusColor(ticket.status)} text-white`}>
+                                      {ticket.status.replace('_', ' ').toUpperCase()}
+                                    </Badge>
+                                    <Badge variant="outline">
+                                      Purchase
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <CardDescription className="text-muted-foreground">
+                                  Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                                </CardDescription>
+                              </CardHeader>
+                              
+                              <CardContent>
+                                <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
+                                
+                                <div className="flex gap-2">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button 
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedTicket(ticket)}
+                                        className="border-primary/20 hover:bg-primary/10"
+                                      >
+                                        <MessageCircle className="h-4 w-4 mr-2" />
+                                        Open Chat
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                                      <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2">
+                                          <IconComponent className="h-5 w-5" />
+                                          {typeInfo.title} Chat
+                                          {typeInfo.amount && (
+                                            <span className="text-gaming-success font-bold">
+                                              - ${parseFloat(typeInfo.amount).toFixed(2)}
+                                            </span>
+                                          )}
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                          Track your purchase order and communicate with our delivery team. You'll receive updates on your item delivery here.
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      {selectedTicket && user && (
+                                        <SimpleTicketChat 
+                                          ticketId={selectedTicket.id}
+                                          ticketSubject={selectedTicket.subject}
+                                          currentUser={user}
+                                          isAdmin={isAdmin || isAdminByEmail}
+                                          ticketStatus={selectedTicket.status}
+                                        />
+                                      )}
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              // Admin view - show all tickets in a single grid
+              <div className="grid gap-6">
+                {tickets.map((ticket) => {
+                  const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                  const IconComponent = typeInfo.icon;
+                  
+                  return (
+                  <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="h-5 w-5" />
+                            {typeInfo.title}
+                          </div>
+                          {typeInfo.amount && (
+                            <div className="flex items-center gap-1 text-gaming-success font-bold">
+                              <DollarSign className="h-4 w-4" />
+                              {parseFloat(typeInfo.amount).toFixed(2)}
+                            </div>
+                          )}
+                        </CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`${getStatusColor(ticket.status)} text-white`}>
+                            {ticket.status.replace('_', ' ').toUpperCase()}
+                          </Badge>
+                          <Badge variant="outline">
+                            {ticket.category === 'crypto_topup' ? 'Crypto' : 
+                             ticket.category === 'giftcard_topup' ? 'Gift Card' : 
+                             ticket.category === 'purchase' ? 'Purchase' :
+                             ticket.category || 'General'}
+                          </Badge>
+                        </div>
+                      </div>
+                      <CardDescription className="text-muted-foreground">
+                        Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                      </CardDescription>
+                    </CardHeader>
+                    
+                    <CardContent>
+                      <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
+                      
+                      <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedTicket(ticket)}
+                              className="border-primary/20 hover:bg-primary/10"
+                            >
+                              <MessageCircle className="h-4 w-4 mr-2" />
+                              Open Chat
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <IconComponent className="h-5 w-5" />
+                                {typeInfo.title} Chat
+                                {typeInfo.amount && (
+                                  <span className="text-gaming-success font-bold">
+                                    - ${parseFloat(typeInfo.amount).toFixed(2)}
+                                  </span>
+                                )}
+                              </DialogTitle>
+                              <DialogDescription>
+                                {ticket.category === 'crypto_topup' ? 
+                                  'Chat with our team about your crypto top-up request. You\'ll receive payment instructions and updates here.' :
+                                  ticket.category === 'giftcard_topup' ? 
+                                  'Chat with our team about your gift card top-up. We\'ll verify your card and update you on the process.' :
+                                  ticket.category === 'purchase' ?
+                                  'Track your purchase order and communicate with our delivery team. You\'ll receive updates on your item delivery here.' :
+                                  `Communicate with ${isAdmin || isAdminByEmail ? 'the user' : 'our support team'} about your ticket`
+                                }
+                              </DialogDescription>
+                            </DialogHeader>
+                            {selectedTicket && user && (
+                              <SimpleTicketChat 
+                                ticketId={selectedTicket.id}
+                                ticketSubject={selectedTicket.subject}
+                                currentUser={user}
+                                isAdmin={isAdmin || isAdminByEmail}
+                                ticketStatus={selectedTicket.status}
+                              />
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  );
+                })}
+              </div>
+            )
           )}
         </div>
       </div>
