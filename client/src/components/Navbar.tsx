@@ -120,15 +120,15 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
   };
 
   return (
-    <nav className="border-b border-border bg-gradient-card backdrop-blur-md sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
+    <nav className="border-b border-border bg-gradient-card backdrop-blur-md sticky top-0 z-50 h-12">
+      <div className="container mx-auto px-4 py-1">
+        <div className="flex items-center justify-between h-10">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <div className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <div className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
               592 Stock
             </div>
-            <Badge variant="secondary" className="bg-gaming-accent text-black">
+            <Badge variant="secondary" className="bg-gaming-accent text-black text-xs">
               Gaming Marketplace
             </Badge>
           </div>
@@ -136,18 +136,18 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
           {/* User Section */}
           <div className="flex items-center space-x-4">
             {user ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3 bg-background/50 backdrop-blur-sm border border-primary/20 rounded-lg px-3 py-2">
-                  <Wallet className="h-4 w-4 text-gaming-success" />
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 bg-background/50 backdrop-blur-sm border border-primary/20 rounded-lg px-2 py-1">
+                  <Wallet className="h-3 w-3 text-gaming-success" />
                   <div>
                     <p className="text-xs text-muted-foreground">Balance</p>
                     {balanceLoading ? (
                       <div className="flex items-center space-x-1">
-                        <div className="animate-spin rounded-full h-3 w-3 border-b border-gaming-success"></div>
-                        <p className="font-semibold text-gaming-success text-sm">Loading...</p>
+                        <div className="animate-spin rounded-full h-2 w-2 border-b border-gaming-success"></div>
+                        <p className="font-semibold text-gaming-success text-xs">Loading...</p>
                       </div>
                     ) : (
-                      <p className="font-semibold text-gaming-success text-sm">${userBalance.toFixed(2)}</p>
+                      <p className="font-semibold text-gaming-success text-xs">${userBalance.toFixed(2)}</p>
                     )}
                   </div>
                 </div>
@@ -155,20 +155,20 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
                 <UserProfile user={user} />
                 
                 {(!isUserAdmin || isAdminMode) && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setLocation('/tickets')}
-                    className="border-primary/20 hover:bg-primary/10 relative"
-                  >
-                    <Ticket className="h-4 w-4 mr-2" />
-                    My Tickets
-                    {unreadMessages > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-destructive text-white text-xs min-w-[1.2rem] h-5 flex items-center justify-center rounded-full">
-                        {unreadMessages > 9 ? '9+' : unreadMessages}
-                      </Badge>
-                    )}
-                  </Button>
+                                  <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setLocation('/tickets')}
+                  className="border-primary/20 hover:bg-primary/10 relative text-xs px-2 py-1 h-7"
+                >
+                  <Ticket className="h-3 w-3 mr-1" />
+                  My Tickets
+                  {unreadMessages > 0 && (
+                    <Badge className="absolute -top-1 -right-1 bg-destructive text-white text-xs min-w-[1rem] h-4 flex items-center justify-center rounded-full">
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </Badge>
+                  )}
+                </Button>
                 )}
 
                 {isUserAdmin && (
@@ -210,11 +210,11 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">Login</Button>
-                  </DialogTrigger>
+                                <div className="flex items-center space-x-2">
+                    <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-xs px-2 py-1 h-7">Login</Button>
+                      </DialogTrigger>
                   <DialogContent className="bg-gradient-card border-primary/20">
                     <DialogHeader>
                       <DialogTitle className="text-primary">Login to 592 Stock</DialogTitle>
@@ -252,10 +252,10 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
                   </DialogContent>
                 </Dialog>
 
-                <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-gradient-primary hover:shadow-glow">Register</Button>
-                  </DialogTrigger>
+                                    <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="bg-gradient-primary hover:shadow-glow text-xs px-2 py-1 h-7" size="sm">Register</Button>
+                      </DialogTrigger>
                   <DialogContent className="bg-gradient-card border-primary/20">
                     <DialogHeader>
                       <DialogTitle className="text-primary">Create Account</DialogTitle>

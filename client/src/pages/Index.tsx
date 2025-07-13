@@ -791,7 +791,7 @@ const Index = () => {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col">
       <Navbar
         user={user}
         userBalance={userBalance ?? 0}
@@ -801,205 +801,218 @@ const Index = () => {
         onLogout={handleLogout}
       />
       
-      {/* Verification Banner */}
-      {user && !user.email_confirmed_at && (
-        <div className="bg-gaming-warning/20 border-gaming-warning border-t border-b">
-          <div className="container mx-auto px-4 py-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="text-gaming-warning text-lg">⚠️</div>
-                <div>
-                  <h3 className="font-semibold text-gaming-warning text-sm">Email Verification Required</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Please verify your email to access profile customization and full features.
-                  </p>
+      {/* Main Content Wrapper */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Verification Banner */}
+        {user && !user.email_confirmed_at && (
+          <div className="bg-gaming-warning/20 border-gaming-warning border-t border-b">
+            <div className="container mx-auto px-4 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="text-gaming-warning text-lg">⚠️</div>
+                  <div>
+                    <h3 className="font-semibold text-gaming-warning text-sm">Email Verification Required</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Please verify your email to access profile customization and full features.
+                    </p>
+                  </div>
                 </div>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase.auth.resend({
+                        type: 'signup',
+                        email: user.email
+                      });
+                      
+                      if (error) throw error;
+                      
+                      toast({
+                        title: "Verification email sent",
+                        description: "Check your email for the verification link",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Failed to send email",
+                        description: "Please try again later",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="border-gaming-warning text-gaming-warning hover:bg-gaming-warning/10"
+                >
+                  Resend Email
+                </Button>
               </div>
-              <Button
-                onClick={async () => {
-                  try {
-                    const { error } = await supabase.auth.resend({
-                      type: 'signup',
-                      email: user.email
-                    });
-                    
-                    if (error) throw error;
-                    
-                    toast({
-                      title: "Verification email sent",
-                      description: "Check your email for the verification link",
-                    });
-                  } catch (error) {
-                    toast({
-                      title: "Failed to send email",
-                      description: "Please try again later",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                variant="outline"
-                size="sm"
-                className="border-gaming-warning text-gaming-warning hover:bg-gaming-warning/10"
-              >
-                Resend Email
-              </Button>
             </div>
           </div>
-        </div>
-      )}
-      
-      {/* Announcements */}
-      {visibleAnnouncements.length > 0 && (
-        <div className="container mx-auto px-4 py-2 space-y-2">
-          {visibleAnnouncements.map((announcement: any) => (
-            <Card key={announcement.id} className={`${getAnnouncementStyle(announcement.type)} border-2`}>
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-lg">{getAnnouncementIcon(announcement.type)}</span>
-                    <div>
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="font-semibold text-sm">{announcement.title}</h3>
-                        <Badge className={`${getAnnouncementStyle(announcement.type)} text-xs`}>
-                          {announcement.type.toUpperCase()}
-                        </Badge>
+        )}
+        
+        {/* Announcements */}
+        {visibleAnnouncements.length > 0 && (
+          <div className="container mx-auto px-4 py-2 space-y-2">
+            {visibleAnnouncements.map((announcement: any) => (
+              <Card key={announcement.id} className={`${getAnnouncementStyle(announcement.type)} border-2`}>
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-lg">{getAnnouncementIcon(announcement.type)}</span>
+                      <div>
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="font-semibold text-sm">{announcement.title}</h3>
+                          <Badge className={`${getAnnouncementStyle(announcement.type)} text-xs`}>
+                            {announcement.type.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <p className="text-xs opacity-90">{announcement.content}</p>
+                        {announcement.expires_at && (
+                          <p className="text-xs opacity-70 mt-1">
+                            Expires: {new Date(announcement.expires_at).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-xs opacity-90">{announcement.content}</p>
-                      {announcement.expires_at && (
-                        <p className="text-xs opacity-70 mt-1">
-                          Expires: {new Date(announcement.expires_at).toLocaleDateString()}
-                        </p>
-                      )}
                     </div>
+                    <Button
+                      onClick={() => dismissAnnouncement(announcement.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-70 hover:opacity-100"
+                    >
+                      ✕
+                    </Button>
                   </div>
-                  <Button
-                    onClick={() => dismissAnnouncement(announcement.id)}
-                    variant="ghost"
-                    size="sm"
-                    className="opacity-70 hover:opacity-100"
-                  >
-                    ✕
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      {/* Hero Section */}
-      <div className="relative bg-gradient-hero">
-        <div className="container mx-auto px-4 py-8 text-center">
-          <div className="flex justify-center mb-2">
-            {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-              <AdminHomepageEditor 
-                content={homepageContent}
-                onContentUpdate={handleHomepageContentUpdate}
-              />
-            )}
-          </div>
-          
-          <h1 className="text-3xl font-bold mb-3 bg-gradient-primary bg-clip-text text-transparent">
-            {homepageContent.hero.title}
-          </h1>
-          <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
-            {homepageContent.hero.subtitle}
-          </p>
-          
-          <div className="flex flex-col gap-3 justify-center items-center">
-            <div className="flex items-center space-x-2">
-              {homepageContent.hero.badges.map((badge) => (
-                <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black text-xs`}>
-                  {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
-                    <img src={badge.emoji} alt="Badge icon" className="w-3 h-3 inline mr-1 object-cover rounded" />
-                  ) : (
-                    <span className="mr-1">{badge.emoji}</span>
-                  )}
-                  {badge.text}
-                </Badge>
-              ))}
-            </div>
-            
-            <div className="flex flex-col items-center">
-              <TopUpModal user={user} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Games Section */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center space-x-4 mb-2">
-            <h2 className="text-2xl font-bold text-primary">Browse Games</h2>
-            {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-              <>
-                <AdminGameEditor 
-                  games={games}
-                  defaultGames={GAMES}
-                  onGamesUpdate={handleGamesUpdate}
-                />
-                <AdminCatalogEditor 
-                  games={games}
-                />
-              </>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-            Select your favorite game to explore available items and start trading
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {games.map((game) => (
-            <GameCard
-              key={game.id}
-              title={game.title}
-              description={game.description}
-              imageUrl={game.imageUrl}
-              itemCount={game.itemCount}
-              onClick={() => handleGameClick(game.id)}
-              onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="bg-gradient-card py-6">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-bold mb-2 text-primary">{homepageContent.features.title}</h2>
-            <p className="text-sm text-muted-foreground">{homepageContent.features.subtitle}</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {homepageContent.features.items.map((feature) => (
-              <Card key={feature.id} className="bg-background border-primary/20">
-                <CardContent className="p-4 text-center">
-                  <div className="mb-2 flex justify-center">
-                    {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
-                      <img src={feature.emoji} alt="Feature icon" className="w-8 h-8 object-cover rounded" />
-                    ) : (
-                      <span className="text-2xl">{feature.emoji}</span>
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-primary mb-2">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {feature.description}
-                  </p>
                 </CardContent>
               </Card>
             ))}
           </div>
+        )}
+        
+        {/* Hero Section */}
+        <div className="relative bg-gradient-hero">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
+                  <AdminHomepageEditor 
+                    content={homepageContent}
+                    onContentUpdate={handleHomepageContentUpdate}
+                  />
+                )}
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                    {homepageContent.hero.title}
+                  </h1>
+                  <p className="text-sm text-muted-foreground max-w-lg">
+                    {homepageContent.hero.subtitle}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  {homepageContent.hero.badges.map((badge) => (
+                    <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black text-xs`}>
+                      {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
+                        <img src={badge.emoji} alt="Badge icon" className="w-3 h-3 inline mr-1 object-cover rounded" />
+                      ) : (
+                        <span className="mr-1">{badge.emoji}</span>
+                      )}
+                      {badge.text}
+                    </Badge>
+                  ))}
+                </div>
+                
+                <TopUpModal user={user} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Games Section */}
+        <div className="container mx-auto px-4 py-4">
+          <div className="text-center mb-4">
+            <div className="flex items-center justify-center space-x-4 mb-2">
+              <h2 className="text-lg font-bold text-primary">Browse Games</h2>
+              {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
+                <>
+                  <AdminGameEditor 
+                    games={games}
+                    defaultGames={GAMES}
+                    onGamesUpdate={handleGamesUpdate}
+                  />
+                  <AdminCatalogEditor 
+                    games={games}
+                  />
+                </>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
+              Select your favorite game to explore available items and start trading
+            </p>
+          </div>
+
+          <div 
+            className="grid gap-3"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
+            }}
+          >
+            {games.map((game) => (
+              <GameCard
+                key={game.id}
+                title={game.title}
+                description={game.description}
+                imageUrl={game.imageUrl}
+                itemCount={game.itemCount}
+                onClick={() => handleGameClick(game.id)}
+                onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Features Section */}
+        <div className="bg-gradient-card py-4">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-4">
+              <h2 className="text-lg font-bold mb-2 text-primary">{homepageContent.features.title}</h2>
+              <p className="text-xs text-muted-foreground">{homepageContent.features.subtitle}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {homepageContent.features.items.map((feature) => (
+                <Card key={feature.id} className="bg-background border-primary/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="mb-2 flex justify-center">
+                      {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
+                        <img src={feature.emoji} alt="Feature icon" className="w-6 h-6 object-cover rounded" />
+                      ) : (
+                        <span className="text-xl">{feature.emoji}</span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-primary mb-1 text-sm">{feature.title}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {feature.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      <LiveChat user={user} />
+      {/* Live Chat - Fixed position outside main content */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <LiveChat user={user} />
+      </div>
       
       {/* Debug Panel for Email Verification - Remove in production */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-4 left-4 z-50">
           <Button 
             onClick={() => {
               console.log('=== EMAIL VERIFICATION DEBUG ===');
