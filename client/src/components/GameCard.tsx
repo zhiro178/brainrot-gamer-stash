@@ -31,7 +31,7 @@ export const GameCard = ({
             <img 
               src={imageUrl} 
               alt={title}
-              className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <AdminEditOverlay 
               type="game" 
@@ -59,7 +59,7 @@ export const GameCard = ({
           <img 
             src={imageUrl} 
             alt={title}
-            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         )}
         
@@ -70,19 +70,20 @@ export const GameCard = ({
         </Badge>
       </div>
       
-      <CardHeader>
-        <CardTitle className="text-primary group-hover:text-primary-glow transition-colors">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-primary group-hover:text-primary-glow transition-colors text-lg">
           {title}
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription className="text-muted-foreground text-sm">
           {description}
         </CardDescription>
       </CardHeader>
       
-      <CardFooter>
+      <CardFooter className="pt-2">
         <Button 
           onClick={onClick}
           className="w-full bg-gradient-primary hover:shadow-glow group-hover:scale-105 transition-all duration-300"
+          size="sm"
         >
           Browse Items
         </Button>

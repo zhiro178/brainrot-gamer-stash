@@ -804,13 +804,13 @@ const Index = () => {
       {/* Verification Banner */}
       {user && !user.email_confirmed_at && (
         <div className="bg-gaming-warning/20 border-gaming-warning border-t border-b">
-          <div className="container mx-auto px-4 py-3">
+          <div className="container mx-auto px-4 py-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="text-gaming-warning text-2xl">⚠️</div>
+              <div className="flex items-center space-x-2">
+                <div className="text-gaming-warning text-lg">⚠️</div>
                 <div>
-                  <h3 className="font-semibold text-gaming-warning">Email Verification Required</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="font-semibold text-gaming-warning text-sm">Email Verification Required</h3>
+                  <p className="text-xs text-muted-foreground">
                     Please verify your email to access profile customization and full features.
                   </p>
                 </div>
@@ -850,21 +850,21 @@ const Index = () => {
       
       {/* Announcements */}
       {visibleAnnouncements.length > 0 && (
-        <div className="container mx-auto px-4 py-4 space-y-3">
+        <div className="container mx-auto px-4 py-2 space-y-2">
           {visibleAnnouncements.map((announcement: any) => (
             <Card key={announcement.id} className={`${getAnnouncementStyle(announcement.type)} border-2`}>
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{getAnnouncementIcon(announcement.type)}</span>
+                    <span className="text-lg">{getAnnouncementIcon(announcement.type)}</span>
                     <div>
                       <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="font-semibold">{announcement.title}</h3>
+                        <h3 className="font-semibold text-sm">{announcement.title}</h3>
                         <Badge className={`${getAnnouncementStyle(announcement.type)} text-xs`}>
                           {announcement.type.toUpperCase()}
                         </Badge>
                       </div>
-                      <p className="text-sm opacity-90">{announcement.content}</p>
+                      <p className="text-xs opacity-90">{announcement.content}</p>
                       {announcement.expires_at && (
                         <p className="text-xs opacity-70 mt-1">
                           Expires: {new Date(announcement.expires_at).toLocaleDateString()}
@@ -889,8 +889,8 @@ const Index = () => {
       
       {/* Hero Section */}
       <div className="relative bg-gradient-hero">
-        <div className="container mx-auto px-4 py-16 text-center">
-          <div className="flex justify-center mb-4">
+        <div className="container mx-auto px-4 py-8 text-center">
+          <div className="flex justify-center mb-2">
             {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
               <AdminHomepageEditor 
                 content={homepageContent}
@@ -899,19 +899,19 @@ const Index = () => {
             )}
           </div>
           
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold mb-3 bg-gradient-primary bg-clip-text text-transparent">
             {homepageContent.hero.title}
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground mb-4 max-w-2xl mx-auto">
             {homepageContent.hero.subtitle}
           </p>
           
-          <div className="flex flex-col gap-6 justify-center items-center">
+          <div className="flex flex-col gap-3 justify-center items-center">
             <div className="flex items-center space-x-2">
               {homepageContent.hero.badges.map((badge) => (
-                <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black`}>
+                <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black text-xs`}>
                   {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
-                    <img src={badge.emoji} alt="Badge icon" className="w-4 h-4 inline mr-1 object-cover rounded" />
+                    <img src={badge.emoji} alt="Badge icon" className="w-3 h-3 inline mr-1 object-cover rounded" />
                   ) : (
                     <span className="mr-1">{badge.emoji}</span>
                   )}
@@ -920,7 +920,7 @@ const Index = () => {
               ))}
             </div>
             
-            <div className="flex flex-col items-center space-y-3">
+            <div className="flex flex-col items-center">
               <TopUpModal user={user} />
             </div>
           </div>
@@ -928,10 +928,10 @@ const Index = () => {
       </div>
 
       {/* Games Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center space-x-4 mb-4">
-            <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center space-x-4 mb-2">
+            <h2 className="text-2xl font-bold text-primary">Browse Games</h2>
             {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
               <>
                 <AdminGameEditor 
@@ -945,12 +945,12 @@ const Index = () => {
               </>
             )}
           </div>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
             Select your favorite game to explore available items and start trading
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {games.map((game) => (
             <GameCard
               key={game.id}
@@ -966,30 +966,28 @@ const Index = () => {
       </div>
 
       {/* Features Section */}
-      <div className="bg-gradient-card py-16">
+      <div className="bg-gradient-card py-6">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
-            <p className="text-muted-foreground">{homepageContent.features.subtitle}</p>
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold mb-2 text-primary">{homepageContent.features.title}</h2>
+            <p className="text-sm text-muted-foreground">{homepageContent.features.subtitle}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {homepageContent.features.items.map((feature) => (
               <Card key={feature.id} className="bg-background border-primary/20">
-                <CardHeader className="text-center">
+                <CardContent className="p-4 text-center">
                   <div className="mb-2 flex justify-center">
                     {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
-                      <img src={feature.emoji} alt="Feature icon" className="w-12 h-12 object-cover rounded" />
+                      <img src={feature.emoji} alt="Feature icon" className="w-8 h-8 object-cover rounded" />
                     ) : (
-                      <span className="text-4xl">{feature.emoji}</span>
+                      <span className="text-2xl">{feature.emoji}</span>
                     )}
                   </div>
-                  <CardTitle className="text-primary">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-center">
+                  <h3 className="font-semibold text-primary mb-2">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">
                     {feature.description}
-                  </CardDescription>
+                  </p>
                 </CardContent>
               </Card>
             ))}
