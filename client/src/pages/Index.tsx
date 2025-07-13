@@ -721,8 +721,32 @@ const Index = () => {
 
 
   const handleHomepageContentUpdate = (newContent: any) => {
-    setHomepageContent(newContent);
-    logAdminAction('UPDATE_HOMEPAGE', 'Updated homepage content', user?.email);
+    console.log('Updating homepage content:', newContent);
+    
+    // Ensure layout properties exist with defaults
+    const contentWithDefaults = {
+      ...newContent,
+      hero: {
+        ...newContent.hero,
+        layout: newContent.hero.layout || {
+          titlePosition: { x: 50, y: 30 },
+          subtitlePosition: { x: 50, y: 50 },
+          badgesPosition: { x: 50, y: 70 },
+          containerClass: "text-center"
+        }
+      },
+      features: {
+        ...newContent.features,
+        layout: newContent.features.layout || {
+          titlePosition: { x: 50, y: 20 },
+          subtitlePosition: { x: 50, y: 40 },
+          containerClass: "text-center"
+        }
+      }
+    };
+    
+    setHomepageContent(contentWithDefaults);
+    logAdminAction('UPDATE_HOMEPAGE', 'Updated homepage content with positioning', user?.email);
   };
 
   // Announcement helper functions
@@ -890,42 +914,68 @@ const Index = () => {
         )}
         
         {/* Hero Section */}
-        <div className="relative bg-gradient-hero">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-                  <AdminHomepageEditor 
-                    content={homepageContent}
-                    onContentUpdate={handleHomepageContentUpdate}
-                  />
-                )}
-                <div>
-                  <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                    {homepageContent.hero.title}
-                  </h1>
-                  <p className="text-sm text-muted-foreground max-w-lg">
-                    {homepageContent.hero.subtitle}
-                  </p>
-                </div>
+        <div className="relative bg-gradient-hero min-h-[400px]">
+          <div className="container mx-auto px-4 py-3 relative h-full">
+            {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
+              <div className="absolute top-4 right-4 z-10">
+                <AdminHomepageEditor 
+                  content={homepageContent}
+                  onContentUpdate={handleHomepageContentUpdate}
+                />
               </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  {homepageContent.hero.badges.map((badge) => (
-                    <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black text-xs`}>
-                      {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
-                        <img src={badge.emoji} alt="Badge icon" className="w-3 h-3 inline mr-1 object-cover rounded" />
-                      ) : (
-                        <span className="mr-1">{badge.emoji}</span>
-                      )}
-                      {badge.text}
-                    </Badge>
-                  ))}
-                </div>
-                
-                <TopUpModal user={user} />
+            )}
+            
+            {/* Positioned Title */}
+            <div
+              className="absolute transform -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left: `${homepageContent.hero.layout?.titlePosition?.x || 50}%`,
+                top: `${homepageContent.hero.layout?.titlePosition?.y || 30}%`
+              }}
+            >
+              <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent whitespace-nowrap">
+                {homepageContent.hero.title}
+              </h1>
+            </div>
+            
+            {/* Positioned Subtitle */}
+            <div
+              className="absolute transform -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left: `${homepageContent.hero.layout?.subtitlePosition?.x || 50}%`,
+                top: `${homepageContent.hero.layout?.subtitlePosition?.y || 50}%`
+              }}
+            >
+              <p className="text-sm text-muted-foreground max-w-lg text-center">
+                {homepageContent.hero.subtitle}
+              </p>
+            </div>
+            
+            {/* Positioned Badges */}
+            <div
+              className="absolute transform -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left: `${homepageContent.hero.layout?.badgesPosition?.x || 50}%`,
+                top: `${homepageContent.hero.layout?.badgesPosition?.y || 70}%`
+              }}
+            >
+              <div className="flex items-center space-x-2 justify-center">
+                {homepageContent.hero.badges.map((badge) => (
+                  <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black text-xs`}>
+                    {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
+                      <img src={badge.emoji} alt="Badge icon" className="w-3 h-3 inline mr-1 object-cover rounded" />
+                    ) : (
+                      <span className="mr-1">{badge.emoji}</span>
+                    )}
+                    {badge.text}
+                  </Badge>
+                ))}
               </div>
+            </div>
+            
+            {/* Top-up Modal - Fixed Position */}
+            <div className="absolute top-4 left-4">
+              <TopUpModal user={user} />
             </div>
           </div>
         </div>
@@ -974,35 +1024,55 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Features Section */}
-        <div className="bg-gradient-card py-4">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-4">
-              <h2 className="text-lg font-bold mb-2 text-primary">{homepageContent.features.title}</h2>
-              <p className="text-xs text-muted-foreground">{homepageContent.features.subtitle}</p>
-            </div>
+                 {/* Features Section */}
+         <div className="bg-gradient-card py-4 relative min-h-[300px]">
+           <div className="container mx-auto px-4 relative h-full">
+             {/* Positioned Features Title */}
+             <div
+               className="absolute transform -translate-x-1/2 -translate-y-1/2"
+               style={{
+                 left: `${homepageContent.features.layout?.titlePosition?.x || 50}%`,
+                 top: `${homepageContent.features.layout?.titlePosition?.y || 20}%`
+               }}
+             >
+               <h2 className="text-lg font-bold text-primary whitespace-nowrap">{homepageContent.features.title}</h2>
+             </div>
+             
+             {/* Positioned Features Subtitle */}
+             <div
+               className="absolute transform -translate-x-1/2 -translate-y-1/2"
+               style={{
+                 left: `${homepageContent.features.layout?.subtitlePosition?.x || 50}%`,
+                 top: `${homepageContent.features.layout?.subtitlePosition?.y || 40}%`
+               }}
+             >
+               <p className="text-xs text-muted-foreground whitespace-nowrap">{homepageContent.features.subtitle}</p>
+             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {homepageContent.features.items.map((feature) => (
-                <Card key={feature.id} className="bg-background border-primary/20">
-                  <CardContent className="p-3 text-center">
-                    <div className="mb-2 flex justify-center">
-                      {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
-                        <img src={feature.emoji} alt="Feature icon" className="w-6 h-6 object-cover rounded" />
-                      ) : (
-                        <span className="text-xl">{feature.emoji}</span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-primary mb-1 text-sm">{feature.title}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
+             {/* Features Grid - Below positioned elements */}
+             <div className="absolute bottom-4 left-0 right-0">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                 {homepageContent.features.items.map((feature) => (
+                   <Card key={feature.id} className="bg-background border-primary/20">
+                     <CardContent className="p-3 text-center">
+                       <div className="mb-2 flex justify-center">
+                         {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
+                           <img src={feature.emoji} alt="Feature icon" className="w-6 h-6 object-cover rounded" />
+                         ) : (
+                           <span className="text-xl">{feature.emoji}</span>
+                         )}
+                       </div>
+                       <h3 className="font-semibold text-primary mb-1 text-sm">{feature.title}</h3>
+                       <p className="text-xs text-muted-foreground">
+                         {feature.description}
+                       </p>
+                     </CardContent>
+                   </Card>
+                 ))}
+               </div>
+             </div>
+           </div>
+         </div>
       </div>
 
       {/* Live Chat - Fixed position outside main content */}
