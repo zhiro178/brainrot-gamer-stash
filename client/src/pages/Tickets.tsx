@@ -67,55 +67,7 @@ export default function Tickets() {
     };
   }, []);
 
-  const wipeAllTickets = async () => {
-    if (!window.confirm('⚠️ DANGER: This will permanently DELETE ALL TICKETS from the entire system. This action cannot be undone. Are you absolutely sure?')) {
-      return;
-    }
 
-    try {
-      console.log('Admin wiping all tickets...');
-      
-      // Delete all tickets using regular supabase client
-      const { error: ticketsError } = await supabase
-        .from('support_tickets')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
-      
-      if (ticketsError) {
-        throw new Error('Failed to delete tickets: ' + ticketsError.message);
-      }
-
-      // Delete all ticket messages using regular supabase client
-      const { error: messagesError } = await supabase
-        .from('ticket_messages')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
-      
-      if (messagesError) {
-        console.warn('Failed to delete ticket messages (may not exist):', messagesError.message);
-      }
-
-      toast({
-        title: "All Tickets Wiped",
-        description: "Successfully deleted all tickets and messages from the system.",
-        variant: "default",
-      });
-
-      // Refresh the page to show empty state
-      setTickets([]);
-      
-      // Trigger refresh event
-      window.dispatchEvent(new CustomEvent('tickets-updated'));
-
-    } catch (error: any) {
-      console.error('Error wiping tickets:', error);
-      toast({
-        title: "Wipe Failed",
-        description: error.message || "Failed to wipe tickets. Check console for details.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const fetchUserAndTickets = async (retryCount = 0) => {
     try {
@@ -369,28 +321,15 @@ export default function Tickets() {
               {isAdmin || isAdminByEmail ? 'Manage all customer support requests' : 'View and manage your support requests'}
             </p>
             
-            {/* Admin Controls */}
+            {/* Debug info - Only visible to admins */}
             {(isAdmin || isAdminByEmail) && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-red-900/20 to-red-800/10 border border-red-500/30 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-red-400">🛡️ Admin Controls</h3>
-                  <Button 
-                    onClick={wipeAllTickets}
-                    variant="destructive"
-                    size="sm"
-                    className="bg-red-600 hover:bg-red-700 text-white font-medium"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Wipe All Tickets
-                  </Button>
-                </div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>User ID: {user?.id}</p>
-                  <p>Email: {user?.email}</p>
-                  <p>IsAdmin (hook): {String(isAdmin)}</p>
-                  <p>IsAdmin (email): {String(isAdminByEmail)}</p>
-                  <p>Tickets count: {tickets.length}</p>
-                </div>
+              <div className="mt-4 p-2 bg-muted rounded text-xs">
+                <p>Debug Info:</p>
+                <p>User ID: {user?.id}</p>
+                <p>Email: {user?.email}</p>
+                <p>IsAdmin (hook): {String(isAdmin)}</p>
+                <p>IsAdmin (email): {String(isAdminByEmail)}</p>
+                <p>Tickets count: {tickets.length}</p>
                 
                 <Button 
                   onClick={async () => {
