@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from "@/components/ui/textarea";
 import { TicketChat } from "@/components/TicketChat";
 import { CryptoTopupList } from "@/components/CryptoTopupList";
-import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard, ShoppingBag } from "lucide-react";
+import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard, ShoppingBag, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -48,6 +48,72 @@ export default function Admin() {
     } catch (error) {
       console.error('Error fetching support tickets:', error);
       setSupportTickets([]);
+    }
+  };
+
+  const wipeAllTickets = async () => {
+    if (!window.confirm('⚠️ DANGER: This will permanently DELETE ALL TICKETS from the entire system. This action cannot be undone. Are you absolutely sure?')) {
+      return;
+    }
+
+    const secondConfirm = window.confirm('🚨 FINAL WARNING: You are about to wipe the entire ticket system. Type "DELETE" in the next prompt to confirm.');
+    if (!secondConfirm) {
+      return;
+    }
+
+    const userInput = window.prompt('Type "DELETE" to confirm the wipe operation:');
+    if (userInput !== 'DELETE') {
+      toast({
+        title: "Wipe Cancelled",
+        description: "Operation cancelled. Incorrect confirmation text.",
+        variant: "default",
+      });
+      return;
+    }
+
+    try {
+      console.log('Admin wiping all tickets from admin panel...');
+      
+      // Use RPC function approach for reliable deletion
+      const { error: rpcError } = await supabase.rpc('delete_all_tickets');
+      
+      if (rpcError) {
+        // Fallback to direct deletion if RPC doesn't exist
+        console.log('RPC failed, trying direct deletion...', rpcError);
+        
+        // Delete all ticket messages first
+        await supabase
+          .from('ticket_messages')
+          .delete()
+          .gte('created_at', '1970-01-01'); // Delete all records
+        
+        // Then delete all tickets
+        await supabase
+          .from('support_tickets')
+          .delete()
+          .gte('created_at', '1970-01-01'); // Delete all records
+      }
+
+      toast({
+        title: "System Wiped Successfully",
+        description: "All tickets and messages have been permanently deleted from the system.",
+        variant: "default",
+      });
+
+      // Refresh the tickets list
+      setSupportTickets([]);
+      fetchSupportTickets();
+      
+      // Trigger refresh event for other components
+      window.dispatchEvent(new CustomEvent('tickets-updated'));
+
+    } catch (error: any) {
+      console.error('Error wiping tickets:', error);
+      toast({
+        title: "Wipe Failed",
+        description: error.message || "Failed to wipe tickets. Check console for details.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -120,7 +186,7 @@ export default function Admin() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-gradient-card border-primary/20">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -143,6 +209,27 @@ export default function Admin() {
                   </p>
                 </div>
                 <MessageCircle className="h-8 w-8 text-gaming-warning" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Admin Actions Card */}
+          <Card className="bg-gradient-to-br from-red-900/30 to-red-800/20 border border-red-500/30">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="mb-3">
+                  <p className="text-sm text-red-400 font-medium">⚠️ Danger Zone</p>
+                  <p className="text-xs text-muted-foreground">System Administration</p>
+                </div>
+                <Button 
+                  onClick={wipeAllTickets}
+                  variant="destructive"
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white font-medium w-full"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Wipe All Tickets
+                </Button>
               </div>
             </CardContent>
           </Card>

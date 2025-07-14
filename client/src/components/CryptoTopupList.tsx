@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
+import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -197,71 +198,77 @@ export const CryptoTopupList = () => {
   const handleClearAllTickets = async () => {
     if (clearingAllTickets) return;
     
+    if (!window.confirm('Are you sure you want to DELETE all top-up tickets? This action cannot be undone.')) {
+      return;
+    }
+    
     setClearingAllTickets(true);
     try {
-      console.log("Clearing all top-up tickets...");
+      console.log("Deleting all top-up tickets...");
       
-      // Get all open crypto and gift card topup tickets
-      const openTickets = tickets.filter((ticket: TopUpTicket) => 
-        ticket.status !== 'closed' && ticket.status !== 'resolved'
-      );
-      
-      if (openTickets.length === 0) {
+      if (tickets.length === 0) {
         toast({
           title: "No Tickets to Clear",
-          description: "All tickets are already closed or resolved.",
+          description: "No top-up tickets found to delete.",
         });
         return;
       }
 
-      // Close all open tickets
+      // Delete all top-up tickets (both crypto and giftcard)
       let successCount = 0;
       let errorCount = 0;
 
-      for (const ticket of openTickets) {
+      for (const ticket of tickets) {
         try {
-          const result = await new Promise((resolve) => {
-            workingSupabase
-              .from('support_tickets')
-              .update({ status: 'closed' })
-              .eq('id', ticket.id)
-              .then(resolve);
-          });
+          // First delete related messages using regular supabase client
+          await supabase
+            .from('ticket_messages')
+            .delete()
+            .eq('ticket_id', ticket.id);
           
-          const error = (result as any).error;
-          if (error) {
-            throw new Error(error.message || 'Failed to close ticket');
+          // Then delete the ticket itself using regular supabase client
+          const { error: deleteError } = await supabase
+            .from('support_tickets')
+            .delete()
+            .eq('id', ticket.id);
+          
+          if (deleteError) {
+            throw new Error(deleteError.message || 'Failed to delete ticket');
           }
           
           successCount++;
         } catch (error) {
-          console.error(`Error closing ticket ${ticket.id}:`, error);
+          console.error(`Error deleting ticket ${ticket.id}:`, error);
           errorCount++;
         }
       }
 
       if (successCount > 0) {
         toast({
-          title: "Tickets Cleared Successfully",
-          description: `${successCount} tickets have been closed. ${errorCount > 0 ? `${errorCount} failed to close.` : ''}`,
+          title: "Tickets Deleted Successfully",
+          description: `${successCount} tickets have been permanently deleted. ${errorCount > 0 ? `${errorCount} failed to delete.` : ''}`,
         });
       }
 
       if (errorCount > 0 && successCount === 0) {
         toast({
-          title: "Error Clearing Tickets",
-          description: "Failed to close any tickets. Please try again.",
+          title: "Error Deleting Tickets",
+          description: "Failed to delete any tickets. Please try again.",
           variant: "destructive",
         });
       }
 
       // Refresh tickets
       fetchCryptoTickets();
+      
+      // Trigger refresh event for other components
+      window.dispatchEvent(new CustomEvent('tickets-updated'));
+      
     } catch (error) {
       console.error('Error clearing all tickets:', error);
       toast({
         title: "Error",
-        description: "Failed to clear tickets. Please try again.",
+        description: "Failed to delete tickets. Please try again.",
         variant: "destructive",
       });
     } finally {
