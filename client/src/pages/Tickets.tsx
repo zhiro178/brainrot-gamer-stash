@@ -777,99 +777,277 @@ export default function Tickets() {
                 </div>
               </div>
             ) : (
-              // Admin view - show all tickets in a single grid
-              <div className="grid gap-6">
-                {tickets.map((ticket) => {
-                  const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
-                  const IconComponent = typeInfo.icon;
-                  
-                  return (
-                  <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
-                          <div className="flex items-center gap-2">
-                            <IconComponent className="h-5 w-5" />
-                            {typeInfo.title}
-                          </div>
-                          {typeInfo.amount && (
-                            <div className="flex items-center gap-1 text-gaming-success font-bold">
-                              <DollarSign className="h-4 w-4" />
-                              {parseFloat(typeInfo.amount).toFixed(2)}
-                            </div>
-                          )}
-                        </CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Badge className={`${getStatusColor(ticket.status)} text-white`}>
-                            {ticket.status.replace('_', ' ').toUpperCase()}
-                          </Badge>
-                          <Badge variant="outline">
-                            {ticket.category === 'crypto_topup' ? 'Crypto' : 
-                             ticket.category === 'giftcard_topup' ? 'Gift Card' : 
-                             ticket.category === 'purchase' ? 'Purchase' :
-                             ticket.category || 'General'}
-                          </Badge>
-                        </div>
-                      </div>
-                      <CardDescription className="text-muted-foreground">
-                        Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
-                      </CardDescription>
-                    </CardHeader>
-                    
-                    <CardContent>
-                      <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
-                      
-                      <div className="flex gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedTicket(ticket)}
-                              className="border-primary/20 hover:bg-primary/10"
-                            >
-                              <MessageCircle className="h-4 w-4 mr-2" />
-                              Open Chat
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
-                            <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
-                                <IconComponent className="h-5 w-5" />
-                                {typeInfo.title} Chat
-                                {typeInfo.amount && (
-                                  <span className="text-gaming-success font-bold">
-                                    - ${parseFloat(typeInfo.amount).toFixed(2)}
-                                  </span>
-                                )}
-                              </DialogTitle>
-                              <DialogDescription>
-                                {ticket.category === 'crypto_topup' ? 
-                                  'Chat with our team about your crypto top-up request. You\'ll receive payment instructions and updates here.' :
-                                  ticket.category === 'giftcard_topup' ? 
-                                  'Chat with our team about your gift card top-up. We\'ll verify your card and update you on the process.' :
-                                  ticket.category === 'purchase' ?
-                                  'Track your purchase order and communicate with our delivery team. You\'ll receive updates on your item delivery here.' :
-                                  `Communicate with ${isAdmin || isAdminByEmail ? 'the user' : 'our support team'} about your ticket`
-                                }
-                              </DialogDescription>
-                            </DialogHeader>
-                            {selectedTicket && user && (
-                              <SimpleTicketChat 
-                                ticketId={selectedTicket.id}
-                                ticketSubject={selectedTicket.subject}
-                                currentUser={user}
-                                isAdmin={isAdmin || isAdminByEmail}
-                                ticketStatus={selectedTicket.status}
-                              />
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  );
-                })}
+              // Admin view - use same category layout but with all tickets visible
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Top-ups Category - Admin View */}
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-gaming-accent border-b border-gaming-accent/20 pb-2">
+                    💰 Top-ups ({tickets.filter(t => t.category === 'crypto_topup' || t.category === 'giftcard_topup').length})
+                  </h2>
+                  <div className="space-y-3">
+                    {(() => {
+                      const topUpTickets = tickets.filter(ticket => 
+                        ticket.category === 'crypto_topup' || ticket.category === 'giftcard_topup'
+                      );
+                      return topUpTickets.length > 0 ? (
+                        topUpTickets.map((ticket) => {
+                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                          const IconComponent = typeInfo.icon;
+                          
+                          return (
+                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
+                                    <IconComponent className="h-4 w-4" />
+                                    {ticket.category === 'crypto_topup' ? 'Crypto' : 'Gift Card'}
+                                    {typeInfo.amount && (
+                                      <span className="text-gaming-success font-bold">
+                                        ${parseFloat(typeInfo.amount).toFixed(2)}
+                                      </span>
+                                    )}
+                                  </CardTitle>
+                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
+                                    {ticket.status.replace('_', ' ').toUpperCase()}
+                                  </Badge>
+                                </div>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                  User: {ticket.user_id} | {new Date(ticket.created_at).toLocaleDateString()}
+                                </CardDescription>
+                              </CardHeader>
+                              
+                              <CardContent className="pt-0">
+                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
+                                
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setSelectedTicket(ticket)}
+                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
+                                    >
+                                      <MessageCircle className="h-3 w-3 mr-1" />
+                                      Open Chat
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                                    <DialogHeader>
+                                      <DialogTitle className="flex items-center gap-2">
+                                        <IconComponent className="h-5 w-5" />
+                                        {typeInfo.title} Chat - Admin View
+                                        {typeInfo.amount && (
+                                          <span className="text-gaming-success font-bold">
+                                            - ${parseFloat(typeInfo.amount).toFixed(2)}
+                                          </span>
+                                        )}
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Admin chat with user about their {ticket.category === 'crypto_topup' ? 'crypto' : 'gift card'} top-up request.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    {selectedTicket && user && (
+                                      <SimpleTicketChat 
+                                        ticketId={selectedTicket.id}
+                                        ticketSubject={selectedTicket.subject}
+                                        currentUser={user}
+                                        isAdmin={isAdmin || isAdminByEmail}
+                                        ticketStatus={selectedTicket.status}
+                                      />
+                                    )}
+                                  </DialogContent>
+                                </Dialog>
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      ) : (
+                        <Card className="bg-gradient-card border-primary/20 opacity-50">
+                          <CardContent className="p-4 text-center">
+                            <Bitcoin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-xs text-muted-foreground">No top-up requests</p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Purchase Category - Admin View */}
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-green-400 border-b border-green-400/20 pb-2">
+                    🛍️ Purchase ({tickets.filter(t => t.category === 'purchase').length})
+                  </h2>
+                  <div className="space-y-3">
+                    {(() => {
+                      const purchaseTickets = tickets.filter(ticket => ticket.category === 'purchase');
+                      return purchaseTickets.length > 0 ? (
+                        purchaseTickets.map((ticket) => {
+                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                          const IconComponent = typeInfo.icon;
+                          
+                          return (
+                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
+                                    <IconComponent className="h-4 w-4" />
+                                    Purchase
+                                    {typeInfo.amount && (
+                                      <span className="text-gaming-success font-bold">
+                                        ${parseFloat(typeInfo.amount).toFixed(2)}
+                                      </span>
+                                    )}
+                                  </CardTitle>
+                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
+                                    {ticket.status.replace('_', ' ').toUpperCase()}
+                                  </Badge>
+                                </div>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                  User: {ticket.user_id} | {new Date(ticket.created_at).toLocaleDateString()}
+                                </CardDescription>
+                              </CardHeader>
+                              
+                              <CardContent className="pt-0">
+                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
+                                
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setSelectedTicket(ticket)}
+                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
+                                    >
+                                      <MessageCircle className="h-3 w-3 mr-1" />
+                                      Open Chat
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                                    <DialogHeader>
+                                      <DialogTitle className="flex items-center gap-2">
+                                        <IconComponent className="h-5 w-5" />
+                                        {typeInfo.title} Chat - Admin View
+                                        {typeInfo.amount && (
+                                          <span className="text-gaming-success font-bold">
+                                            - ${parseFloat(typeInfo.amount).toFixed(2)}
+                                          </span>
+                                        )}
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Admin chat with user about their purchase order and delivery.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    {selectedTicket && user && (
+                                      <SimpleTicketChat 
+                                        ticketId={selectedTicket.id}
+                                        ticketSubject={selectedTicket.subject}
+                                        currentUser={user}
+                                        isAdmin={isAdmin || isAdminByEmail}
+                                        ticketStatus={selectedTicket.status}
+                                      />
+                                    )}
+                                  </DialogContent>
+                                </Dialog>
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      ) : (
+                        <Card className="bg-gradient-card border-primary/20 opacity-50">
+                          <CardContent className="p-4 text-center">
+                            <ShoppingBag className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-xs text-muted-foreground">No purchase orders</p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Support Category - Admin View */}
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-blue-400 border-b border-blue-400/20 pb-2">
+                    🎧 Support ({tickets.filter(t => !['crypto_topup', 'giftcard_topup', 'purchase'].includes(t.category)).length})
+                  </h2>
+                  <div className="space-y-3">
+                    {(() => {
+                      const supportTickets = tickets.filter(ticket => 
+                        !['crypto_topup', 'giftcard_topup', 'purchase'].includes(ticket.category)
+                      );
+                      return supportTickets.length > 0 ? (
+                        supportTickets.map((ticket) => {
+                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                          const IconComponent = typeInfo.icon;
+                          
+                          return (
+                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
+                                    <IconComponent className="h-4 w-4" />
+                                    {ticket.category || 'General'}
+                                  </CardTitle>
+                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
+                                    {ticket.status.replace('_', ' ').toUpperCase()}
+                                  </Badge>
+                                </div>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                  User: {ticket.user_id} | {new Date(ticket.created_at).toLocaleDateString()}
+                                </CardDescription>
+                              </CardHeader>
+                              
+                              <CardContent className="pt-0">
+                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
+                                
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setSelectedTicket(ticket)}
+                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
+                                    >
+                                      <MessageCircle className="h-3 w-3 mr-1" />
+                                      Open Chat
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                                    <DialogHeader>
+                                      <DialogTitle className="flex items-center gap-2">
+                                        <IconComponent className="h-5 w-5" />
+                                        {typeInfo.title} Chat - Admin View
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Admin chat with user about their support request.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    {selectedTicket && user && (
+                                      <SimpleTicketChat 
+                                        ticketId={selectedTicket.id}
+                                        ticketSubject={selectedTicket.subject}
+                                        currentUser={user}
+                                        isAdmin={isAdmin || isAdminByEmail}
+                                        ticketStatus={selectedTicket.status}
+                                      />
+                                    )}
+                                  </DialogContent>
+                                </Dialog>
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      ) : (
+                        <Card className="bg-gradient-card border-primary/20 opacity-50">
+                          <CardContent className="p-4 text-center">
+                            <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-xs text-muted-foreground">No support tickets</p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
             )
           )}
