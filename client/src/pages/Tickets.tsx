@@ -600,97 +600,7 @@ export default function Tickets() {
                   </div>
                 </div>
 
-                {/* Purchase Category */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-green-400 border-b border-green-400/20 pb-2">
-                    🛍️ Purchase
-                  </h2>
-                  <div className="space-y-3">
-                    {(() => {
-                      const purchaseTickets = tickets.filter(ticket => ticket.category === 'purchase');
-                      return purchaseTickets.length > 0 ? (
-                        purchaseTickets.map((ticket) => {
-                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
-                          const IconComponent = typeInfo.icon;
-                          
-                          return (
-                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
-                                    <IconComponent className="h-4 w-4" />
-                                    Purchase
-                                    {typeInfo.amount && (
-                                      <span className="text-gaming-success font-bold">
-                                        ${parseFloat(typeInfo.amount).toFixed(2)}
-                                      </span>
-                                    )}
-                                  </CardTitle>
-                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
-                                    {ticket.status.replace('_', ' ').toUpperCase()}
-                                  </Badge>
-                                </div>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                  {new Date(ticket.created_at).toLocaleDateString()}
-                                </CardDescription>
-                              </CardHeader>
-                              
-                              <CardContent className="pt-0">
-                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
-                                
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button 
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setSelectedTicket(ticket)}
-                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
-                                    >
-                                      <MessageCircle className="h-3 w-3 mr-1" />
-                                      Open Chat
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
-                                    <DialogHeader>
-                                      <DialogTitle className="flex items-center gap-2">
-                                        <IconComponent className="h-5 w-5" />
-                                        {typeInfo.title} Chat
-                                        {typeInfo.amount && (
-                                          <span className="text-gaming-success font-bold">
-                                            - ${parseFloat(typeInfo.amount).toFixed(2)}
-                                          </span>
-                                        )}
-                                      </DialogTitle>
-                                      <DialogDescription>
-                                        Track your purchase order and communicate with our delivery team. You'll receive updates on your item delivery here.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    {selectedTicket && user && (
-                                      <SimpleTicketChat 
-                                        ticketId={selectedTicket.id}
-                                        ticketSubject={selectedTicket.subject}
-                                        currentUser={user}
-                                        isAdmin={isAdmin || isAdminByEmail}
-                                        ticketStatus={selectedTicket.status}
-                                      />
-                                    )}
-                                  </DialogContent>
-                                </Dialog>
-                              </CardContent>
-                            </Card>
-                          );
-                        })
-                      ) : (
-                        <Card className="bg-gradient-card border-primary/20 opacity-50">
-                          <CardContent className="p-4 text-center">
-                            <ShoppingBag className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-xs text-muted-foreground">No purchase orders</p>
-                          </CardContent>
-                        </Card>
-                      );
-                    })()}
-                  </div>
-                </div>
+
 
                 {/* Support Category */}
                 <div className="space-y-4">
@@ -777,57 +687,67 @@ export default function Tickets() {
                 </div>
               </div>
             ) : (
-              // Admin view - use same category layout but with all tickets visible
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Top-ups Category - Admin View */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-gaming-accent border-b border-gaming-accent/20 pb-2">
-                    💰 Top-ups ({tickets.filter(t => t.category === 'crypto_topup' || t.category === 'giftcard_topup').length})
-                  </h2>
-                  <div className="space-y-3">
-                    {(() => {
-                      const topUpTickets = tickets.filter(ticket => 
-                        ticket.category === 'crypto_topup' || ticket.category === 'giftcard_topup'
-                      );
-                      return topUpTickets.length > 0 ? (
-                        topUpTickets.map((ticket) => {
-                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
-                          const IconComponent = typeInfo.icon;
-                          
-                          return (
-                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
-                                    <IconComponent className="h-4 w-4" />
-                                    {ticket.category === 'crypto_topup' ? 'Crypto' : 'Gift Card'}
-                                    {typeInfo.amount && (
-                                      <span className="text-gaming-success font-bold">
-                                        ${parseFloat(typeInfo.amount).toFixed(2)}
-                                      </span>
-                                    )}
-                                  </CardTitle>
-                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
+              // Admin view - only show purchase tickets (top-up and support handled in admin panel)
+              <div className="space-y-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-semibold text-green-400 mb-2">🛍️ Purchase Orders Management</h2>
+                  <p className="text-muted-foreground">
+                    Manage customer purchase orders and delivery tracking. 
+                    Top-up and support tickets are handled in the main admin panel.
+                  </p>
+                </div>
+                
+                {(() => {
+                  const purchaseTickets = tickets.filter(ticket => ticket.category === 'purchase');
+                  return purchaseTickets.length > 0 ? (
+                    <div className="grid gap-4">
+                      {purchaseTickets.map((ticket) => {
+                        const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
+                        const IconComponent = typeInfo.icon;
+                        
+                        return (
+                          <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
+                            <CardHeader>
+                              <div className="flex items-center justify-between">
+                                <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
+                                  <div className="flex items-center gap-2">
+                                    <IconComponent className="h-5 w-5" />
+                                    {typeInfo.title}
+                                  </div>
+                                  {typeInfo.amount && (
+                                    <div className="flex items-center gap-1 text-gaming-success font-bold">
+                                      <DollarSign className="h-4 w-4" />
+                                      {parseFloat(typeInfo.amount).toFixed(2)}
+                                    </div>
+                                  )}
+                                </CardTitle>
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`${getStatusColor(ticket.status)} text-white`}>
                                     {ticket.status.replace('_', ' ').toUpperCase()}
                                   </Badge>
+                                  <Badge variant="outline">
+                                    Purchase Order
+                                  </Badge>
                                 </div>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                  User: {ticket.user_id} | {new Date(ticket.created_at).toLocaleDateString()}
-                                </CardDescription>
-                              </CardHeader>
+                              </div>
+                              <CardDescription className="text-muted-foreground">
+                                User: {ticket.user_id} | Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                              </CardDescription>
+                            </CardHeader>
+                            
+                            <CardContent>
+                              <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
                               
-                              <CardContent className="pt-0">
-                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
-                                
+                              <div className="flex gap-2">
                                 <Dialog>
                                   <DialogTrigger asChild>
                                     <Button 
                                       variant="outline"
                                       size="sm"
                                       onClick={() => setSelectedTicket(ticket)}
-                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
+                                      className="border-primary/20 hover:bg-primary/10"
                                     >
-                                      <MessageCircle className="h-3 w-3 mr-1" />
+                                      <MessageCircle className="h-4 w-4 mr-2" />
                                       Open Chat
                                     </Button>
                                   </DialogTrigger>
@@ -843,7 +763,7 @@ export default function Tickets() {
                                         )}
                                       </DialogTitle>
                                       <DialogDescription>
-                                        Admin chat with user about their {ticket.category === 'crypto_topup' ? 'crypto' : 'gift card'} top-up request.
+                                        Admin chat with user about their purchase order and delivery tracking.
                                       </DialogDescription>
                                     </DialogHeader>
                                     {selectedTicket && user && (
@@ -857,197 +777,24 @@ export default function Tickets() {
                                     )}
                                   </DialogContent>
                                 </Dialog>
-                              </CardContent>
-                            </Card>
-                          );
-                        })
-                      ) : (
-                        <Card className="bg-gradient-card border-primary/20 opacity-50">
-                          <CardContent className="p-4 text-center">
-                            <Bitcoin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-xs text-muted-foreground">No top-up requests</p>
-                          </CardContent>
-                        </Card>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                {/* Purchase Category - Admin View */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-green-400 border-b border-green-400/20 pb-2">
-                    🛍️ Purchase ({tickets.filter(t => t.category === 'purchase').length})
-                  </h2>
-                  <div className="space-y-3">
-                    {(() => {
-                      const purchaseTickets = tickets.filter(ticket => ticket.category === 'purchase');
-                      return purchaseTickets.length > 0 ? (
-                        purchaseTickets.map((ticket) => {
-                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
-                          const IconComponent = typeInfo.icon;
-                          
-                          return (
-                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
-                                    <IconComponent className="h-4 w-4" />
-                                    Purchase
-                                    {typeInfo.amount && (
-                                      <span className="text-gaming-success font-bold">
-                                        ${parseFloat(typeInfo.amount).toFixed(2)}
-                                      </span>
-                                    )}
-                                  </CardTitle>
-                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
-                                    {ticket.status.replace('_', ' ').toUpperCase()}
-                                  </Badge>
-                                </div>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                  User: {ticket.user_id} | {new Date(ticket.created_at).toLocaleDateString()}
-                                </CardDescription>
-                              </CardHeader>
-                              
-                              <CardContent className="pt-0">
-                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
-                                
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button 
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setSelectedTicket(ticket)}
-                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
-                                    >
-                                      <MessageCircle className="h-3 w-3 mr-1" />
-                                      Open Chat
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
-                                    <DialogHeader>
-                                      <DialogTitle className="flex items-center gap-2">
-                                        <IconComponent className="h-5 w-5" />
-                                        {typeInfo.title} Chat - Admin View
-                                        {typeInfo.amount && (
-                                          <span className="text-gaming-success font-bold">
-                                            - ${parseFloat(typeInfo.amount).toFixed(2)}
-                                          </span>
-                                        )}
-                                      </DialogTitle>
-                                      <DialogDescription>
-                                        Admin chat with user about their purchase order and delivery.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    {selectedTicket && user && (
-                                      <SimpleTicketChat 
-                                        ticketId={selectedTicket.id}
-                                        ticketSubject={selectedTicket.subject}
-                                        currentUser={user}
-                                        isAdmin={isAdmin || isAdminByEmail}
-                                        ticketStatus={selectedTicket.status}
-                                      />
-                                    )}
-                                  </DialogContent>
-                                </Dialog>
-                              </CardContent>
-                            </Card>
-                          );
-                        })
-                      ) : (
-                        <Card className="bg-gradient-card border-primary/20 opacity-50">
-                          <CardContent className="p-4 text-center">
-                            <ShoppingBag className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-xs text-muted-foreground">No purchase orders</p>
-                          </CardContent>
-                        </Card>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                {/* Support Category - Admin View */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-blue-400 border-b border-blue-400/20 pb-2">
-                    🎧 Support ({tickets.filter(t => !['crypto_topup', 'giftcard_topup', 'purchase'].includes(t.category)).length})
-                  </h2>
-                  <div className="space-y-3">
-                    {(() => {
-                      const supportTickets = tickets.filter(ticket => 
-                        !['crypto_topup', 'giftcard_topup', 'purchase'].includes(ticket.category)
-                      );
-                      return supportTickets.length > 0 ? (
-                        supportTickets.map((ticket) => {
-                          const typeInfo = getTicketTypeInfo(ticket.category, ticket.subject);
-                          const IconComponent = typeInfo.icon;
-                          
-                          return (
-                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
-                                    <IconComponent className="h-4 w-4" />
-                                    {ticket.category || 'General'}
-                                  </CardTitle>
-                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
-                                    {ticket.status.replace('_', ' ').toUpperCase()}
-                                  </Badge>
-                                </div>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                  User: {ticket.user_id} | {new Date(ticket.created_at).toLocaleDateString()}
-                                </CardDescription>
-                              </CardHeader>
-                              
-                              <CardContent className="pt-0">
-                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
-                                
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button 
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setSelectedTicket(ticket)}
-                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
-                                    >
-                                      <MessageCircle className="h-3 w-3 mr-1" />
-                                      Open Chat
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
-                                    <DialogHeader>
-                                      <DialogTitle className="flex items-center gap-2">
-                                        <IconComponent className="h-5 w-5" />
-                                        {typeInfo.title} Chat - Admin View
-                                      </DialogTitle>
-                                      <DialogDescription>
-                                        Admin chat with user about their support request.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    {selectedTicket && user && (
-                                      <SimpleTicketChat 
-                                        ticketId={selectedTicket.id}
-                                        ticketSubject={selectedTicket.subject}
-                                        currentUser={user}
-                                        isAdmin={isAdmin || isAdminByEmail}
-                                        ticketStatus={selectedTicket.status}
-                                      />
-                                    )}
-                                  </DialogContent>
-                                </Dialog>
-                              </CardContent>
-                            </Card>
-                          );
-                        })
-                      ) : (
-                        <Card className="bg-gradient-card border-primary/20 opacity-50">
-                          <CardContent className="p-4 text-center">
-                            <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-xs text-muted-foreground">No support tickets</p>
-                          </CardContent>
-                        </Card>
-                      );
-                    })()}
-                  </div>
-                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Card className="bg-gradient-card border-primary/20">
+                      <CardContent className="p-8 text-center">
+                        <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No Purchase Orders</h3>
+                        <p className="text-muted-foreground">
+                          No customer purchase orders have been created yet.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
               </div>
             )
           )}
