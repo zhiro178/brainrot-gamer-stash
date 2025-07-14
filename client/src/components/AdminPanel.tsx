@@ -86,12 +86,35 @@ export const AdminPanel = () => {
         console.log('Loading all registered users...');
         let allUsers: any[] = [];
         
-        // Method 1: Try to get users from Supabase auth admin endpoint
+        // Method 1: Get users from user_balances table first (these are guaranteed to be real users)
+        try {
+          const { data: balanceUsers, error } = await supabase
+            .from('user_balances')
+            .select('user_id, balance, created_at')
+            .order('created_at', { ascending: false });
+          
+          if (!error && balanceUsers) {
+            console.log('Got users from balances table:', balanceUsers.length);
+            allUsers = balanceUsers.map((b: any) => ({
+              id: b.user_id,
+              email: `user_${b.user_id.slice(0, 8)}@unknown.com`,
+              created_at: b.created_at,
+              email_confirmed_at: null,
+              last_sign_in_at: null,
+              source: 'balances',
+              balance: parseFloat(b.balance || '0')
+            }));
+          }
+        } catch (balanceError) {
+          console.log('Could not fetch from user_balances:', balanceError);
+        }
+
+        // Method 2: Try to get users from Supabase auth admin endpoint
         try {
           const { data: authUsers } = await supabase.auth.admin.listUsers();
           if (authUsers?.users) {
             console.log('Got users from auth admin:', authUsers.users.length);
-            allUsers = authUsers.users.map((user: any) => ({
+            const authUsersList = authUsers.users.map((user: any) => ({
               id: user.id,
               email: user.email,
               created_at: user.created_at,
@@ -99,12 +122,31 @@ export const AdminPanel = () => {
               last_sign_in_at: user.last_sign_in_at,
               source: 'auth_admin'
             }));
+            
+            // Merge with balance users (auth users take precedence for email and verification info)
+            const balanceUserIds = new Set(allUsers.map((u: any) => u.id));
+            for (const authUser of authUsersList) {
+              const existingIndex = allUsers.findIndex(u => u.id === authUser.id);
+              if (existingIndex >= 0) {
+                // Update existing user with auth info
+                allUsers[existingIndex] = {
+                  ...allUsers[existingIndex],
+                  email: authUser.email,
+                  email_confirmed_at: authUser.email_confirmed_at,
+                  last_sign_in_at: authUser.last_sign_in_at,
+                  source: 'auth_admin'
+                };
+              } else {
+                // Add new auth user
+                allUsers.push(authUser);
+              }
+            }
           }
         } catch (authError) {
           console.log('Auth admin not accessible:', authError);
         }
         
-        // Method 2: Try to get users from user_profiles table
+        // Method 3: Try to get users from user_profiles table
         try {
           const { data: profileUsers, error } = await supabase
             .from('user_profiles')
@@ -119,21 +161,21 @@ export const AdminPanel = () => {
               username: profile.username,
               display_name: profile.display_name,
               created_at: profile.created_at,
-              email_confirmed_at: null, // Will try to get this from auth
+              email_confirmed_at: null,
               last_sign_in_at: null,
               source: 'profiles'
             }));
             
-            // Merge with auth users (auth users take precedence)
-                         const authUserIds = new Set(allUsers.map((u: any) => u.id));
-             const newProfileUsers = profileUsersList.filter((u: any) => !authUserIds.has(u.id));
+            // Merge with existing users (existing users take precedence)
+            const existingUserIds = new Set(allUsers.map(u => u.id));
+            const newProfileUsers = profileUsersList.filter((u: any) => !existingUserIds.has(u.id));
             allUsers = [...allUsers, ...newProfileUsers];
           }
         } catch (profileError) {
           console.log('Could not fetch from user_profiles:', profileError);
         }
         
-        // Method 3: Get users from localStorage (fallback for users who logged in before)
+        // Method 4: Get users from localStorage (fallback for users who logged in before)
         try {
           const savedUsers = localStorage.getItem('admin_users');
           if (savedUsers) {
@@ -151,65 +193,51 @@ export const AdminPanel = () => {
           console.log('Could not load from localStorage:', localError);
         }
         
-        // Method 4: Get users who have balances (might be users we missed)
-        try {
-          const { data: balanceUsers, error } = await supabase
-            .from('user_balances')
-            .select('user_id')
-            .order('created_at', { ascending: false });
-          
-          if (!error && balanceUsers) {
-            console.log('Got users from balances table:', balanceUsers.length);
-            const existingUserIds = new Set(allUsers.map(u => u.id));
-            const newBalanceUsers = balanceUsers
-              .filter((b: any) => !existingUserIds.has(b.user_id))
-              .map((b: any) => ({
-                id: b.user_id,
-                email: `user_${b.user_id.slice(0, 8)}@unknown.com`,
-                created_at: null,
-                email_confirmed_at: null,
-                last_sign_in_at: null,
-                source: 'balances'
-              }));
-            allUsers = [...allUsers, ...newBalanceUsers];
-          }
-        } catch (balanceError) {
-          console.log('Could not fetch from user_balances:', balanceError);
-        }
-        
-        // Sort by created_at (newest first)
+        // Sort by created_at (newest first), then by balance (highest first)
         allUsers.sort((a, b) => {
           const aDate = new Date(a.created_at || 0);
           const bDate = new Date(b.created_at || 0);
-          return bDate.getTime() - aDate.getTime();
+          if (bDate.getTime() !== aDate.getTime()) {
+            return bDate.getTime() - aDate.getTime();
+          }
+          return (b.balance || 0) - (a.balance || 0);
         });
         
         console.log('Total users found:', allUsers.length);
         setUsers(allUsers);
         
-        // Load balances for each user
+        // Load current balances for each user (refresh from database)
         const balances: {[key: string]: number} = {};
+        console.log('Loading fresh balances from database...');
+        
+        const { data: allBalances, error: balancesError } = await supabase
+          .from('user_balances')
+          .select('user_id, balance');
+        
+        if (!balancesError && allBalances) {
+          // Create a map of user_id -> balance
+          for (const balanceRecord of allBalances) {
+            balances[balanceRecord.user_id] = parseFloat(balanceRecord.balance || '0');
+          }
+          console.log('Loaded balances for', Object.keys(balances).length, 'users');
+        }
+        
+        // Ensure all users have a balance entry (default to 0)
         for (const user of allUsers) {
-          try {
-            const { data, error } = await supabase
-              .from('user_balances')
-              .select('balance')
-              .eq('user_id', user.id)
-              .single();
-            
-            if (!error && data) {
-              balances[user.id] = parseFloat(data.balance || '0');
-            } else {
-              balances[user.id] = 0;
-            }
-          } catch (error) {
-            console.error('Error fetching balance for user:', user.email, error);
+          if (!(user.id in balances)) {
             balances[user.id] = 0;
           }
         }
+        
         setUserBalances(balances);
+        console.log('Balance loading complete');
       } catch (error) {
         console.error('Error loading users:', error);
+        toast({
+          title: "Error Loading Users",
+          description: "Could not load user list. Please try refreshing.",
+          variant: "destructive",
+        });
       }
     };
     
@@ -285,6 +313,90 @@ export const AdminPanel = () => {
       toast({
         title: "Error Adding Balance",
         description: "Failed to add balance. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeUserBalance = async (userId: string, userEmail: string, amount: number) => {
+    try {
+      const currentBalance = userBalances[userId] || 0;
+      
+      if (amount > currentBalance) {
+        toast({
+          title: "Insufficient Balance",
+          description: `Cannot remove $${amount}. User only has $${currentBalance.toFixed(2)}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const newBalance = Math.max(0, currentBalance - amount);
+      
+      // Try to update balance in Supabase
+      try {
+        // First check if balance record exists
+        const { data: existingBalance } = await supabase
+          .from('user_balances')
+          .select('balance')
+          .eq('user_id', userId);
+
+        let balanceUpdateError;
+        
+        if (existingBalance && existingBalance.length > 0) {
+          // Update existing balance
+          const { error } = await supabase
+            .from('user_balances')
+            .update({
+              balance: newBalance.toString()
+            })
+            .eq('user_id', userId);
+          
+          balanceUpdateError = error;
+        } else {
+          // Create new balance record
+          const { error } = await supabase
+            .from('user_balances')
+            .insert({
+              user_id: userId,
+              balance: newBalance.toString()
+            });
+          
+          balanceUpdateError = error;
+        }
+        
+        if (balanceUpdateError) {
+          console.error('Supabase balance error:', balanceUpdateError);
+          // Fall back to localStorage if Supabase fails
+          const savedBalances = localStorage.getItem('user_balances');
+          const balances = savedBalances ? JSON.parse(savedBalances) : {};
+          balances[userId] = newBalance;
+          localStorage.setItem('user_balances', JSON.stringify(balances));
+        }
+      } catch (supabaseError) {
+        console.error('Supabase connection error:', supabaseError);
+        // Fall back to localStorage
+        const savedBalances = localStorage.getItem('user_balances');
+        const balances = savedBalances ? JSON.parse(savedBalances) : {};
+        balances[userId] = newBalance;
+        localStorage.setItem('user_balances', JSON.stringify(balances));
+      }
+      
+      // Update local state
+      setUserBalances(prev => ({...prev, [userId]: newBalance}));
+      
+      logAdminAction('REMOVE_BALANCE', `Removed $${amount} from ${userEmail} (New balance: $${newBalance})`, 'admin', userEmail);
+      toast({
+        title: "Balance Removed ✅",
+        description: `Removed $${amount} from ${userEmail}. New balance: $${newBalance.toFixed(2)}`,
+      });
+      setSelectedUserBalance('');
+      setSelectedUserId('');
+    } catch (error) {
+      console.error('Error removing balance:', error);
+      toast({
+        title: "Error Removing Balance",
+        description: "Failed to remove balance. Please try again.",
         variant: "destructive",
       });
     }
@@ -553,13 +665,13 @@ export const AdminPanel = () => {
                     <div className="flex items-center space-x-2 mt-3">
                       <div className="flex items-center space-x-2 flex-1">
                         <Input
-                          placeholder="Add balance ($)"
+                          placeholder="Amount ($)"
                           value={selectedUserId === user.id ? selectedUserBalance : ''}
                           onChange={(e) => {
                             setSelectedUserId(user.id);
                             setSelectedUserBalance(e.target.value);
                           }}
-                          className="w-32 h-8 text-xs"
+                          className="w-28 h-8 text-xs"
                           type="number"
                           min="0"
                           step="0.01"
@@ -572,10 +684,23 @@ export const AdminPanel = () => {
                           }}
                           size="sm"
                           variant="outline"
-                          className="h-8 text-xs text-gaming-success border-gaming-success"
+                          className="h-8 text-xs text-green-600 border-green-600 hover:bg-green-50"
                           disabled={!selectedUserBalance || parseFloat(selectedUserBalance) <= 0}
                         >
-                          Add $
+                          + Add
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            if (selectedUserBalance && parseFloat(selectedUserBalance) > 0) {
+                              removeUserBalance(user.id, user.email, parseFloat(selectedUserBalance));
+                            }
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs text-red-600 border-red-600 hover:bg-red-50"
+                          disabled={!selectedUserBalance || parseFloat(selectedUserBalance) <= 0 || (userBalances[user.id] || 0) < parseFloat(selectedUserBalance || '0')}
+                        >
+                          - Remove
                         </Button>
                       </div>
                       
@@ -585,9 +710,9 @@ export const AdminPanel = () => {
                             onClick={() => clearUserBalance(user.id, user.email)}
                             size="sm"
                             variant="outline"
-                            className="h-8 text-xs text-gaming-warning border-gaming-warning"
+                            className="h-8 text-xs text-orange-600 border-orange-600 hover:bg-orange-50"
                           >
-                            Clear $
+                            Clear All
                           </Button>
                           <Button
                             onClick={() => deleteUser(user.id, user.email)}
