@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SimpleTicketChat } from "@/components/SimpleTicketChat";
-import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign, ShoppingBag } from "lucide-react";
+import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign, ShoppingBag, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 
@@ -66,6 +66,56 @@ export default function Tickets() {
       window.removeEventListener('tickets-updated', handleTicketsUpdate as EventListener);
     };
   }, []);
+
+  const wipeAllTickets = async () => {
+    if (!window.confirm('⚠️ DANGER: This will permanently DELETE ALL TICKETS from the entire system. This action cannot be undone. Are you absolutely sure?')) {
+      return;
+    }
+
+    try {
+      console.log('Admin wiping all tickets...');
+      
+      // Delete all tickets using regular supabase client
+      const { error: ticketsError } = await supabase
+        .from('support_tickets')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+      
+      if (ticketsError) {
+        throw new Error('Failed to delete tickets: ' + ticketsError.message);
+      }
+
+      // Delete all ticket messages using regular supabase client
+      const { error: messagesError } = await supabase
+        .from('ticket_messages')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+      
+      if (messagesError) {
+        console.warn('Failed to delete ticket messages (may not exist):', messagesError.message);
+      }
+
+      toast({
+        title: "All Tickets Wiped",
+        description: "Successfully deleted all tickets and messages from the system.",
+        variant: "default",
+      });
+
+      // Refresh the page to show empty state
+      setTickets([]);
+      
+      // Trigger refresh event
+      window.dispatchEvent(new CustomEvent('tickets-updated'));
+
+    } catch (error: any) {
+      console.error('Error wiping tickets:', error);
+      toast({
+        title: "Wipe Failed",
+        description: error.message || "Failed to wipe tickets. Check console for details.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchUserAndTickets = async (retryCount = 0) => {
     try {
@@ -319,15 +369,28 @@ export default function Tickets() {
               {isAdmin || isAdminByEmail ? 'Manage all customer support requests' : 'View and manage your support requests'}
             </p>
             
-            {/* Debug info - Only visible to admins */}
+            {/* Admin Controls */}
             {(isAdmin || isAdminByEmail) && (
-              <div className="mt-4 p-2 bg-muted rounded text-xs">
-                <p>Debug Info:</p>
-                <p>User ID: {user?.id}</p>
-                <p>Email: {user?.email}</p>
-                <p>IsAdmin (hook): {String(isAdmin)}</p>
-                <p>IsAdmin (email): {String(isAdminByEmail)}</p>
-                <p>Tickets count: {tickets.length}</p>
+              <div className="mt-4 p-4 bg-gradient-to-r from-red-900/20 to-red-800/10 border border-red-500/30 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-red-400">🛡️ Admin Controls</h3>
+                  <Button 
+                    onClick={wipeAllTickets}
+                    variant="destructive"
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Wipe All Tickets
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>User ID: {user?.id}</p>
+                  <p>Email: {user?.email}</p>
+                  <p>IsAdmin (hook): {String(isAdmin)}</p>
+                  <p>IsAdmin (email): {String(isAdminByEmail)}</p>
+                  <p>Tickets count: {tickets.length}</p>
+                </div>
                 
                 <Button 
                   onClick={async () => {
@@ -417,29 +480,41 @@ export default function Tickets() {
                           const IconComponent = typeInfo.icon;
                           
                           return (
-                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                              <CardHeader className="pb-3">
+                            <Card key={ticket.id} className={`relative overflow-hidden bg-gradient-to-br from-slate-900/50 to-slate-800/50 border border-primary/30 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 transform hover:scale-[1.02] ${typeInfo.bgColor}`}>
+                              {/* Status indicator line */}
+                              <div className={`absolute top-0 left-0 right-0 h-1 ${getStatusColor(ticket.status)}`} />
+                              
+                              <CardHeader className="pb-3 relative">
                                 <div className="flex items-center justify-between">
-                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
-                                    <IconComponent className="h-4 w-4" />
-                                    {ticket.category === 'crypto_topup' ? 'Crypto' : 'Gift Card'}
-                                    {typeInfo.amount && (
-                                      <span className="text-gaming-success font-bold">
-                                        ${parseFloat(typeInfo.amount).toFixed(2)}
+                                  <CardTitle className={`flex items-center gap-3 text-base font-bold ${typeInfo.color}`}>
+                                    <div className={`p-2 rounded-xl ${typeInfo.bgColor} backdrop-blur-sm`}>
+                                      <IconComponent className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-sm">
+                                        {ticket.category === 'crypto_topup' ? 'Crypto Top-up' : 'Gift Card Top-up'}
                                       </span>
-                                    )}
+                                      {typeInfo.amount && (
+                                        <span className="text-gaming-success font-black text-lg">
+                                          ${parseFloat(typeInfo.amount).toFixed(2)}
+                                        </span>
+                                      )}
+                                    </div>
                                   </CardTitle>
-                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
+                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg`}>
                                     {ticket.status.replace('_', ' ').toUpperCase()}
                                   </Badge>
                                 </div>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                  {new Date(ticket.created_at).toLocaleDateString()}
+                                <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-2">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
                                 </CardDescription>
                               </CardHeader>
                               
                               <CardContent className="pt-0">
-                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
+                                <div className="bg-black/20 rounded-lg p-3 mb-4 border border-primary/10">
+                                  <p className="text-sm text-gray-300 line-clamp-2">{ticket.message}</p>
+                                </div>
                                 
                                 <Dialog>
                                   <DialogTrigger asChild>
@@ -447,9 +522,9 @@ export default function Tickets() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => setSelectedTicket(ticket)}
-                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
+                                      className="border-primary/30 hover:bg-primary/20 hover:border-primary/50 w-full text-sm font-medium bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm"
                                     >
-                                      <MessageCircle className="h-3 w-3 mr-1" />
+                                      <MessageCircle className="h-4 w-4 mr-2" />
                                       Open Chat
                                     </Button>
                                   </DialogTrigger>
@@ -512,51 +587,52 @@ export default function Tickets() {
                           const IconComponent = typeInfo.icon;
                           
                           return (
-                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                              <CardHeader>
+                            <Card key={ticket.id} className={`relative overflow-hidden bg-gradient-to-br from-emerald-900/30 to-emerald-800/20 border border-emerald-500/30 hover:border-emerald-400/50 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-500 transform hover:scale-[1.02]`}>
+                              {/* Status indicator line */}
+                              <div className={`absolute top-0 left-0 right-0 h-1 ${getStatusColor(ticket.status)}`} />
+                              
+                              <CardHeader className="pb-3 relative">
                                 <div className="flex items-center justify-between">
-                                  <CardTitle className={`flex items-center gap-3 ${typeInfo.color}`}>
-                                    <div className="flex items-center gap-2">
+                                  <CardTitle className={`flex items-center gap-3 text-base font-bold text-emerald-400`}>
+                                    <div className="p-2 rounded-xl bg-emerald-500/20 backdrop-blur-sm border border-emerald-400/30">
                                       <IconComponent className="h-5 w-5" />
-                                      {typeInfo.title}
                                     </div>
-                                    {typeInfo.amount && (
-                                      <div className="flex items-center gap-1 text-gaming-success font-bold">
-                                        <DollarSign className="h-4 w-4" />
-                                        {parseFloat(typeInfo.amount).toFixed(2)}
-                                      </div>
-                                    )}
+                                    <div className="flex flex-col">
+                                      <span className="text-sm">Purchase Order</span>
+                                      {typeInfo.amount && (
+                                        <span className="text-gaming-success font-black text-lg">
+                                          ${parseFloat(typeInfo.amount).toFixed(2)}
+                                        </span>
+                                      )}
+                                    </div>
                                   </CardTitle>
-                                  <div className="flex items-center gap-2">
-                                    <Badge className={`${getStatusColor(ticket.status)} text-white`}>
-                                      {ticket.status.replace('_', ' ').toUpperCase()}
-                                    </Badge>
-                                    <Badge variant="outline">
-                                      Purchase
-                                    </Badge>
-                                  </div>
+                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg`}>
+                                    {ticket.status.replace('_', ' ').toUpperCase()}
+                                  </Badge>
                                 </div>
-                                <CardDescription className="text-muted-foreground">
-                                  Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                                <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-2">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
                                 </CardDescription>
                               </CardHeader>
                               
-                              <CardContent>
-                                <p className="text-sm mb-4 line-clamp-2">{ticket.message}</p>
+                              <CardContent className="pt-0">
+                                <div className="bg-black/20 rounded-lg p-3 mb-4 border border-emerald-500/10">
+                                  <p className="text-sm text-gray-300 line-clamp-2">{ticket.message}</p>
+                                </div>
                                 
-                                <div className="flex gap-2">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button 
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setSelectedTicket(ticket)}
-                                        className="border-primary/20 hover:bg-primary/10"
-                                      >
-                                        <MessageCircle className="h-4 w-4 mr-2" />
-                                        Open Chat
-                                      </Button>
-                                    </DialogTrigger>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setSelectedTicket(ticket)}
+                                      className="border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-400/50 w-full text-sm font-medium bg-gradient-to-r from-emerald-500/5 to-emerald-500/10 backdrop-blur-sm"
+                                    >
+                                      <MessageCircle className="h-4 w-4 mr-2" />
+                                      Open Chat
+                                    </Button>
+                                  </DialogTrigger>
                                     <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
                                       <DialogHeader>
                                         <DialogTitle className="flex items-center gap-2">
@@ -583,7 +659,6 @@ export default function Tickets() {
                                       )}
                                     </DialogContent>
                                   </Dialog>
-                                </div>
                               </CardContent>
                             </Card>
                           );
@@ -618,24 +693,37 @@ export default function Tickets() {
                           const IconComponent = typeInfo.icon;
                           
                           return (
-                            <Card key={ticket.id} className={`bg-gradient-card border-primary/20 hover:shadow-gaming transition-all duration-300 ${typeInfo.bgColor}`}>
-                              <CardHeader className="pb-3">
+                            <Card key={ticket.id} className={`relative overflow-hidden bg-gradient-to-br from-blue-900/30 to-blue-800/20 border border-blue-500/30 hover:border-blue-400/50 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-500 transform hover:scale-[1.02]`}>
+                              {/* Status indicator line */}
+                              <div className={`absolute top-0 left-0 right-0 h-1 ${getStatusColor(ticket.status)}`} />
+                              
+                              <CardHeader className="pb-3 relative">
                                 <div className="flex items-center justify-between">
-                                  <CardTitle className={`flex items-center gap-2 text-sm ${typeInfo.color}`}>
-                                    <IconComponent className="h-4 w-4" />
-                                    {ticket.category || 'General'}
+                                  <CardTitle className={`flex items-center gap-3 text-base font-bold text-blue-400`}>
+                                    <div className="p-2 rounded-xl bg-blue-500/20 backdrop-blur-sm border border-blue-400/30">
+                                      <IconComponent className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-sm">{ticket.category || 'General Support'}</span>
+                                      <span className="text-xs text-muted-foreground font-normal">
+                                        {ticket.subject || 'Support Request'}
+                                      </span>
+                                    </div>
                                   </CardTitle>
-                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs`}>
+                                  <Badge className={`${getStatusColor(ticket.status)} text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg`}>
                                     {ticket.status.replace('_', ' ').toUpperCase()}
                                   </Badge>
                                 </div>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                  {new Date(ticket.created_at).toLocaleDateString()}
+                                <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-2">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
                                 </CardDescription>
                               </CardHeader>
                               
                               <CardContent className="pt-0">
-                                <p className="text-xs mb-3 line-clamp-2">{ticket.message}</p>
+                                <div className="bg-black/20 rounded-lg p-3 mb-4 border border-blue-500/10">
+                                  <p className="text-sm text-gray-300 line-clamp-2">{ticket.message}</p>
+                                </div>
                                 
                                 <Dialog>
                                   <DialogTrigger asChild>
@@ -643,9 +731,9 @@ export default function Tickets() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => setSelectedTicket(ticket)}
-                                      className="border-primary/20 hover:bg-primary/10 w-full text-xs"
+                                      className="border-blue-500/30 hover:bg-blue-500/20 hover:border-blue-400/50 w-full text-sm font-medium bg-gradient-to-r from-blue-500/5 to-blue-500/10 backdrop-blur-sm"
                                     >
-                                      <MessageCircle className="h-3 w-3 mr-1" />
+                                      <MessageCircle className="h-4 w-4 mr-2" />
                                       Open Chat
                                     </Button>
                                   </DialogTrigger>
