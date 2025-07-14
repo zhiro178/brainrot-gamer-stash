@@ -18,25 +18,66 @@ export const handleSupabaseError = (error: any, fallbackMessage = "Operation fai
   // Check if it's a fetch/network error
   if (error?.message?.includes('Failed to fetch') || error?.message?.includes('fetch')) {
     return {
-      title: "Connection Error",
+      title: "Connection Error 🌐",
       description: "Unable to connect to the server. The service may be temporarily unavailable. Please try again later.",
       variant: "destructive" as const
     };
   }
   
-  // Check if it's an auth error
-  if (error?.message?.includes('Invalid login') || error?.message?.includes('Email not confirmed')) {
+  // Check for specific authentication errors
+  if (error?.message?.includes('Invalid login credentials')) {
     return {
-      title: "Authentication Error",
-      description: error.message,
+      title: "Login Failed ❌",
+      description: "The email or password you entered is incorrect. Please double-check your credentials and try again.",
+      variant: "destructive" as const
+    };
+  }
+  
+  if (error?.message?.includes('Email not confirmed') || error?.message?.includes('not verified')) {
+    return {
+      title: "Email Verification Required ✉️",
+      description: "Please check your email and click the verification link to activate your account before logging in.",
+      variant: "destructive" as const
+    };
+  }
+  
+  if (error?.message?.includes('User not found') || error?.message?.includes('Invalid email')) {
+    return {
+      title: "Account Not Found 👤",
+      description: "No account exists with this email address. Please check your email or create a new account.",
+      variant: "destructive" as const
+    };
+  }
+  
+  if (error?.message?.includes('Password')) {
+    return {
+      title: "Password Error 🔐",
+      description: "The password you entered is incorrect. Please try again or reset your password if you've forgotten it.",
+      variant: "destructive" as const
+    };
+  }
+  
+  if (error?.message?.includes('Too many requests')) {
+    return {
+      title: "Too Many Attempts ⏰",
+      description: "Too many login attempts. Please wait a few minutes before trying again.",
+      variant: "destructive" as const
+    };
+  }
+  
+  // Generic auth error
+  if (error?.message?.includes('auth') || error?.message?.includes('authentication')) {
+    return {
+      title: "Authentication Error 🔒",
+      description: "Unable to authenticate your account. Please check your credentials and try again.",
       variant: "destructive" as const
     };
   }
   
   // Generic error
   return {
-    title: "Error",
-    description: fallbackMessage,
+    title: "Oops! Something went wrong 😔",
+    description: error?.message || fallbackMessage,
     variant: "destructive" as const
   };
 };

@@ -72,33 +72,77 @@ export default function Admin() {
     }
 
     try {
-      console.log('Admin wiping all tickets from admin panel...');
+      console.log('Admin wiping ALL tickets from admin panel...');
       
-      // Use RPC function approach for reliable deletion
-      const { error: rpcError } = await supabase.rpc('delete_all_tickets');
+      let deletedTickets = 0;
+      let deletedMessages = 0;
+      let errors = [];
+
+      // Step 1: Get all tickets first to count them
+      const { data: allTickets, error: fetchError } = await supabase
+        .from('support_tickets')
+        .select('id, category');
       
-      if (rpcError) {
-        // Fallback to direct deletion if RPC doesn't exist
-        console.log('RPC failed, trying direct deletion...', rpcError);
-        
-        // Delete all ticket messages first
-        await supabase
-          .from('ticket_messages')
-          .delete()
-          .gte('created_at', '1970-01-01'); // Delete all records
-        
-        // Then delete all tickets
-        await supabase
-          .from('support_tickets')
-          .delete()
-          .gte('created_at', '1970-01-01'); // Delete all records
+      if (fetchError) {
+        throw new Error(`Failed to fetch tickets: ${fetchError.message}`);
       }
 
-      toast({
-        title: "System Wiped Successfully",
-        description: "All tickets and messages have been permanently deleted from the system.",
-        variant: "default",
-      });
+      console.log(`Found ${allTickets?.length || 0} tickets to delete`);
+
+      if (allTickets && allTickets.length > 0) {
+        // Step 2: Delete all ticket messages first (for all tickets)
+        console.log('Deleting all ticket messages...');
+        const { error: messagesError, count: messagesCount } = await supabase
+          .from('ticket_messages')
+          .delete()
+          .in('ticket_id', allTickets.map((t: any) => t.id));
+        
+        if (messagesError) {
+          console.warn('Error deleting messages:', messagesError);
+          errors.push(`Messages: ${messagesError.message}`);
+        } else {
+          deletedMessages = messagesCount || 0;
+          console.log(`Deleted ${deletedMessages} messages`);
+        }
+
+        // Step 3: Delete all support tickets
+        console.log('Deleting all support tickets...');
+        const { error: ticketsError, count: ticketsCount } = await supabase
+          .from('support_tickets')
+          .delete()
+          .in('id', allTickets.map((t: any) => t.id));
+        
+        if (ticketsError) {
+          console.warn('Error deleting tickets:', ticketsError);
+          errors.push(`Tickets: ${ticketsError.message}`);
+        } else {
+          deletedTickets = ticketsCount || allTickets.length;
+          console.log(`Deleted ${deletedTickets} tickets`);
+        }
+
+        // Step 4: Double-check and clean up any remaining records
+        console.log('Performing cleanup of any remaining records...');
+        
+        // Try to delete any remaining messages
+        await supabase.from('ticket_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        
+        // Try to delete any remaining tickets
+        await supabase.from('support_tickets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      }
+
+      if (errors.length > 0) {
+        toast({
+          title: "Partial Wipe Completed ⚠️",
+          description: `Deleted ${deletedTickets} tickets and ${deletedMessages} messages. Some errors occurred: ${errors.join(', ')}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "System Wiped Successfully ✅",
+          description: `All tickets and messages have been permanently deleted! Removed ${deletedTickets} tickets and ${deletedMessages} messages from the system.`,
+          variant: "default",
+        });
+      }
 
       // Refresh the tickets list
       setSupportTickets([]);
@@ -110,8 +154,8 @@ export default function Admin() {
     } catch (error: any) {
       console.error('Error wiping tickets:', error);
       toast({
-        title: "Wipe Failed",
-        description: error.message || "Failed to wipe tickets. Check console for details.",
+        title: "Wipe Failed ❌",
+        description: `Failed to wipe tickets: ${error.message}. Check console for details.`,
         variant: "destructive",
       });
     }
