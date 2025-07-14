@@ -27,50 +27,50 @@ export const handleSupabaseError = (error: any, fallbackMessage = "Operation fai
   // Check for specific authentication errors
   if (error?.message?.includes('Invalid login credentials')) {
     return {
-      title: "Login Failed ❌",
+      title: "Login Failed",
       description: "The email or password you entered is incorrect. Please double-check your credentials and try again.",
-      variant: "destructive" as const
+      variant: "default" as const
     };
   }
   
   if (error?.message?.includes('Email not confirmed') || error?.message?.includes('not verified')) {
     return {
-      title: "Email Verification Required ✉️",
+      title: "Email Verification Required",
       description: "Please check your email and click the verification link to activate your account before logging in.",
-      variant: "destructive" as const
+      variant: "default" as const
     };
   }
   
   if (error?.message?.includes('User not found') || error?.message?.includes('Invalid email')) {
     return {
-      title: "Account Not Found 👤",
+      title: "Account Not Found",
       description: "No account exists with this email address. Please check your email or create a new account.",
-      variant: "destructive" as const
+      variant: "default" as const
     };
   }
   
   if (error?.message?.includes('Password')) {
     return {
-      title: "Password Error 🔐",
+      title: "Password Error",
       description: "The password you entered is incorrect. Please try again or reset your password if you've forgotten it.",
-      variant: "destructive" as const
+      variant: "default" as const
     };
   }
   
   if (error?.message?.includes('Too many requests')) {
     return {
-      title: "Too Many Attempts ⏰",
+      title: "Too Many Attempts",
       description: "Too many login attempts. Please wait a few minutes before trying again.",
-      variant: "destructive" as const
+      variant: "default" as const
     };
   }
   
   // Generic auth error
   if (error?.message?.includes('auth') || error?.message?.includes('authentication')) {
     return {
-      title: "Authentication Error 🔒",
+      title: "Authentication Error",
       description: "Unable to authenticate your account. Please check your credentials and try again.",
-      variant: "destructive" as const
+      variant: "default" as const
     };
   }
   
