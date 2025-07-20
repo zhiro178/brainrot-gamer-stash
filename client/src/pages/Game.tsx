@@ -161,7 +161,7 @@ export default function Game() {
               );
             })
           ) : (
-            game.categories.map((category) => (
+            game.categories.map((category: any) => (
               <CategoryCard
                 key={category.id}
                 category={category}

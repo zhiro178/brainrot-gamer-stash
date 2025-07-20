@@ -133,10 +133,10 @@ class SimpleSupabaseClient {
   }
 
   private update(table: string, values: any) {
-    // Return update builder with eq method (not async)
+    // Return update builder with eq method that returns a proper promise
     return {
-      eq: (column: string, value: any) => ({
-        then: async (callback: any) => {
+      eq: (column: string, value: any): Promise<{ data: any, error: any }> => {
+        return new Promise(async (resolve) => {
           try {
             const url = `${SUPABASE_URL}/rest/v1/${table}?${column}=eq.${value}`;
             const response = await fetch(url, {
@@ -154,15 +154,14 @@ class SimpleSupabaseClient {
               throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            callback({ data: null, error: null });
-            return { data: null, error: null };
+            const result = { data: null, error: null };
+            resolve(result);
           } catch (error) {
-            const errorObj = { message: String(error) };
-            callback({ data: null, error: errorObj });
-            return { data: null, error: errorObj };
+            const result = { data: null, error: { message: String(error) } };
+            resolve(result);
           }
-        }
-      })
+        });
+      }
     };
   }
 
