@@ -7,9 +7,48 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { SimpleTicketChat } from "@/components/SimpleTicketChat";
-import { Bitcoin, Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle, CreditCard, Trash } from "lucide-react";
+import { Calendar, User, MessageCircle, DollarSign, CheckCircle, Trash2, AlertCircle, CreditCard, Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { approveAndAddFunds } from "@/lib/balanceUtils";
+
+// Crypto Icon Components
+const BitcoinIcon = ({ className }: { className?: string }) => (
+  <img 
+    src="https://s3.coinmarketcap.com/static/img/portraits/630c5fcaf8184351dc5c6ee5.png" 
+    alt="Bitcoin" 
+    className={className}
+    onError={(e) => {
+      // Fallback to DollarSign icon if image fails to load
+      e.currentTarget.style.display = 'none';
+      const fallback = document.createElement('div');
+      fallback.innerHTML = '<svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2v20M9 5h8a3 3 0 0 1 0 6h-8m0 0h8a3 3 0 0 1 0 6H9"/></svg>';
+      e.currentTarget.parentNode?.appendChild(fallback);
+    }}
+  />
+);
+
+const SolanaIcon = ({ className }: { className?: string }) => (
+  <img 
+    src="https://upload.wikimedia.org/wikipedia/en/b/b9/Solana_logo.png" 
+    alt="Solana" 
+    className={className}
+    onError={(e) => {
+      // Fallback to DollarSign icon if image fails to load
+      e.currentTarget.style.display = 'none';
+      const fallback = document.createElement('div');
+      fallback.innerHTML = '<svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2v20M9 5h8a3 3 0 0 1 0 6h-8m0 0h8a3 3 0 0 1 0 6H9"/></svg>';
+      e.currentTarget.parentNode?.appendChild(fallback);
+    }}
+  />
+);
+
+// Combined crypto icon component
+const CryptoIcon = ({ className }: { className?: string }) => (
+  <div className={`flex items-center gap-1 ${className}`}>
+    <BitcoinIcon className="h-4 w-4" />
+    <SolanaIcon className="h-4 w-4" />
+  </div>
+);
 
 interface TopUpTicket {
   id: string;
@@ -97,12 +136,12 @@ export const CryptoTopupList = () => {
       return { type: 'Gift Card', icon: CreditCard, color: 'bg-blue-500' };
     }
     if (message.toLowerCase().includes('ltc') || message.toLowerCase().includes('litecoin')) {
-      return { type: 'LTC', icon: Bitcoin, color: 'bg-orange-500' };
+      return { type: 'LTC', icon: ({ className }: { className?: string }) => <BitcoinIcon className={className} />, color: 'bg-orange-500' };
     }
     if (message.toLowerCase().includes('sol') || message.toLowerCase().includes('solana')) {
-      return { type: 'SOL', icon: Bitcoin, color: 'bg-purple-500' };
+      return { type: 'SOL', icon: ({ className }: { className?: string }) => <SolanaIcon className={className} />, color: 'bg-purple-500' };
     }
-    return { type: 'Crypto', icon: Bitcoin, color: 'bg-primary' };
+    return { type: 'Crypto', icon: ({ className }: { className?: string }) => <CryptoIcon className={className} />, color: 'bg-primary' };
   };
 
   const getStatusColor = (status: string) => {
@@ -166,28 +205,41 @@ export const CryptoTopupList = () => {
     
     setProcessingTicket(ticketId);
     try {
-      // Delete associated messages first (Note: working client doesn't have delete yet)
-      // We'll skip message deletion for now
       console.log("Deleting ticket:", ticketId);
 
-      // For now, just set status to closed instead of deleting
-      await workingSupabase
+      // Delete associated messages first using regular supabase client
+      const { error: messagesError } = await supabase
+        .from('ticket_messages')
+        .delete()
+        .eq('ticket_id', ticketId);
+
+      if (messagesError) {
+        console.error('Error deleting ticket messages:', messagesError);
+        // Continue anyway, try to delete the ticket
+      }
+
+      // Delete the ticket using regular supabase client (has delete functionality)
+      const { error: deleteError } = await supabase
         .from('support_tickets')
-        .update({ status: 'closed' })
+        .delete()
         .eq('id', ticketId);
 
+      if (deleteError) {
+        throw new Error(deleteError.message || 'Failed to delete ticket');
+      }
+
       toast({
-        title: "Top-up Request Closed",
-        description: "The top-up request has been closed.",
+        title: "Top-up Request Deleted",
+        description: "The top-up request has been permanently deleted.",
       });
 
       // Refresh tickets
       fetchCryptoTickets();
     } catch (error) {
-      console.error('Error closing ticket:', error);
+      console.error('Error deleting ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to close top-up request",
+        description: "Failed to delete top-up request",
         variant: "destructive",
       });
     } finally {
@@ -283,6 +335,9 @@ export const CryptoTopupList = () => {
     try {
       console.log("Purging approved top-up tickets...");
       
+      // Refresh tickets first to ensure we have latest data
+      await fetchCryptoTickets();
+      
       // Get all resolved/closed crypto and gift card topup tickets
       const approvedTickets = tickets.filter((ticket: TopUpTicket) => 
         ticket.status === 'closed' || ticket.status === 'resolved'
@@ -302,48 +357,43 @@ export const CryptoTopupList = () => {
 
       for (const ticket of approvedTickets) {
         try {
-          // Mark ticket as purged and clear its content (balances remain intact)
-          const result = await new Promise((resolve) => {
-            workingSupabase
-              .from('support_tickets')
-              .update({ 
-                status: 'purged',
-                message: '[PURGED] - Ticket history removed by admin',
-                subject: '[PURGED] - Ticket history removed'
-              })
-              .eq('id', ticket.id)
-              .then(resolve);
-          });
+          // Mark ticket as purged and clear its content using regular supabase client
+          const { error } = await supabase
+            .from('support_tickets')
+            .update({ 
+              status: 'purged',
+              message: '[PURGED] - Ticket history removed by admin',
+              subject: '[PURGED] - Ticket history removed'
+            })
+            .eq('id', ticket.id);
           
-          const error = (result as any).error;
           if (error) {
             throw new Error(error.message || 'Failed to purge ticket');
           }
           
           successCount++;
         } catch (error) {
-          console.error(`Error purging ticket ${ticket.id}:`, error);
+          console.error(`Failed to purge ticket ${ticket.id}:`, error);
           errorCount++;
         }
       }
+
+      // Refresh the tickets list
+      await fetchCryptoTickets();
 
       if (successCount > 0) {
         toast({
           title: "Tickets Purged Successfully",
           description: `${successCount} approved tickets have been purged from history. ${errorCount > 0 ? `${errorCount} failed to purge.` : ''}`,
+          variant: "default",
         });
-      }
-
-      if (errorCount > 0 && successCount === 0) {
+      } else {
         toast({
-          title: "Error Purging Tickets",
+          title: "No Tickets Purged",
           description: "Failed to purge any tickets. Please try again.",
           variant: "destructive",
         });
       }
-
-      // Refresh tickets
-      fetchCryptoTickets();
     } catch (error) {
       console.error('Error purging approved tickets:', error);
       toast({
@@ -363,7 +413,7 @@ export const CryptoTopupList = () => {
   if (tickets.length === 0) {
     return (
       <div className="text-center py-8">
-        <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <CryptoIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-semibold mb-2">No Top-up Requests</h3>
         <p className="text-muted-foreground">No cryptocurrency or gift card top-up requests have been submitted yet.</p>
       </div>
