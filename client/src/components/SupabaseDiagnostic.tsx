@@ -28,8 +28,8 @@ export const SupabaseDiagnostic = () => {
     addResult('Client Setup', 'pass', 'Supabase client initialized');
     
     // Check URL and Key format
-    const url = supabase.supabaseUrl;
-    const key = supabase.supabaseKey;
+    const url = import.meta.env?.VITE_SUPABASE_URL || "https://uahxenisnppufpswupnz.supabase.co";
+    const key = import.meta.env?.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
     
     addResult('Supabase URL', 
       url.includes('supabase.co') ? 'pass' : 'fail',

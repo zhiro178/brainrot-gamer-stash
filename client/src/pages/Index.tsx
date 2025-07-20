@@ -447,7 +447,7 @@ const Index = () => {
       
       const existingUsers = localStorage.getItem('admin_users');
       const users = existingUsers ? JSON.parse(existingUsers) : [];
-      const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user.id)];
+      const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user?.id)];
       localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
       
       toast({
@@ -509,7 +509,7 @@ const Index = () => {
         // Update admin user list with unverified user
         const existingUsers = localStorage.getItem('admin_users');
         const users = existingUsers ? JSON.parse(existingUsers) : [];
-        const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user.id)];
+        const updatedUsers = [userData, ...users.filter((u: any) => u.id !== data.user?.id)];
         localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
         
         logAdminAction('USER_REGISTERED', `New unverified user registered: ${email}`, 'system');

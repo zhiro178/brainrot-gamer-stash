@@ -373,7 +373,10 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                             onError={(e) => {
                               // Fallback to generated avatar if image fails to load
                               e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling!.style.display = 'flex';
+                              const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (nextElement) {
+                                nextElement.style.display = 'flex';
+                              }
                             }}
                           />
                         ) : null}
