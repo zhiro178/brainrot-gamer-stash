@@ -244,6 +244,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     return {
       name: userId === currentUser?.id 
         ? (currentUser?.user_metadata?.display_name || 
+           currentUser?.user_metadata?.username ||
            currentUser?.user_metadata?.full_name || 
            currentUser?.email?.split('@')[0] || 
            `User ${userId.slice(-4)}`)
@@ -251,7 +252,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
       username: `user_${userId.slice(-4)}`,
       email: userId === currentUser?.id ? currentUser?.email : '',
       avatar: generateAvatar(`user_${userId.slice(-4)}`),
-      avatarUrl: null,
+      avatarUrl: userId === currentUser?.id ? currentUser?.user_metadata?.avatar_url : null,
       isEmoji: false
     };
   };
@@ -378,6 +379,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
             newCache[userId] = {
               name: userId === currentUser?.id 
                 ? (currentUser?.user_metadata?.display_name || 
+                   currentUser?.user_metadata?.username ||
                    currentUser?.user_metadata?.full_name || 
                    currentUser?.email?.split('@')[0] || 
                    `User ${userId.slice(-4)}`)
@@ -385,7 +387,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
               username: `user_${userId.slice(-4)}`,
               email: userId === currentUser?.id ? currentUser?.email : '',
               avatar: generateAvatar(`user_${userId.slice(-4)}`),
-              avatarUrl: null,
+              avatarUrl: userId === currentUser?.id ? currentUser?.user_metadata?.avatar_url : null,
               isEmoji: false
             };
           }
@@ -402,7 +404,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
             username: `user_${userId.slice(-4)}`,
             email: userId === currentUser?.id ? currentUser?.email : '',
             avatar: generateAvatar(`user_${userId.slice(-4)}`),
-            avatarUrl: null,
+            avatarUrl: userId === currentUser?.id ? currentUser?.user_metadata?.avatar_url : null,
             isEmoji: false
           };
         }
