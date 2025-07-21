@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Wallet, AlertTriangle, Bitcoin, CreditCard } from "lucide-react";
 import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
@@ -11,9 +12,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 // Your admin email
 const ADMIN_EMAIL = "zhirocomputer@gmail.com";
 
+// Cryptocurrency options
+const CRYPTO_OPTIONS = [
+  {
+    value: 'LTC',
+    label: 'Litecoin (LTC)',
+    image: 'https://s3.coinmarketcap.com/static/img/portraits/630c5fcaf8184351dc5c6ee5.png',
+    symbol: 'LTC'
+  },
+  {
+    value: 'SOL',
+    label: 'Solana (SOL)',
+    image: 'https://upload.wikimedia.org/wikipedia/en/b/b9/Solana_logo.png',
+    symbol: 'SOL'
+  }
+];
+
 export function TopUpModal({ user }: { user?: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [cryptoAmount, setCryptoAmount] = useState("");
+  const [selectedCrypto, setSelectedCrypto] = useState("");
   const [giftCardAmount, setGiftCardAmount] = useState("");
   const [giftCardCode, setGiftCardCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,6 +62,16 @@ export function TopUpModal({ user }: { user?: any }) {
         });
         return;
       }
+
+      if (!selectedCrypto) {
+        toast({
+          title: "Cryptocurrency Required",
+          description: "Please select a cryptocurrency (LTC or SOL)",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const currentUser = await ensureUser();
       if (!currentUser) {
         toast({
@@ -56,11 +84,13 @@ export function TopUpModal({ user }: { user?: any }) {
       
       console.log('Creating crypto topup ticket with working client...');
       
+      const selectedCryptoInfo = CRYPTO_OPTIONS.find(crypto => crypto.value === selectedCrypto);
+      
       // Create ticket
       const ticketData = {
         user_id: currentUser.id,
-        subject: `Crypto Top-up Request - $${amount}`,
-        message: `Crypto top-up request for $${amount} USD (LTC/SOL).`,
+        subject: `${selectedCrypto} Top-up Request - $${amount}`,
+        message: `Crypto top-up request for $${amount} USD using ${selectedCryptoInfo?.label || selectedCrypto}.`,
         status: "open",
         category: "crypto_topup",
       };
@@ -101,7 +131,7 @@ export function TopUpModal({ user }: { user?: any }) {
           .insert({
             ticket_id: ticketId,
             user_id: currentUser.id,
-            message: `I would like to top up my account with $${amount} USD using cryptocurrency (LTC/SOL). Please provide payment instructions.`,
+            message: `I would like to top up my account with $${amount} USD using ${selectedCryptoInfo?.label || selectedCrypto}. Please provide payment instructions.`,
             is_admin: false,
           });
 
@@ -111,13 +141,14 @@ export function TopUpModal({ user }: { user?: any }) {
           .insert({
             ticket_id: ticketId,
             user_id: "system",
-            message: `Hello! Thank you for your crypto top-up request of $${amount} USD. An admin will review your request and provide payment instructions shortly. Please check back here for updates or wait for our response.`,
+            message: `Hello! Thank you for your ${selectedCryptoInfo?.label || selectedCrypto} top-up request of $${amount} USD. An admin will review your request and provide payment instructions shortly. Please check back here for updates or wait for our response.`,
             is_admin: true,
           });
       } else {
         console.log('Warning: Could not get ticket ID, messages not created');
       }
       setCryptoAmount("");
+      setSelectedCrypto("");
       setIsOpen(false);
       toast({
         title: "Top-up Request Submitted",
@@ -309,6 +340,24 @@ export function TopUpModal({ user }: { user?: any }) {
                       required
                       className="bg-background/50 border-orange-500/30 focus:border-orange-500"
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="crypto-select" className="text-orange-300">Cryptocurrency</Label>
+                    <Select onValueChange={setSelectedCrypto} defaultValue={selectedCrypto} value={selectedCrypto}>
+                      <SelectTrigger className="bg-background/50 border-orange-500/30 focus:border-orange-500">
+                        <SelectValue placeholder="Select a cryptocurrency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CRYPTO_OPTIONS.map((crypto) => (
+                          <SelectItem key={crypto.value} value={crypto.value}>
+                            <div className="flex items-center gap-2">
+                              <img src={crypto.image} alt={crypto.label} className="h-4 w-4" />
+                              {crypto.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <Button
                     type="submit"
