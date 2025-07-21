@@ -28,10 +28,11 @@ interface SimpleTicketChatProps {
 export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin = false, ticketStatus = 'open' }: SimpleTicketChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
   const [userCache, setUserCache] = useState<{[key: string]: any}>({});
+  const [profileRefreshTrigger, setProfileRefreshTrigger] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -169,7 +170,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
   // Check if ticket is closed/resolved and messaging should be disabled
   const isTicketClosed = ticketStatus === 'resolved' || ticketStatus === 'closed';
-  const canMessage = !isTicketClosed;
+  const canMessage = ticketStatus === 'open' || ticketStatus === 'pending' || isAdmin;
 
   console.log('SimpleTicketChat mounted with:', { 
     ticketId, 
@@ -255,11 +256,20 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     };
   };
 
+  // Refresh user profiles when current user is updated
+  useEffect(() => {
+    if (currentUser?.user_metadata?.username || currentUser?.user_metadata?.display_name) {
+      console.log('Current user updated, refreshing profiles...');
+      setProfileRefreshTrigger(prev => prev + 1);
+    }
+  }, [currentUser?.user_metadata?.username, currentUser?.user_metadata?.display_name, currentUser?.user_metadata?.avatar_url]);
+
+  // Main effect to load messages and user profiles
   useEffect(() => {
     if (!ticketId || !currentUser) {
       console.error('Missing required props:', { ticketId, currentUser });
       setError('Missing ticket ID or user information');
-      setLoading(false);
+      setIsLoading(false);
       return;
     }
 
@@ -273,7 +283,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     return () => {
       clearInterval(pollInterval);
     };
-  }, [ticketId, currentUser]);
+  }, [ticketId, currentUser, profileRefreshTrigger]);
 
   useEffect(() => {
     // Only auto-scroll when new messages are added, and only if user is near bottom
@@ -327,7 +337,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     } catch (error) {
       console.error('Error fetching messages:', error);
       setError(error instanceof Error ? error.message : 'Failed to load messages');
-      if (loading) {
+      if (isLoading) {
         // Only show toast on initial load error, not polling errors
         toast({
           title: "Chat Error",
@@ -336,7 +346,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
         });
       }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -405,9 +415,9 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || sending || !currentUser || !canMessage) return;
+    if (!newMessage.trim() || isSending || !currentUser || !canMessage) return;
 
-    setSending(true);
+    setIsSending(true);
     try {
       console.log('Sending message with working client...', {
         ticketId: parseInt(ticketId),
@@ -445,7 +455,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
         variant: "destructive",
       });
     } finally {
-      setSending(false);
+      setIsSending(false);
     }
   };
 
@@ -454,7 +464,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   };
 
   // Show error state
-  if (error && !loading) {
+  if (error && !isLoading) {
     return (
       <Card className="h-96 flex flex-col">
         <CardContent className="p-8 text-center flex-1 flex flex-col justify-center">
@@ -462,7 +472,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={() => {
             setError(null);
-            setLoading(true);
+            setIsLoading(true);
             fetchMessages();
           }} variant="outline">
             Retry
@@ -472,7 +482,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     );
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="h-96 flex flex-col">
         <CardContent className="p-8 text-center flex-1 flex flex-col justify-center">
@@ -631,7 +641,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                     : "Type your message..."
               }
               onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-              disabled={sending || !currentUser || !canMessage}
+              disabled={isSending || !currentUser || !canMessage}
               className={`flex-1 border-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground rounded-xl px-4 py-2 text-sm transition-all duration-200 ${
                 !canMessage 
                   ? 'bg-muted/50 cursor-not-allowed opacity-60' 
@@ -644,14 +654,14 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
             />
             <Button 
               onClick={sendMessage} 
-              disabled={sending || !newMessage.trim() || !currentUser || !canMessage}
+              disabled={isSending || !newMessage.trim() || !currentUser || !canMessage}
               className={`rounded-xl px-6 transition-all duration-200 ${
                 !canMessage 
                   ? 'bg-muted text-muted-foreground cursor-not-allowed' 
                   : 'bg-gradient-primary hover:shadow-glow text-primary-foreground'
               }`}
             >
-              {sending ? (
+              {isSending ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
                 <Send className="h-4 w-4" />

@@ -23,9 +23,19 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [hasLocalProfile, setHasLocalProfile] = useState(false);
   const { toast } = useToast();
 
   const isVerified = user?.email_confirmed_at !== null;
+
+  // Check for local profile whenever component updates
+  useEffect(() => {
+    if (user?.id) {
+      const localProfile = localStorage.getItem(`user_profile_${user.id}`);
+      setHasLocalProfile(!!localProfile);
+    }
+  }, [user?.id, isOpen]);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -46,7 +56,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           return;
         }
 
-        // Fallback to localStorage
+        // Fallback to localStorage and try to sync
         const localProfile = localStorage.getItem(`user_profile_${user.id}`);
         if (localProfile) {
           const parsed = JSON.parse(localProfile);
@@ -54,6 +64,57 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           setLoadedProfile(parsed);
           setUsername(parsed.username || parsed.display_name || '');
           setProfilePicture(parsed.avatar_url || '');
+          
+          // Try to sync local profile to database
+          try {
+            console.log('Attempting to sync local profile to database...');
+            
+            // Check if profile exists
+            const { data: existingProfile, error: checkError } = await workingSupabase
+              .from('user_profiles')
+              .select('user_id')
+              .eq('user_id', user.id);
+              
+            if (!checkError) {
+              const profileData = {
+                user_id: user.id,
+                username: parsed.username || parsed.display_name,
+                display_name: parsed.display_name || parsed.username,
+                avatar_url: parsed.avatar_url || null
+              };
+              
+              if (existingProfile && existingProfile.length > 0) {
+                // Update existing
+                const { error: updateError } = await workingSupabase
+                  .from('user_profiles')
+                  .update(profileData)
+                  .eq('user_id', user.id);
+                  
+                if (!updateError) {
+                  console.log('Successfully synced local profile to database (updated)');
+                  toast({
+                    title: "Profile synced!",
+                    description: "Your locally saved profile has been uploaded to the database",
+                  });
+                }
+              } else {
+                // Insert new
+                const { error: insertError } = await workingSupabase
+                  .from('user_profiles')
+                  .insert([profileData]);
+                  
+                if (!insertError) {
+                  console.log('Successfully synced local profile to database (created)');
+                  toast({
+                    title: "Profile synced!",
+                    description: "Your locally saved profile has been uploaded to the database",
+                  });
+                }
+              }
+            }
+          } catch (syncError) {
+            console.log('Could not sync to database yet:', syncError);
+          }
           return;
         }
 
@@ -236,12 +297,15 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           user_metadata: {
             ...user?.user_metadata,
             username: username.trim(),
+            display_name: username.trim(),
             avatar_url: profilePicture
           }
         };
         onUserUpdate(updatedUser);
       }
 
+      // Clear local profile flag since it's now in database
+      setHasLocalProfile(false);
       setIsOpen(false);
     } catch (error) {
       console.error('Profile update error:', error);
@@ -272,6 +336,115 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       }
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const syncProfileToDatabase = async () => {
+    if (!user?.id) return;
+    
+    setIsSyncing(true);
+    
+    try {
+      // Check for locally saved profile
+      const localProfile = localStorage.getItem(`user_profile_${user.id}`);
+      if (!localProfile) {
+        toast({
+          title: "No local profile found",
+          description: "There's no locally saved profile to sync",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const parsed = JSON.parse(localProfile);
+      
+      // Check if profile exists in database
+      const { data: existingProfile, error: checkError } = await workingSupabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('user_id', user.id);
+        
+      if (checkError) {
+        throw new Error(`Database check failed: ${checkError.message}`);
+      }
+      
+      const profileData = {
+        user_id: user.id,
+        username: parsed.username || parsed.display_name,
+        display_name: parsed.display_name || parsed.username,
+        avatar_url: parsed.avatar_url || null
+      };
+      
+      if (existingProfile && existingProfile.length > 0) {
+        // Update existing
+        const { error: updateError } = await workingSupabase
+          .from('user_profiles')
+          .update(profileData)
+          .eq('user_id', user.id);
+          
+        if (updateError) {
+          throw new Error(`Update failed: ${updateError.message}`);
+        }
+      } else {
+        // Insert new
+        const { error: insertError } = await workingSupabase
+          .from('user_profiles')
+          .insert([profileData]);
+          
+        if (insertError) {
+          throw new Error(`Insert failed: ${insertError.message}`);
+        }
+      }
+      
+      console.log('Manual sync successful');
+      toast({
+        title: "Profile synced!",
+        description: "Your profile has been successfully uploaded to the database",
+      });
+      
+      // Reload profile to reflect changes
+      const loadUserProfile = async () => {
+        const { data: profileData, error } = await workingSupabase
+          .from('user_profiles')
+          .select('username, display_name, avatar_url')
+          .eq('user_id', user.id);
+
+        if (!error && profileData && profileData.length > 0) {
+          setLoadedProfile(profileData[0]);
+          setUsername(profileData[0].username || profileData[0].display_name || '');
+          setProfilePicture(profileData[0].avatar_url || '');
+          
+          // Trigger app-wide profile update
+          if (onUserUpdate) {
+            const updatedUser = {
+              ...user,
+              user_metadata: {
+                ...user?.user_metadata,
+                username: profileData[0].username || profileData[0].display_name,
+                display_name: profileData[0].display_name,
+                avatar_url: profileData[0].avatar_url
+              }
+            };
+            onUserUpdate(updatedUser);
+          }
+        }
+      };
+      
+      await loadUserProfile();
+      
+      // Clear local profile since it's now in database
+      localStorage.removeItem(`user_profile_${user.id}`);
+      setHasLocalProfile(false);
+      
+    } catch (error) {
+      console.error('Manual sync error:', error);
+      toast({
+        title: "Sync failed",
+        description: "Could not sync profile to database. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -432,13 +605,27 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           </div>
 
           {/* Save Button */}
-          <Button
-            onClick={handleSaveProfile}
-            disabled={!isVerified || isUpdating || username.trim().length < 3}
-            className="w-full"
-          >
-            {isUpdating ? 'Saving...' : 'Save Changes'}
-          </Button>
+          <div className="space-y-3">
+            {/* Sync Button - only show if there's a local profile */}
+            {hasLocalProfile && (
+              <Button
+                onClick={syncProfileToDatabase}
+                disabled={isSyncing}
+                variant="outline"
+                className="w-full"
+              >
+                {isSyncing ? 'Syncing...' : '🔄 Sync Local Profile to Database'}
+              </Button>
+            )}
+            
+            <Button
+              onClick={handleSaveProfile}
+              disabled={!isVerified || isUpdating || username.trim().length < 3}
+              className="w-full"
+            >
+              {isUpdating ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
