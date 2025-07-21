@@ -540,30 +540,26 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                       <div
                         className={`rounded-2xl px-4 py-3 shadow-lg ${
                           isAdminMessage
-                            ? 'bg-gradient-to-br from-gaming-accent to-gaming-accent/80 text-black rounded-tl-md border border-gaming-accent/30'
+                            ? 'text-black rounded-tl-md border border-[#4fd1c5]/30'
                             : isCurrentUser
                               ? 'bg-gradient-to-br from-primary to-primary/80 text-white rounded-br-md border border-primary/30'
                               : 'bg-gradient-to-br from-background to-muted text-foreground rounded-bl-md border border-primary/20'
                         }`}
+                        style={isAdminMessage ? { backgroundColor: '#4fd1c5' } : undefined}
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <span className={`text-xs font-medium ${
                             isAdminMessage 
-                              ? 'text-gaming-accent-foreground' 
+                              ? 'text-black' 
                               : isCurrentUser 
                                 ? 'text-white/90' 
                                 : 'text-muted-foreground'
                           }`}>
                             {userInfo.name}
                           </span>
-                          {isAdminMessage && (
-                            <span className="text-xs bg-gaming-accent-foreground/20 px-2 py-0.5 rounded-full">
-                              Support
-                            </span>
-                          )}
                           <span className={`text-xs ml-auto ${
                             isAdminMessage 
-                              ? 'text-gaming-accent-foreground/70' 
+                              ? 'text-black/70' 
                               : isCurrentUser 
                                 ? 'text-white/70' 
                                 : 'text-muted-foreground/70'
@@ -576,7 +572,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                         </div>
                         <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${
                           isAdminMessage 
-                            ? 'text-gaming-accent-foreground' 
+                            ? 'text-black' 
                             : isCurrentUser 
                               ? 'text-white' 
                               : 'text-foreground'

@@ -434,7 +434,7 @@ export default function Tickets() {
                                         {ticket.category === 'crypto_topup' ? 'Crypto Top-up' : 'Gift Card Top-up'}
                                       </span>
                                       {typeInfo.amount && (
-                                        <span className="text-gaming-success font-black text-lg">
+                                        <span className="text-gaming-success font-medium text-lg">
                                           ${parseFloat(typeInfo.amount).toFixed(2)}
                                         </span>
                                       )}
@@ -544,7 +544,7 @@ export default function Tickets() {
                                     <div className="flex flex-col">
                                       <span className="text-sm">Purchase Order</span>
                                       {typeInfo.amount && (
-                                        <span className="text-gaming-success font-black text-lg">
+                                        <span className="text-gaming-success font-medium text-lg">
                                           ${parseFloat(typeInfo.amount).toFixed(2)}
                                         </span>
                                       )}
