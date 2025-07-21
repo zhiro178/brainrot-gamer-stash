@@ -37,7 +37,91 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
   // Helper function to render message content with image support
   const renderMessageContent = (messageText: string) => {
-    // Check if message contains image URLs (🖼️ prefix indicates an image URL)
+    // Check if this is an ORDER SUMMARY
+    if (messageText.includes('ORDER SUMMARY:')) {
+      const lines = messageText.split('\n');
+      const summaryIndex = lines.findIndex(line => line.includes('ORDER SUMMARY:'));
+      
+      if (summaryIndex !== -1) {
+        const beforeSummary = lines.slice(0, summaryIndex + 1).join('\n');
+        const afterSummaryLines = lines.slice(summaryIndex + 1);
+        
+        // Process each line after ORDER SUMMARY
+        const processedItems = [];
+        let i = 0;
+        
+        while (i < afterSummaryLines.length) {
+          const line = afterSummaryLines[i];
+          
+          // Check if this line is an image URL (🖼️ prefix)
+          if (line.startsWith('🖼️ ')) {
+            const imageUrl = line.substring(3).trim(); // Remove 🖼️ prefix
+            const nextLine = afterSummaryLines[i + 1];
+            
+            if (nextLine && nextLine.startsWith('•')) {
+              // This is an item line with an image
+              processedItems.push(
+                <div key={i} className="flex items-center gap-2 my-1">
+                  <img 
+                    src={imageUrl} 
+                    alt="Item" 
+                    className="w-6 h-6 object-cover rounded border border-primary/20"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  <span>{nextLine}</span>
+                </div>
+              );
+              i += 2; // Skip the next line since we processed it
+            } else {
+              // Just an image line without item, render as before
+              processedItems.push(
+                <div key={i} className="flex items-center gap-2 my-1">
+                  <img 
+                    src={imageUrl} 
+                    alt="Item" 
+                    className="w-6 h-6 object-cover rounded border border-primary/20"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              );
+              i++;
+            }
+          } else if (line.startsWith('•')) {
+            // Item line without image
+            processedItems.push(
+              <div key={i} className="flex items-center gap-2 my-1">
+                <span className="text-lg">🎁</span>
+                <span>{line}</span>
+              </div>
+            );
+            i++;
+          } else if (line.trim()) {
+            // Regular text line
+            processedItems.push(
+              <div key={i} className="whitespace-pre-wrap break-words my-1">
+                {line}
+              </div>
+            );
+            i++;
+          } else {
+            i++;
+          }
+        }
+        
+        return (
+          <div className="space-y-1">
+            <div className="whitespace-pre-wrap break-words mb-2">{beforeSummary}</div>
+            {processedItems}
+          </div>
+        );
+      }
+    }
+    
+    // Check if message contains image URLs (🖼️ prefix indicates an image URL) - fallback for non-order content
     const parts = messageText.split('🖼️ ');
     
     if (parts.length === 1) {
@@ -45,7 +129,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
       return <span className="whitespace-pre-wrap break-words">{messageText}</span>;
     }
     
-    // Has images, render with image components
+    // Has images, render with image components (legacy support)
     return (
       <div className="space-y-2">
         {parts.map((part, index) => {
