@@ -23,19 +23,9 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [hasLocalProfile, setHasLocalProfile] = useState(false);
   const { toast } = useToast();
 
   const isVerified = user?.email_confirmed_at !== null;
-
-  // Check for local profile whenever component updates
-  useEffect(() => {
-    if (user?.id) {
-      const localProfile = localStorage.getItem(`user_profile_${user.id}`);
-      setHasLocalProfile(!!localProfile);
-    }
-  }, [user?.id, isOpen]);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -56,74 +46,12 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           return;
         }
 
-        // Fallback to localStorage and try to sync
-        const localProfile = localStorage.getItem(`user_profile_${user.id}`);
-        if (localProfile) {
-          const parsed = JSON.parse(localProfile);
-          console.log('Loaded profile from localStorage:', parsed);
-          setLoadedProfile(parsed);
-          setUsername(parsed.username || parsed.display_name || '');
-          setProfilePicture(parsed.avatar_url || '');
-          
-          // Try to sync local profile to database
-          try {
-            console.log('Attempting to sync local profile to database...');
-            
-            // Check if profile exists
-            const { data: existingProfile, error: checkError } = await workingSupabase
-              .from('user_profiles')
-              .select('user_id')
-              .eq('user_id', user.id);
-              
-            if (!checkError) {
-              const profileData = {
-                user_id: user.id,
-                username: parsed.username || parsed.display_name,
-                display_name: parsed.display_name || parsed.username,
-                avatar_url: parsed.avatar_url || null
-              };
-              
-              if (existingProfile && existingProfile.length > 0) {
-                // Update existing
-                const { error: updateError } = await workingSupabase
-                  .from('user_profiles')
-                  .update(profileData)
-                  .eq('user_id', user.id);
-                  
-                if (!updateError) {
-                  console.log('Successfully synced local profile to database (updated)');
-                  toast({
-                    title: "Profile synced!",
-                    description: "Your locally saved profile has been uploaded to the database",
-                  });
-                }
-              } else {
-                // Insert new
-                const { error: insertError } = await workingSupabase
-                  .from('user_profiles')
-                  .insert([profileData]);
-                  
-                if (!insertError) {
-                  console.log('Successfully synced local profile to database (created)');
-                  toast({
-                    title: "Profile synced!",
-                    description: "Your locally saved profile has been uploaded to the database",
-                  });
-                }
-              }
-            }
-          } catch (syncError) {
-            console.log('Could not sync to database yet:', syncError);
-          }
-          return;
-        }
-
-        // Final fallback to user metadata
+        // Fallback to user metadata
         setUsername(user?.user_metadata?.username || '');
         setProfilePicture(user?.user_metadata?.avatar_url || '');
       } catch (error) {
         console.error('Error loading profile:', error);
-        // Use original values on error
+        // Use user metadata on error
         setUsername(user?.user_metadata?.username || '');
         setProfilePicture(user?.user_metadata?.avatar_url || '');
       }
@@ -204,86 +132,45 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
     setIsUpdating(true);
 
     try {
-      // Save to user_profiles table (what the chat system uses)
+      // Check if profile exists in database
+      const { data: existingProfile, error: checkError } = await workingSupabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('user_id', user?.id);
+        
+      if (checkError) {
+        throw new Error(`Database check failed: ${checkError.message}`);
+      }
+      
       const profileData = {
         user_id: user?.id,
         username: username.trim(),
         display_name: username.trim(),
-        avatar_url: profilePicture || null,
-        updated_at: new Date().toISOString()
+        avatar_url: profilePicture || null
       };
-
-      console.log('Saving profile data:', profileData);
-
-      // Check if profile exists first
-      const { data: existingProfiles, error: checkError } = await workingSupabase
-        .from('user_profiles')
-        .select('user_id')
-        .eq('user_id', user?.id);
-
-      if (checkError) {
-        console.error('Error checking existing profile:', checkError);
-        throw new Error(`Database check failed: ${checkError.message}`);
-      }
-
-      if (existingProfiles && existingProfiles.length > 0) {
+      
+      if (existingProfile && existingProfile.length > 0) {
         // Update existing profile
         const { error: updateError } = await workingSupabase
           .from('user_profiles')
-          .update({
-            username: username.trim(),
-            display_name: username.trim(),
-            avatar_url: profilePicture || null,
-            updated_at: new Date().toISOString()
-          })
+          .update(profileData)
           .eq('user_id', user?.id);
           
         if (updateError) {
           throw new Error(`Update failed: ${updateError.message}`);
         }
-        console.log('Profile updated successfully');
       } else {
         // Insert new profile
         const { error: insertError } = await workingSupabase
           .from('user_profiles')
-          .insert([{
-            user_id: user?.id,
-            username: username.trim(),
-            display_name: username.trim(),
-            avatar_url: profilePicture || null
-          }]);
+          .insert([profileData]);
           
         if (insertError) {
           throw new Error(`Insert failed: ${insertError.message}`);
         }
-        console.log('Profile created successfully');
       }
 
       console.log('Profile saved successfully to database');
-
-      // Also try to update Supabase auth metadata (secondary)
-      try {
-        await supabase.auth.updateUser({
-          data: {
-            username: username.trim(),
-            avatar_url: profilePicture
-          }
-        });
-        console.log('Auth metadata updated successfully');
-      } catch (authError) {
-        console.error('Auth metadata update error:', authError);
-        // Non-critical error, continue
-      }
-
-      // Update localStorage as backup
-      const userProfile = {
-        username: username.trim(),
-        display_name: username.trim(),
-        avatar_url: profilePicture,
-        updated_at: new Date().toISOString()
-      };
-      localStorage.setItem(`user_profile_${user?.id}`, JSON.stringify(userProfile));
-      console.log('Profile saved to localStorage');
 
       toast({
         title: "Profile updated!",
@@ -291,7 +178,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       });
 
       if (onUserUpdate) {
-        // Create updated user object
+        // Create updated user object to trigger app-wide updates
         const updatedUser = {
           ...user,
           user_metadata: {
@@ -304,147 +191,16 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         onUserUpdate(updatedUser);
       }
 
-      // Clear local profile flag since it's now in database
-      setHasLocalProfile(false);
       setIsOpen(false);
     } catch (error) {
       console.error('Profile update error:', error);
-      
-      // Fallback to localStorage only
-      try {
-        const userProfile = {
-          username: username.trim(),
-          display_name: username.trim(),
-          avatar_url: profilePicture,
-          updated_at: new Date().toISOString()
-        };
-        localStorage.setItem(`user_profile_${user?.id}`, JSON.stringify(userProfile));
-        
-        toast({
-          title: "Profile saved locally",
-          description: "Profile saved locally. It may not appear in chat until database connection is restored.",
-          variant: "destructive",
-        });
-        
-        setIsOpen(false);
-      } catch (localError) {
-        toast({
-          title: "Save failed",
-          description: "Failed to save profile. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const syncProfileToDatabase = async () => {
-    if (!user?.id) return;
-    
-    setIsSyncing(true);
-    
-    try {
-      // Check for locally saved profile
-      const localProfile = localStorage.getItem(`user_profile_${user.id}`);
-      if (!localProfile) {
-        toast({
-          title: "No local profile found",
-          description: "There's no locally saved profile to sync",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const parsed = JSON.parse(localProfile);
-      
-      // Check if profile exists in database
-      const { data: existingProfile, error: checkError } = await workingSupabase
-        .from('user_profiles')
-        .select('user_id')
-        .eq('user_id', user.id);
-        
-      if (checkError) {
-        throw new Error(`Database check failed: ${checkError.message}`);
-      }
-      
-      const profileData = {
-        user_id: user.id,
-        username: parsed.username || parsed.display_name,
-        display_name: parsed.display_name || parsed.username,
-        avatar_url: parsed.avatar_url || null
-      };
-      
-      if (existingProfile && existingProfile.length > 0) {
-        // Update existing
-        const { error: updateError } = await workingSupabase
-          .from('user_profiles')
-          .update(profileData)
-          .eq('user_id', user.id);
-          
-        if (updateError) {
-          throw new Error(`Update failed: ${updateError.message}`);
-        }
-      } else {
-        // Insert new
-        const { error: insertError } = await workingSupabase
-          .from('user_profiles')
-          .insert([profileData]);
-          
-        if (insertError) {
-          throw new Error(`Insert failed: ${insertError.message}`);
-        }
-      }
-      
-      console.log('Manual sync successful');
       toast({
-        title: "Profile synced!",
-        description: "Your profile has been successfully uploaded to the database",
-      });
-      
-      // Reload profile to reflect changes
-      const loadUserProfile = async () => {
-        const { data: profileData, error } = await workingSupabase
-          .from('user_profiles')
-          .select('username, display_name, avatar_url')
-          .eq('user_id', user.id);
-
-        if (!error && profileData && profileData.length > 0) {
-          setLoadedProfile(profileData[0]);
-          setUsername(profileData[0].username || profileData[0].display_name || '');
-          setProfilePicture(profileData[0].avatar_url || '');
-          
-          // Trigger app-wide profile update
-          if (onUserUpdate) {
-            const updatedUser = {
-              ...user,
-              user_metadata: {
-                ...user?.user_metadata,
-                username: profileData[0].username || profileData[0].display_name,
-                display_name: profileData[0].display_name,
-                avatar_url: profileData[0].avatar_url
-              }
-            };
-            onUserUpdate(updatedUser);
-          }
-        }
-      };
-      
-      await loadUserProfile();
-      
-      // Clear local profile since it's now in database
-      localStorage.removeItem(`user_profile_${user.id}`);
-      setHasLocalProfile(false);
-      
-    } catch (error) {
-      console.error('Manual sync error:', error);
-      toast({
-        title: "Sync failed",
-        description: "Could not sync profile to database. Please try again.",
+        title: "Save failed",
+        description: "Failed to save profile. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSyncing(false);
+      setIsUpdating(false);
     }
   };
 
@@ -605,27 +361,13 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           </div>
 
           {/* Save Button */}
-          <div className="space-y-3">
-            {/* Sync Button - only show if there's a local profile */}
-            {hasLocalProfile && (
-              <Button
-                onClick={syncProfileToDatabase}
-                disabled={isSyncing}
-                variant="outline"
-                className="w-full"
-              >
-                {isSyncing ? 'Syncing...' : '🔄 Sync Local Profile to Database'}
-              </Button>
-            )}
-            
-            <Button
-              onClick={handleSaveProfile}
-              disabled={!isVerified || isUpdating || username.trim().length < 3}
-              className="w-full"
-            >
-              {isUpdating ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
+          <Button
+            onClick={handleSaveProfile}
+            disabled={!isVerified || isUpdating || username.trim().length < 3}
+            className="w-full"
+          >
+            {isUpdating ? 'Saving...' : 'Save Changes'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
