@@ -32,11 +32,15 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       if (!user?.id) return;
 
       try {
+        console.log('Loading profile for user:', user?.id);
+        
         // Try to load from database first
         const { data: profileData, error } = await workingSupabase
           .from('user_profiles')
           .select('username, display_name, avatar_url')
           .eq('user_id', user.id);
+
+        console.log('Database profile result:', { profileData, error });
 
         if (!error && profileData && profileData.length > 0) {
           console.log('Loaded profile from database:', profileData[0]);
@@ -46,13 +50,14 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           return;
         }
 
+        console.log('No database profile found, using user metadata');
         // Fallback to user metadata
-        setUsername(user?.user_metadata?.username || '');
+        setUsername(user?.user_metadata?.username || user?.user_metadata?.display_name || '');
         setProfilePicture(user?.user_metadata?.avatar_url || '');
       } catch (error) {
         console.error('Error loading profile:', error);
         // Use user metadata on error
-        setUsername(user?.user_metadata?.username || '');
+        setUsername(user?.user_metadata?.username || user?.user_metadata?.display_name || '');
         setProfilePicture(user?.user_metadata?.avatar_url || '');
       }
     };
@@ -132,13 +137,18 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
     setIsUpdating(true);
 
     try {
+      console.log('Attempting to save profile for user:', user?.id);
+      
       // Check if profile exists in database
       const { data: existingProfile, error: checkError } = await workingSupabase
         .from('user_profiles')
         .select('user_id')
         .eq('user_id', user?.id);
         
+      console.log('Database check result:', { existingProfile, checkError });
+        
       if (checkError) {
+        console.error('Database check error:', checkError);
         throw new Error(`Database check failed: ${checkError.message}`);
       }
       
@@ -149,25 +159,33 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         avatar_url: profilePicture || null
       };
       
+      console.log('Profile data to save:', profileData);
+      
       if (existingProfile && existingProfile.length > 0) {
         // Update existing profile
+        console.log('Updating existing profile...');
         const { error: updateError } = await workingSupabase
           .from('user_profiles')
           .update(profileData)
           .eq('user_id', user?.id);
           
         if (updateError) {
+          console.error('Update error:', updateError);
           throw new Error(`Update failed: ${updateError.message}`);
         }
+        console.log('Profile updated successfully');
       } else {
         // Insert new profile
+        console.log('Creating new profile...');
         const { error: insertError } = await workingSupabase
           .from('user_profiles')
           .insert([profileData]);
           
         if (insertError) {
+          console.error('Insert error:', insertError);
           throw new Error(`Insert failed: ${insertError.message}`);
         }
+        console.log('Profile created successfully');
       }
 
       console.log('Profile saved successfully to database');
@@ -194,11 +212,47 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       setIsOpen(false);
     } catch (error) {
       console.error('Profile update error:', error);
-      toast({
-        title: "Save failed",
-        description: "Failed to save profile. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Fallback: Try to save to Supabase auth metadata
+      try {
+        console.log('Attempting fallback to auth metadata...');
+        await supabase.auth.updateUser({
+          data: {
+            username: username.trim(),
+            display_name: username.trim(),
+            avatar_url: profilePicture
+          }
+        });
+        
+        console.log('Fallback save successful');
+        
+        toast({
+          title: "Profile updated!",
+          description: "Your profile has been saved",
+        });
+
+        if (onUserUpdate) {
+          const updatedUser = {
+            ...user,
+            user_metadata: {
+              ...user?.user_metadata,
+              username: username.trim(),
+              display_name: username.trim(),
+              avatar_url: profilePicture
+            }
+          };
+          onUserUpdate(updatedUser);
+        }
+
+        setIsOpen(false);
+      } catch (fallbackError) {
+        console.error('Fallback save also failed:', fallbackError);
+        toast({
+          title: "Save failed",
+          description: "Failed to save profile. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsUpdating(false);
     }
