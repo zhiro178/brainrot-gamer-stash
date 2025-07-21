@@ -434,7 +434,7 @@ export default function Tickets() {
                                         {ticket.category === 'crypto_topup' ? 'Crypto Top-up' : 'Gift Card Top-up'}
                                       </span>
                                       {typeInfo.amount && (
-                                        <span className="text-gaming-success font-medium text-lg">
+                                        <span className="text-gaming-success font-medium text-lg font-mono tabular-nums">
                                           ${parseFloat(typeInfo.amount).toFixed(2)}
                                         </span>
                                       )}
@@ -478,7 +478,7 @@ export default function Tickets() {
                                         <IconComponent className="h-5 w-5" />
                                         {typeInfo.title} Chat
                                         {typeInfo.amount && (
-                                          <span className="text-gaming-success font-bold">
+                                          <span className="text-gaming-success font-bold font-mono tabular-nums">
                                             - ${parseFloat(typeInfo.amount).toFixed(2)}
                                           </span>
                                         )}
@@ -544,7 +544,7 @@ export default function Tickets() {
                                     <div className="flex flex-col">
                                       <span className="text-sm">Purchase Order</span>
                                       {typeInfo.amount && (
-                                        <span className="text-gaming-success font-medium text-lg">
+                                        <span className="text-gaming-success font-medium text-lg font-mono tabular-nums">
                                           ${parseFloat(typeInfo.amount).toFixed(2)}
                                         </span>
                                       )}
@@ -588,7 +588,7 @@ export default function Tickets() {
                                           <IconComponent className="h-5 w-5" />
                                           {typeInfo.title} Chat
                                           {typeInfo.amount && (
-                                            <span className="text-gaming-success font-bold">
+                                            <span className="text-gaming-success font-bold font-mono tabular-nums">
                                               - ${parseFloat(typeInfo.amount).toFixed(2)}
                                             </span>
                                           )}
@@ -757,7 +757,7 @@ export default function Tickets() {
                                     {typeInfo.title}
                                   </div>
                                   {typeInfo.amount && (
-                                    <div className="flex items-center gap-1 text-gaming-success font-bold">
+                                    <div className="flex items-center gap-1 text-gaming-success font-bold font-mono tabular-nums">
                                       <DollarSign className="h-4 w-4" />
                                       {parseFloat(typeInfo.amount).toFixed(2)}
                                     </div>
@@ -804,7 +804,7 @@ export default function Tickets() {
                                         <IconComponent className="h-5 w-5" />
                                         {typeInfo.title} Chat - Admin View
                                         {typeInfo.amount && (
-                                          <span className="text-gaming-success font-bold">
+                                          <span className="text-gaming-success font-bold font-mono tabular-nums">
                                             - ${parseFloat(typeInfo.amount).toFixed(2)}
                                           </span>
                                         )}
