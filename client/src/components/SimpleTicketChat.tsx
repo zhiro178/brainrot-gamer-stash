@@ -241,7 +241,12 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
     // Fallback if somehow not cached
     return {
-      name: userId === currentUser?.id ? 'You' : `User ${userId.slice(-4)}`,
+      name: userId === currentUser?.id 
+        ? (currentUser?.user_metadata?.display_name || 
+           currentUser?.user_metadata?.full_name || 
+           currentUser?.email?.split('@')[0] || 
+           `User ${userId.slice(-4)}`)
+        : `User ${userId.slice(-4)}`,
       username: `user_${userId.slice(-4)}`,
       email: userId === currentUser?.id ? currentUser?.email : '',
       avatar: generateAvatar(`user_${userId.slice(-4)}`),
@@ -351,7 +356,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           if (!error && data && data.length > 0) {
             const profile = data[0];
             newCache[profile.user_id] = {
-              name: profile.user_id === currentUser?.id ? 'You' : (profile.display_name || profile.username || `User ${profile.user_id.slice(-4)}`),
+              name: profile.display_name || profile.username || `User ${profile.user_id.slice(-4)}`,
               username: profile.username || `user_${profile.user_id.slice(-4)}`,
               email: profile.user_id === currentUser?.id ? currentUser?.email : '',
               avatar: profile.avatar_url ? null : generateAvatar(profile.username || profile.user_id),
@@ -361,7 +366,12 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           } else {
             // Fallback for users without profiles
             newCache[userId] = {
-              name: userId === currentUser?.id ? 'You' : `User ${userId.slice(-4)}`,
+              name: userId === currentUser?.id 
+                ? (currentUser?.user_metadata?.display_name || 
+                   currentUser?.user_metadata?.full_name || 
+                   currentUser?.email?.split('@')[0] || 
+                   `User ${userId.slice(-4)}`)
+                : `User ${userId.slice(-4)}`,
               username: `user_${userId.slice(-4)}`,
               email: userId === currentUser?.id ? currentUser?.email : '',
               avatar: generateAvatar(`user_${userId.slice(-4)}`),
@@ -373,7 +383,12 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
           console.error(`Error fetching profile for user ${userId}:`, profileError);
           // Fallback for error cases
           newCache[userId] = {
-            name: userId === currentUser?.id ? 'You' : `User ${userId.slice(-4)}`,
+            name: userId === currentUser?.id 
+              ? (currentUser?.user_metadata?.display_name || 
+                 currentUser?.user_metadata?.full_name || 
+                 currentUser?.email?.split('@')[0] || 
+                 `User ${userId.slice(-4)}`)
+              : `User ${userId.slice(-4)}`,
             username: `user_${userId.slice(-4)}`,
             email: userId === currentUser?.id ? currentUser?.email : '',
             avatar: generateAvatar(`user_${userId.slice(-4)}`),

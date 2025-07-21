@@ -553,7 +553,7 @@ export const CryptoTopupList = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <div className="flex items-center gap-1 text-gaming-success font-bold text-xl">
+                    <div className="flex items-center gap-1 text-gaming-success font-bold text-xl font-mono tabular-nums">
                       <DollarSign className="h-5 w-5" />
                       {parseFloat(amount).toFixed(2)}
                     </div>
