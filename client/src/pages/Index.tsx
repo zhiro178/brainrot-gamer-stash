@@ -621,6 +621,11 @@ const Index = () => {
     }
   };
 
+  const handleUserUpdate = (updatedUser: any) => {
+    console.log('Updating user in Index:', updatedUser);
+    setUser(updatedUser);
+  };
+
   const handleTopUp = async (amount: number, method: string, details?: any) => {
     try {
       if (method === "crypto_ticket" || method === "giftcard_ticket") {
@@ -799,6 +804,7 @@ const Index = () => {
         onLogin={handleLogin}
         onRegister={handleRegister}
         onLogout={handleLogout}
+        onUserUpdate={handleUserUpdate}
       />
       
       {/* Verification Banner */}
