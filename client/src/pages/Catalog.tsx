@@ -69,6 +69,22 @@ export default function Catalog() {
   const handlePurchase = async (item: CatalogItem) => {
     console.log("Purchase item:", item);
     
+    // Helper function to create formatted order summary with logos
+    const createOrderSummary = (item: CatalogItem | CatalogItem[], quantities: { [key: string]: number } = {}) => {
+      if (Array.isArray(item)) {
+        // Multiple items (from cart)
+        return item.map(cartItem => {
+          const qty = quantities[cartItem.id] || 1;
+          const logoLine = cartItem.image.startsWith('http') ? `🖼️ ${cartItem.image}\n` : '';
+          return `${logoLine}• ${cartItem.name} (${cartItem.rarity}) - Qty: ${qty}`;
+        }).join('\n');
+      } else {
+        // Single item
+        const logoLine = item.image.startsWith('http') ? `🖼️ ${item.image}\n` : '';
+        return `${logoLine}• ${item.name} (${item.rarity}) - Qty: 1`;
+      }
+    };
+
     try {
       const { simpleSupabase: workingSupabase } = await import("@/lib/simple-supabase");
       
@@ -198,23 +214,26 @@ export default function Catalog() {
           const ticketId = Array.isArray(ticketData) ? ticketData[0]?.id : (ticketData as any)?.id;
           
           if (ticketId) {
-            // Add user message
+            // Create order summary using helper function
+            const orderSummary = `ORDER SUMMARY:\n${createOrderSummary(item)}`;
+            
+            // Add user message with enhanced order summary
             const userMessageResult = await workingSupabase
               .from('ticket_messages')
               .insert({
                 ticket_id: parseInt(ticketId),
                 user_id: String(user.id),
-                message: `I have ordered ${item.name}. Please deliver the item to my account.`,
+                message: `I have ordered the following item(s):\n\n${orderSummary}\n\nPlease deliver to my account.`,
                 is_admin: false
               });
             
-            // Add admin message
+            // Add admin confirmation message
             const adminMessageResult = await workingSupabase
               .from('ticket_messages')
               .insert({
                 ticket_id: parseInt(ticketId),
                 user_id: "system",
-                message: `✅ Payment received!\nYour order for ${item.name} has been confirmed. We'll deliver the item to your account within **24 hours**.\nThank you for your purchase!`,
+                message: `✅ Payment received!\n\nYour order for (${item.name}) is confirmed.\nDelivery will be completed within 24 hours.\n\nThanks for your purchase!`,
                 is_admin: true
               });
             

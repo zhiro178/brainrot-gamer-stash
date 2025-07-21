@@ -35,6 +35,54 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Helper function to render message content with image support
+  const renderMessageContent = (messageText: string) => {
+    // Check if message contains image URLs (🖼️ prefix indicates an image URL)
+    const parts = messageText.split('🖼️ ');
+    
+    if (parts.length === 1) {
+      // No images, render normal text
+      return <span className="whitespace-pre-wrap break-words">{messageText}</span>;
+    }
+    
+    // Has images, render with image components
+    return (
+      <div className="space-y-2">
+        {parts.map((part, index) => {
+          if (index === 0) {
+            // First part is always text
+            return part && <div key={index} className="whitespace-pre-wrap break-words">{part}</div>;
+          }
+          
+          // Extract URL and remaining text
+          const [url, ...textParts] = part.split('\n');
+          const remainingText = textParts.join('\n');
+          
+          return (
+            <div key={index} className="space-y-2">
+              {url && (
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={url.trim()} 
+                    alt="Item" 
+                    className="w-8 h-8 object-cover rounded border border-primary/20"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground">Item Image</span>
+                </div>
+              )}
+              {remainingText && (
+                <div className="whitespace-pre-wrap break-words">{remainingText}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   // Check if ticket is closed/resolved and messaging should be disabled
   const isTicketClosed = ticketStatus === 'resolved' || ticketStatus === 'closed';
   const canMessage = !isTicketClosed;
@@ -435,7 +483,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                               ? 'text-white' 
                               : 'text-foreground'
                         }`}>
-                          {message.message}
+                          {renderMessageContent(message.message)}
                         </p>
                       </div>
                     </div>
