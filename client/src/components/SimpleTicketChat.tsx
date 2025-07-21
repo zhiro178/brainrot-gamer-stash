@@ -628,7 +628,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                         style={isAdminMessage ? { backgroundColor: '#4fd1c5' } : undefined}
                       >
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={`text-xs font-medium ${
+                          <span className={`text-xs font-bold ${
                             isAdminMessage 
                               ? 'text-black' 
                               : isCurrentUser 
