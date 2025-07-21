@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { User, Upload, Check, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, handleSupabaseError } from "@/lib/supabase";
+import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
 
 interface UserProfileProps {
   user: any;
@@ -21,13 +22,53 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.avatar_url || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [loadedProfile, setLoadedProfile] = useState<any>(null);
   const { toast } = useToast();
 
   const isVerified = user?.email_confirmed_at !== null;
 
   useEffect(() => {
-    setUsername(user?.user_metadata?.username || '');
-    setProfilePicture(user?.user_metadata?.avatar_url || '');
+    const loadUserProfile = async () => {
+      if (!user?.id) return;
+
+      try {
+        // Try to load from database first
+        const { data: profileData, error } = await workingSupabase
+          .from('user_profiles')
+          .select('username, display_name, avatar_url')
+          .eq('user_id', user.id);
+
+        if (!error && profileData && profileData.length > 0) {
+          console.log('Loaded profile from database:', profileData[0]);
+          setLoadedProfile(profileData[0]);
+          setUsername(profileData[0].username || profileData[0].display_name || '');
+          setProfilePicture(profileData[0].avatar_url || '');
+          return;
+        }
+
+        // Fallback to localStorage
+        const localProfile = localStorage.getItem(`user_profile_${user.id}`);
+        if (localProfile) {
+          const parsed = JSON.parse(localProfile);
+          console.log('Loaded profile from localStorage:', parsed);
+          setLoadedProfile(parsed);
+          setUsername(parsed.username || parsed.display_name || '');
+          setProfilePicture(parsed.avatar_url || '');
+          return;
+        }
+
+        // Final fallback to user metadata
+        setUsername(user?.user_metadata?.username || '');
+        setProfilePicture(user?.user_metadata?.avatar_url || '');
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        // Use original values on error
+        setUsername(user?.user_metadata?.username || '');
+        setProfilePicture(user?.user_metadata?.avatar_url || '');
+      }
+    };
+
+    loadUserProfile();
   }, [user]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,31 +143,103 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
     setIsUpdating(true);
 
     try {
-      // Try to update profile via Supabase
-      const { data, error } = await supabase.auth.updateUser({
-        data: {
-          username: username.trim(),
-          avatar_url: profilePicture
-        }
-      });
+      // Save to user_profiles table (what the chat system uses)
+      const profileData = {
+        user_id: user?.id,
+        username: username.trim(),
+        display_name: username.trim(),
+        avatar_url: profilePicture || null,
+        updated_at: new Date().toISOString()
+      };
 
-      if (error) throw error;
+      console.log('Saving profile data:', profileData);
+
+      // Check if profile exists first
+      const { data: existingProfiles, error: checkError } = await workingSupabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('user_id', user?.id);
+
+      if (checkError) {
+        console.error('Error checking existing profile:', checkError);
+        throw new Error(`Database check failed: ${checkError.message}`);
+      }
+
+      if (existingProfiles && existingProfiles.length > 0) {
+        // Update existing profile
+        const { error: updateError } = await workingSupabase
+          .from('user_profiles')
+          .update({
+            username: username.trim(),
+            display_name: username.trim(),
+            avatar_url: profilePicture || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user?.id);
+          
+        if (updateError) {
+          throw new Error(`Update failed: ${updateError.message}`);
+        }
+        console.log('Profile updated successfully');
+      } else {
+        // Insert new profile
+        const { error: insertError } = await workingSupabase
+          .from('user_profiles')
+          .insert([{
+            user_id: user?.id,
+            username: username.trim(),
+            display_name: username.trim(),
+            avatar_url: profilePicture || null
+          }]);
+          
+        if (insertError) {
+          throw new Error(`Insert failed: ${insertError.message}`);
+        }
+        console.log('Profile created successfully');
+      }
+
+      console.log('Profile saved successfully to database');
+
+      // Also try to update Supabase auth metadata (secondary)
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            username: username.trim(),
+            avatar_url: profilePicture
+          }
+        });
+        console.log('Auth metadata updated successfully');
+      } catch (authError) {
+        console.error('Auth metadata update error:', authError);
+        // Non-critical error, continue
+      }
 
       // Update localStorage as backup
       const userProfile = {
         username: username.trim(),
+        display_name: username.trim(),
         avatar_url: profilePicture,
         updated_at: new Date().toISOString()
       };
       localStorage.setItem(`user_profile_${user?.id}`, JSON.stringify(userProfile));
+      console.log('Profile saved to localStorage');
 
       toast({
         title: "Profile updated!",
         description: "Your profile has been saved successfully",
       });
 
-      if (onUserUpdate && data.user) {
-        onUserUpdate(data.user);
+      if (onUserUpdate) {
+        // Create updated user object
+        const updatedUser = {
+          ...user,
+          user_metadata: {
+            ...user?.user_metadata,
+            username: username.trim(),
+            avatar_url: profilePicture
+          }
+        };
+        onUserUpdate(updatedUser);
       }
 
       setIsOpen(false);
@@ -137,6 +250,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       try {
         const userProfile = {
           username: username.trim(),
+          display_name: username.trim(),
           avatar_url: profilePicture,
           updated_at: new Date().toISOString()
         };
@@ -144,13 +258,17 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         
         toast({
           title: "Profile saved locally",
-          description: "Profile saved to local storage. Changes will sync when connection is restored.",
+          description: "Profile saved locally. It may not appear in chat until database connection is restored.",
+          variant: "destructive",
         });
         
         setIsOpen(false);
       } catch (localError) {
-        const errorInfo = handleSupabaseError(error, "Failed to update profile");
-        toast(errorInfo);
+        toast({
+          title: "Save failed",
+          description: "Failed to save profile. Please try again.",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsUpdating(false);
@@ -178,6 +296,15 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   };
 
   const getUserDisplayName = () => {
+    // Use loaded profile data first
+    if (loadedProfile?.display_name) {
+      return loadedProfile.display_name;
+    }
+    if (loadedProfile?.username) {
+      return loadedProfile.username;
+    }
+    
+    // Fallback to user metadata
     if (user?.user_metadata?.username) {
       return user.user_metadata.username;
     }
@@ -195,7 +322,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         <Button variant="ghost" className="p-0 h-auto">
           <div className="flex items-center space-x-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.user_metadata?.avatar_url} alt={getUserDisplayName()} />
+              <AvatarImage src={loadedProfile?.avatar_url || user?.user_metadata?.avatar_url} alt={getUserDisplayName()} />
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {getUserInitials()}
               </AvatarFallback>
