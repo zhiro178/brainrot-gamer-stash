@@ -133,15 +133,15 @@ export const CryptoTopupList = () => {
 
   const getRequestType = (category: string, message: string) => {
     if (category === 'giftcard_topup') {
-      return { type: 'Gift Card', icon: CreditCard, color: 'bg-blue-500' };
+      return { type: 'Gift Card', icon: CreditCard, color: 'bg-[#22C55E]' };
     }
     if (message.toLowerCase().includes('ltc') || message.toLowerCase().includes('litecoin')) {
-      return { type: 'LTC', icon: ({ className }: { className?: string }) => <BitcoinIcon className={className} />, color: 'bg-orange-500' };
+      return { type: 'LTC', icon: ({ className }: { className?: string }) => <BitcoinIcon className={className} />, color: 'bg-[#22C55E]' };
     }
     if (message.toLowerCase().includes('sol') || message.toLowerCase().includes('solana')) {
-      return { type: 'SOL', icon: ({ className }: { className?: string }) => <SolanaIcon className={className} />, color: 'bg-purple-500' };
+      return { type: 'SOL', icon: ({ className }: { className?: string }) => <SolanaIcon className={className} />, color: 'bg-[#22C55E]' };
     }
-    return { type: 'Crypto', icon: ({ className }: { className?: string }) => <CryptoIcon className={className} />, color: 'bg-primary' };
+    return { type: 'Crypto', icon: ({ className }: { className?: string }) => <CryptoIcon className={className} />, color: 'bg-[#22C55E]' };
   };
 
   const getStatusColor = (status: string) => {
