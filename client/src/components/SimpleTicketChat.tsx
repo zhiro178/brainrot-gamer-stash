@@ -176,7 +176,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
     fetchMessages();
     
-    // Set up polling for new messages since our working client doesn't support real-time subscriptions
+    // Set up polling for new messages
     const pollInterval = setInterval(() => {
       fetchMessages();
     }, 3000); // Poll every 3 seconds
@@ -187,8 +187,22 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   }, [ticketId, currentUser]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Only auto-scroll when new messages are added, and only if user is near bottom
+    if (messages.length > 0) {
+      const scrollArea = messagesEndRef.current?.parentElement?.parentElement;
+      if (scrollArea) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollArea;
+        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px tolerance
+        
+        if (isNearBottom) {
+          // Small delay to ensure DOM is updated
+          setTimeout(() => {
+            scrollToBottom();
+          }, 100);
+        }
+      }
+    }
+  }, [messages.length]); // Only trigger when message count changes
 
   const fetchMessages = async () => {
     try {

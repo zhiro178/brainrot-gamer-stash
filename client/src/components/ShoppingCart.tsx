@@ -50,7 +50,26 @@ export function ShoppingCart() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="text-2xl">{item.image}</div>
+                        <div className="w-12 h-12 flex items-center justify-center">
+                          {item.image.startsWith('http') ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded border border-primary/20"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <span 
+                            className={`text-2xl ${item.image.startsWith('http') ? 'hidden' : 'block'}`}
+                            style={{ display: item.image.startsWith('http') ? 'none' : 'block' }}
+                          >
+                            {item.image.startsWith('http') ? '🎁' : item.image}
+                          </span>
+                        </div>
                         <div>
                           <h3 className="font-semibold">{item.name}</h3>
                           <p className="text-sm text-muted-foreground">{item.rarity}</p>
