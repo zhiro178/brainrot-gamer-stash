@@ -24,9 +24,18 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [hasLocalProfile, setHasLocalProfile] = useState(false);
   const { toast } = useToast();
 
   const isVerified = user?.email_confirmed_at !== null;
+
+  // Check for local profile whenever component updates
+  useEffect(() => {
+    if (user?.id) {
+      const localProfile = localStorage.getItem(`user_profile_${user.id}`);
+      setHasLocalProfile(!!localProfile);
+    }
+  }, [user?.id, isOpen]);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -288,12 +297,15 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           user_metadata: {
             ...user?.user_metadata,
             username: username.trim(),
+            display_name: username.trim(),
             avatar_url: profilePicture
           }
         };
         onUserUpdate(updatedUser);
       }
 
+      // Clear local profile flag since it's now in database
+      setHasLocalProfile(false);
       setIsOpen(false);
     } catch (error) {
       console.error('Profile update error:', error);
@@ -401,10 +413,28 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           setLoadedProfile(profileData[0]);
           setUsername(profileData[0].username || profileData[0].display_name || '');
           setProfilePicture(profileData[0].avatar_url || '');
+          
+          // Trigger app-wide profile update
+          if (onUserUpdate) {
+            const updatedUser = {
+              ...user,
+              user_metadata: {
+                ...user?.user_metadata,
+                username: profileData[0].username || profileData[0].display_name,
+                display_name: profileData[0].display_name,
+                avatar_url: profileData[0].avatar_url
+              }
+            };
+            onUserUpdate(updatedUser);
+          }
         }
       };
       
-      loadUserProfile();
+      await loadUserProfile();
+      
+      // Clear local profile since it's now in database
+      localStorage.removeItem(`user_profile_${user.id}`);
+      setHasLocalProfile(false);
       
     } catch (error) {
       console.error('Manual sync error:', error);
@@ -577,7 +607,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           {/* Save Button */}
           <div className="space-y-3">
             {/* Sync Button - only show if there's a local profile */}
-            {localStorage.getItem(`user_profile_${user?.id}`) && (
+            {hasLocalProfile && (
               <Button
                 onClick={syncProfileToDatabase}
                 disabled={isSyncing}
