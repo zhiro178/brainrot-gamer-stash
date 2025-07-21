@@ -50,13 +50,44 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           return;
         }
 
-        console.log('No database profile found, using user metadata');
+        // Try localStorage backup
+        const localBackup = localStorage.getItem(`user_profile_${user.id}`);
+        if (localBackup) {
+          try {
+            const parsed = JSON.parse(localBackup);
+            console.log('Loaded profile from localStorage backup:', parsed);
+            setLoadedProfile(parsed);
+            setUsername(parsed.username || parsed.display_name || '');
+            setProfilePicture(parsed.avatar_url || '');
+            return;
+          } catch (parseError) {
+            console.error('Error parsing localStorage backup:', parseError);
+          }
+        }
+
+        console.log('No database profile or backup found, using user metadata');
         // Fallback to user metadata
         setUsername(user?.user_metadata?.username || user?.user_metadata?.display_name || '');
         setProfilePicture(user?.user_metadata?.avatar_url || '');
       } catch (error) {
         console.error('Error loading profile:', error);
-        // Use user metadata on error
+        
+        // Try localStorage backup on error
+        const localBackup = localStorage.getItem(`user_profile_${user.id}`);
+        if (localBackup) {
+          try {
+            const parsed = JSON.parse(localBackup);
+            console.log('Using localStorage backup due to error:', parsed);
+            setLoadedProfile(parsed);
+            setUsername(parsed.username || parsed.display_name || '');
+            setProfilePicture(parsed.avatar_url || '');
+            return;
+          } catch (parseError) {
+            console.error('Error parsing localStorage backup during error recovery:', parseError);
+          }
+        }
+        
+        // Final fallback to user metadata
         setUsername(user?.user_metadata?.username || user?.user_metadata?.display_name || '');
         setProfilePicture(user?.user_metadata?.avatar_url || '');
       }
@@ -139,6 +170,19 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
     try {
       console.log('Attempting to save profile for user:', user?.id);
       
+      // First, let's test if we can connect to the database at all
+      const { data: testData, error: testError } = await workingSupabase
+        .from('user_profiles')
+        .select('count')
+        .limit(1);
+      
+      console.log('Database connection test:', { testData, testError });
+      
+      if (testError && testError.message.includes('does not exist')) {
+        console.log('user_profiles table does not exist, using fallback only');
+        throw new Error('Table does not exist');
+      }
+      
       // Check if profile exists in database
       const { data: existingProfile, error: checkError } = await workingSupabase
         .from('user_profiles')
@@ -190,9 +234,23 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
 
       console.log('Profile saved successfully to database');
 
+      // Also save to auth metadata as secondary storage
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            username: username.trim(),
+            display_name: username.trim(),
+            avatar_url: profilePicture
+          }
+        });
+        console.log('Auth metadata also updated');
+      } catch (authError) {
+        console.log('Auth metadata update failed:', authError);
+      }
+
       toast({
         title: "Profile updated!",
-        description: "Your profile has been saved successfully",
+        description: "Your profile has been saved to the database",
       });
 
       if (onUserUpdate) {
@@ -216,7 +274,8 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       // Fallback: Try to save to Supabase auth metadata
       try {
         console.log('Attempting fallback to auth metadata...');
-        await supabase.auth.updateUser({
+        
+        const { data: updateData, error: updateError } = await supabase.auth.updateUser({
           data: {
             username: username.trim(),
             display_name: username.trim(),
@@ -224,11 +283,28 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           }
         });
         
+        console.log('Auth update result:', { updateData, updateError });
+        
+        if (updateError) {
+          throw updateError;
+        }
+        
         console.log('Fallback save successful');
+        
+        // Also save to localStorage as backup
+        const profileBackup = {
+          user_id: user?.id,
+          username: username.trim(),
+          display_name: username.trim(),
+          avatar_url: profilePicture,
+          updated_at: new Date().toISOString()
+        };
+        localStorage.setItem(`user_profile_${user?.id}`, JSON.stringify(profileBackup));
+        console.log('Profile also saved to localStorage backup');
         
         toast({
           title: "Profile updated!",
-          description: "Your profile has been saved",
+          description: "Your profile has been saved successfully",
         });
 
         if (onUserUpdate) {

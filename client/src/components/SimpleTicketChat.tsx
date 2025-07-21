@@ -241,7 +241,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
     }
 
     // Fallback if somehow not cached
-    return {
+    const fallbackInfo = {
       name: userId === currentUser?.id 
         ? (currentUser?.user_metadata?.display_name || 
            currentUser?.user_metadata?.username ||
@@ -255,6 +255,29 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
       avatarUrl: userId === currentUser?.id ? currentUser?.user_metadata?.avatar_url : null,
       isEmoji: false
     };
+    
+    // Try localStorage backup for current user before returning
+    if (userId === currentUser?.id) {
+      try {
+        const localBackup = localStorage.getItem(`user_profile_${userId}`);
+        if (localBackup) {
+          const parsed = JSON.parse(localBackup);
+          console.log('Using localStorage backup in getUserInfo fallback:', parsed);
+          return {
+            name: parsed.display_name || parsed.username || fallbackInfo.name,
+            username: parsed.username || `user_${userId.slice(-4)}`,
+            email: currentUser?.email || '',
+            avatar: parsed.avatar_url ? null : generateAvatar(parsed.username || userId),
+            avatarUrl: parsed.avatar_url || currentUser?.user_metadata?.avatar_url,
+            isEmoji: false
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing localStorage backup in getUserInfo:', error);
+      }
+    }
+    
+    return fallbackInfo;
   };
 
   // Refresh user profiles when current user is updated
@@ -399,6 +422,27 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
               avatarUrl: userId === currentUser?.id ? currentUser?.user_metadata?.avatar_url : null,
               isEmoji: false
             };
+            
+            // Check localStorage backup for current user
+            if (userId === currentUser?.id) {
+              try {
+                const localBackup = localStorage.getItem(`user_profile_${userId}`);
+                if (localBackup) {
+                  const parsed = JSON.parse(localBackup);
+                  console.log('Using localStorage backup for chat display:', parsed);
+                  newCache[userId] = {
+                    name: parsed.display_name || parsed.username || newCache[userId].name,
+                    username: parsed.username || newCache[userId].username,
+                    email: currentUser?.email || '',
+                    avatar: parsed.avatar_url ? null : generateAvatar(parsed.username || userId),
+                    avatarUrl: parsed.avatar_url || currentUser?.user_metadata?.avatar_url,
+                    isEmoji: false
+                  };
+                }
+              } catch (error) {
+                console.error('Error parsing localStorage backup in chat:', error);
+              }
+            }
           }
         } catch (profileError) {
           console.error(`Error fetching profile for user ${userId}:`, profileError);

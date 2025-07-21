@@ -11,6 +11,42 @@ interface SimpleQuery {
 }
 
 class SimpleSupabaseClient {
+  // Add method to create user_profiles table if needed
+  async createUserProfilesTable() {
+    try {
+      const createTableSQL = `
+        CREATE TABLE IF NOT EXISTS public.user_profiles (
+          id SERIAL PRIMARY KEY,
+          user_id TEXT NOT NULL UNIQUE,
+          username TEXT,
+          display_name TEXT,
+          avatar_url TEXT,
+          bio TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+        );
+        
+        ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+        
+        CREATE POLICY IF NOT EXISTS "Users can view all profiles" ON public.user_profiles
+            FOR SELECT USING (true);
+        
+        CREATE POLICY IF NOT EXISTS "Users can create own profile" ON public.user_profiles
+            FOR INSERT WITH CHECK (true);
+        
+        CREATE POLICY IF NOT EXISTS "Users can update own profile" ON public.user_profiles
+            FOR UPDATE USING (true);
+      `;
+      
+      // This would normally require SQL execution privileges
+      console.log('Would create user_profiles table with SQL:', createTableSQL);
+      return { success: false, message: 'Table creation requires database admin access' };
+    } catch (error) {
+      console.error('Table creation error:', error);
+      return { success: false, message: String(error) };
+    }
+  }
+
   from(table: string) {
     return {
       select: (columns = '*') => this.createQuery(table, columns),
