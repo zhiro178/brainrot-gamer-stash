@@ -268,7 +268,7 @@ function CheckoutDialog({ isOpen, onOpenChange, items, totalPrice }: CheckoutDia
           .from('support_tickets')
           .insert({
             user_id: String(user.id),
-            subject: `Bulk Purchase Order - ${items.length} items`,
+            subject: `Bulk Purchase Order - ${items.length} items - $${totalPrice.toFixed(2)}`,
             message: `Bulk purchase completed.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
             status: 'open',
             category: 'purchase'
@@ -381,8 +381,27 @@ function CheckoutDialog({ isOpen, onOpenChange, items, totalPrice }: CheckoutDia
             <CardContent className="space-y-2">
               {items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{item.image}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 flex items-center justify-center">
+                      {item.image.startsWith('http') ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-8 h-8 object-cover rounded border border-primary/20"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'block';
+                          }}
+                        />
+                      ) : null}
+                      <span 
+                        className={`text-lg ${item.image.startsWith('http') ? 'hidden' : 'block'}`}
+                        style={{ display: item.image.startsWith('http') ? 'none' : 'block' }}
+                      >
+                        {item.image.startsWith('http') ? '🎁' : item.image}
+                      </span>
+                    </div>
                     <div>
                       <p className="font-medium">{item.name}</p>
                       <p className="text-xs text-muted-foreground">

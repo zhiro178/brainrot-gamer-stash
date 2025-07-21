@@ -198,7 +198,7 @@ export default function Catalog() {
           .from('support_tickets')
           .insert({
             user_id: String(user.id),
-            subject: `Purchase Claim - ${item.name}`,
+            subject: `Purchase Claim - ${item.name} - $${item.price.toFixed(2)}`,
             message: `Purchase completed for: ${item.name} - Price: $${item.price}. Please deliver the item.`,
             status: 'open',
             category: 'purchase'
