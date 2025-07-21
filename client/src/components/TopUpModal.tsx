@@ -207,7 +207,7 @@ export function TopUpModal({ user }: { user?: any }) {
       const ticketData = {
         user_id: currentUser.id,
         subject: `Gift Card Top-up - $${amount}`,
-        message: `Gift card top-up request: $${amount} USD Amazon gift card with code: ${giftCardCode}`,
+        message: `Gift card top-up request: $${amount}`,
         status: "open",
         category: "giftcard_topup",
       };
@@ -242,20 +242,20 @@ export function TopUpModal({ user }: { user?: any }) {
       
       // Add initial messages if we have a ticket ID
       if (ticketId) {
-        // Add initial user message
+        // Add initial user message with gift card code
         await workingSupabase.from("ticket_messages").insert({
           ticket_id: ticketId,
           user_id: currentUser.id,
-          message: `Gift card details: ${giftCardCode} for $${amount}`,
-          sender_type: "user",
+          message: `Amazon gift card code: ${giftCardCode}`,
+          is_admin: false,
         });
         
         // Add initial admin acknowledgment
         await workingSupabase.from("ticket_messages").insert({
           ticket_id: ticketId,
           user_id: "system",
-          message: "Thank you for submitting your gift card details. Our team will verify and process your top-up request shortly.",
-          sender_type: "admin",
+          message: `Hello! Thank you for your Amazon Gift Card top-up request of $${amount} USD. We've received your gift card code and will verify it shortly. Once confirmed, your account will be credited accordingly. Only admins will contact you here—never share your code elsewhere. Let us know if you have any questions!`,
+          is_admin: true,
         });
       }
 
