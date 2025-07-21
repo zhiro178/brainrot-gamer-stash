@@ -236,49 +236,50 @@ function CheckoutDialog({ isOpen, onOpenChange, items, totalPrice }: CheckoutDia
       // Cache the new balance
       localStorage.setItem(`user_balance_${user.id}`, newBalance.toString());
       
-             // Create order summary for ticket
-       const itemsList = items.map(item => 
-         `• ${item.name} (${item.rarity}) - Qty: ${item.quantity}`
-       ).join('\n');
-       
-       const orderSummary = `ORDER SUMMARY:\n${itemsList}`;
-      
-             // Create purchase ticket
-       const ticketResult = await workingSupabase
-         .from('support_tickets')
-         .insert({
-           user_id: String(user.id),
-           subject: `Bulk Purchase Order - ${items.length} items`,
-           message: `Bulk purchase completed.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
-           status: 'open',
-           category: 'purchase'
-         });
-      
-      const ticketData = ticketResult.data;
-      const error = ticketResult.error;
-      
-      if (!error && ticketData) {
-        const ticketId = Array.isArray(ticketData) ? ticketData[0]?.id : (ticketData as any)?.id;
+             // Create enhanced order summary with proper formatting and images
+        const itemsList = items.map(item => {
+          const logoLine = item.image.startsWith('http') ? `🖼️ ${item.image}\n` : '';
+          return `${logoLine}• ${item.name} (${item.rarity}) - Qty: ${item.quantity}`;
+        }).join('\n');
         
-                           if (ticketId) {
-            // Add user message  
+        const orderSummary = `ORDER SUMMARY:\n${itemsList}`;
+        
+        // Create purchase ticket
+        const ticketResult = await workingSupabase
+          .from('support_tickets')
+          .insert({
+            user_id: String(user.id),
+            subject: `Bulk Purchase Order - ${items.length} items`,
+            message: `Bulk purchase completed.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
+            status: 'open',
+            category: 'purchase'
+          });
+        
+        const ticketData = ticketResult.data;
+        const error = ticketResult.error;
+        
+        if (!error && ticketData) {
+          const ticketId = Array.isArray(ticketData) ? ticketData[0]?.id : (ticketData as any)?.id;
+          
+          if (ticketId) {
+            // Add user message with detailed order summary
             await workingSupabase
               .from('ticket_messages')
               .insert({
                 ticket_id: parseInt(ticketId),
                 user_id: String(user.id),
-                message: `I have ordered ${items.length} items.\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
+                message: `I have ordered the following item(s):\n\n${orderSummary}\n\nPlease deliver all items to my account.`,
                 is_admin: false
               });
             
-            // Add admin message
+            // Add admin confirmation message
             const itemNames = items.map(item => item.name).join(', ');
             await workingSupabase
               .from('ticket_messages')
               .insert({
                 ticket_id: parseInt(ticketId),
                 user_id: "system",
-                message: `✅ Payment received!\nYour order for ${itemNames} has been confirmed. We'll deliver the items to your account within **24 hours**.\nThank you for your purchase!`,
+                message: `✅ Payment received!\n\nYour order for (${itemNames}) is confirmed.\nDelivery will be completed within 24 hours.\n\nThanks for your purchase!`,
                 is_admin: true
               });
           }
