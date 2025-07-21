@@ -223,14 +223,14 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   };
 
   // Get user display info (now uses preloaded cache)
-  const getUserInfo = (userId: string, isAdmin: boolean) => {
-    if (isAdmin) {
+  const getUserInfo = (userId: string, isAdminMessage: boolean) => {
+    if (isAdminMessage) {
       return {
-        name: 'Support Team',
-        email: 'support@592stock.com',
+        name: 'Support',
+        email: 'support@system.com',
         avatar: '🛡️',
-        isEmoji: true,
-        avatarUrl: null
+        isEmoji: false,
+        avatarUrl: 'https://cdn-icons-png.flaticon.com/512/6843/6843785.png'
       };
     }
     
@@ -653,12 +653,12 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
               {isAdmin ? (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 bg-gaming-accent rounded-full"></span>
-                  💼 Replying as Support Team
+                  💼 Replying as Support
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                  � Chat with support team
+                  💬 Chat with support
                 </span>
               )}
             </div>

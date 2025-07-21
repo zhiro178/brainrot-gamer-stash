@@ -233,7 +233,7 @@ export default function Catalog() {
               .insert({
                 ticket_id: parseInt(ticketId),
                 user_id: "system",
-                message: `✅ Payment received!\n\nYour order for (${item.name}) is confirmed.\nDelivery will be completed within 24 hours.\n\nThanks for your purchase!`,
+                message: `✅ Payment received!\n\nYour order is confirmed.\nDelivery will be completed within 24 hours.\n\nThanks for your purchase!`,
                 is_admin: true
               });
             

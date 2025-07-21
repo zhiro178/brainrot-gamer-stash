@@ -446,7 +446,12 @@ export default function Tickets() {
                                 </div>
                                 <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-2">
                                   <Clock className="h-3 w-3" />
-                                  {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                                  {new Date(ticket.created_at).toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </CardDescription>
                               </CardHeader>
                               
@@ -551,7 +556,12 @@ export default function Tickets() {
                                 </div>
                                 <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-2">
                                   <Clock className="h-3 w-3" />
-                                  {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                                  {new Date(ticket.created_at).toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </CardDescription>
                               </CardHeader>
                               
@@ -643,7 +653,7 @@ export default function Tickets() {
                                       <IconComponent className="h-5 w-5" />
                                     </div>
                                     <div className="flex flex-col">
-                                      <span className="text-sm">{ticket.category || 'General Support'}</span>
+                                      <span className="text-sm">{ticket.category === 'general' ? 'Support Q&A' : ticket.category || 'Support Q&A'}</span>
                                       <span className="text-xs text-muted-foreground font-normal">
                                         {ticket.subject || 'Support Request'}
                                       </span>
@@ -655,7 +665,12 @@ export default function Tickets() {
                                 </div>
                                 <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-2">
                                   <Clock className="h-3 w-3" />
-                                  {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                                  {new Date(ticket.created_at).toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </CardDescription>
                               </CardHeader>
                               
@@ -758,7 +773,12 @@ export default function Tickets() {
                                 </div>
                               </div>
                               <CardDescription className="text-muted-foreground">
-                                User: {ticket.user_id} | Created: {new Date(ticket.created_at).toLocaleDateString()} at {new Date(ticket.created_at).toLocaleTimeString()}
+                                User: {ticket.user_id} | Created: {new Date(ticket.created_at).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
                               </CardDescription>
                             </CardHeader>
                             
