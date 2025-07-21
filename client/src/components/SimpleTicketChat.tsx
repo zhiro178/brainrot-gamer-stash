@@ -259,8 +259,17 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
   // Refresh user profiles when current user is updated
   useEffect(() => {
+    console.log('Current user metadata check:', {
+      username: currentUser?.user_metadata?.username,
+      display_name: currentUser?.user_metadata?.display_name,
+      avatar_url: currentUser?.user_metadata?.avatar_url,
+      full_user: currentUser
+    });
+    
     if (currentUser?.user_metadata?.username || currentUser?.user_metadata?.display_name) {
       console.log('Current user updated, refreshing profiles...');
+      // Clear the cache completely to force refresh
+      setUserCache({});
       setProfileRefreshTrigger(prev => prev + 1);
     }
   }, [currentUser?.user_metadata?.username, currentUser?.user_metadata?.display_name, currentUser?.user_metadata?.avatar_url]);

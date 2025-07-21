@@ -20,9 +20,10 @@ interface NavbarProps {
   onLogin: (email: string, password: string) => void;
   onRegister: (email: string, password: string) => void;
   onLogout: () => void;
+  onUserUpdate?: (user: any) => void;
 }
 
-export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin, onRegister, onLogout }: NavbarProps) => {
+export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin, onRegister, onLogout, onUserUpdate }: NavbarProps) => {
   const [, setLocation] = useLocation();
   const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
   
@@ -152,7 +153,7 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
                   </div>
                 </div>
                 
-                <UserProfile user={user} />
+                <UserProfile user={user} onUserUpdate={onUserUpdate} />
                 
                 {(!isUserAdmin || isAdminMode) && (
                   <Button 
