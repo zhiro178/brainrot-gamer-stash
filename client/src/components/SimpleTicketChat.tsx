@@ -633,7 +633,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                               ? 'text-black' 
                               : isCurrentUser 
                                 ? 'text-white/90' 
-                                : 'text-muted-foreground'
+                                : 'text-black'
                           }`}>
                             {userInfo.name}
                           </span>
