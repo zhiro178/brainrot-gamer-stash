@@ -242,11 +242,19 @@ export function TopUpModal({ user }: { user?: any }) {
       
       // Add initial messages if we have a ticket ID
       if (ticketId) {
-        // Add initial admin acknowledgment asking for the code
+        // Add user message with the gift card code
+        await workingSupabase.from("ticket_messages").insert({
+          ticket_id: ticketId,
+          user_id: currentUser.id,
+          message: `Hello! Here's my Amazon Gift Card code for the $${amount} top-up: ${giftCardCode}. Please verify and credit my account when it's ready. Thank you!`,
+          is_admin: false,
+        });
+
+        // Add initial admin acknowledgment
         await workingSupabase.from("ticket_messages").insert({
           ticket_id: ticketId,
           user_id: "system",
-          message: `Hello! Thank you for your Amazon Gift Card top-up request of $${amount}. Please send the gift card code in this chat for verification. Once the code is confirmed, your account will be credited accordingly.`,
+          message: `Hello! Thank you for your Amazon Gift Card top-up request of $${amount}. Once the code is verified, your account will be credited accordingly.`,
           is_admin: true,
         });
       }
