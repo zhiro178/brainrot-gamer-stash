@@ -52,7 +52,8 @@ export default function Admin() {
       // Load user profiles for all ticket users
       if (data && data.length > 0) {
         const uniqueUserIds = Array.from(new Set(data.map((ticket: any) => ticket.user_id)));
-        loadUserProfiles(uniqueUserIds);
+        console.log('Loading profiles for users:', uniqueUserIds);
+        await loadUserProfiles(uniqueUserIds);
       }
     } catch (error) {
       console.error('Error fetching support tickets:', error);
@@ -62,6 +63,7 @@ export default function Admin() {
 
   const loadUserProfiles = async (userIds: string[]) => {
     try {
+      console.log('loadUserProfiles called with:', userIds);
       const profilesMap: {[key: string]: any} = {};
       
       for (const userId of userIds) {
@@ -96,6 +98,7 @@ export default function Admin() {
         }
       }
       
+      console.log('Setting user profiles:', profilesMap);
       setUserProfiles(profilesMap);
     } catch (error) {
       console.error('Error loading user profiles:', error);
@@ -242,6 +245,7 @@ export default function Admin() {
                               <p className="text-sm text-muted-foreground">
                                 {new Date(ticket.created_at).toLocaleDateString()} • 
                                 User: {userProfiles[ticket.user_id]?.name || `User ${ticket.user_id?.slice(-4)}`}
+                                <br />Debug: {JSON.stringify(userProfiles[ticket.user_id] || 'not found')}
                               </p>
                             </div>
                           </div>
