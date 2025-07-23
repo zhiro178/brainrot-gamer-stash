@@ -20,19 +20,16 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [username, setUsername] = useState(user?.user_metadata?.username || '');
   const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.avatar_url || '');
-  const [displayAvatar, setDisplayAvatar] = useState(user?.user_metadata?.avatar_url || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
+  
+  // Single source of truth for avatar display - no flickering
+  const getDisplayAvatar = () => {
+    return profilePicture || loadedProfile?.avatar_url || user?.user_metadata?.avatar_url || '';
+  };
 
-  // Debug avatar state (only log when there are changes)
-  useEffect(() => {
-    console.log('Avatar state changed:', {
-      userMetadataAvatar: user?.user_metadata?.avatar_url,
-      displayAvatar,
-      loadedProfileAvatar: loadedProfile?.avatar_url
-    });
-  }, [displayAvatar, user?.user_metadata?.avatar_url, loadedProfile?.avatar_url]);
+
   const { toast } = useToast();
 
   const isVerified = user?.email_confirmed_at !== null;
@@ -41,10 +38,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
     const loadUserProfile = async () => {
       if (!user?.id) return;
 
-      // Set initial display avatar from user metadata
-      if (user?.user_metadata?.avatar_url && !displayAvatar) {
-        setDisplayAvatar(user.user_metadata.avatar_url);
-      }
+
 
       try {
         console.log('Loading profile for user:', user?.id);
@@ -62,7 +56,6 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           setLoadedProfile(profileData[0]);
           setUsername(profileData[0].username || profileData[0].display_name || '');
           setProfilePicture(profileData[0].avatar_url || '');
-          setDisplayAvatar(profileData[0].avatar_url || user?.user_metadata?.avatar_url || '');
           return;
         }
 
@@ -75,7 +68,6 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
             setLoadedProfile(parsed);
             setUsername(parsed.username || parsed.display_name || '');
             setProfilePicture(parsed.avatar_url || '');
-            setDisplayAvatar(parsed.avatar_url || user?.user_metadata?.avatar_url || '');
             return;
           } catch (parseError) {
             console.error('Error parsing localStorage backup:', parseError);
@@ -98,7 +90,6 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
             setLoadedProfile(parsed);
             setUsername(parsed.username || parsed.display_name || '');
             setProfilePicture(parsed.avatar_url || '');
-            setDisplayAvatar(parsed.avatar_url || user?.user_metadata?.avatar_url || '');
             return;
           } catch (parseError) {
             console.error('Error parsing localStorage backup during error recovery:', parseError);
@@ -108,7 +99,6 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         // Final fallback to user metadata
         setUsername(user?.user_metadata?.username || user?.user_metadata?.display_name || '');
         setProfilePicture(user?.user_metadata?.avatar_url || '');
-        setDisplayAvatar(user?.user_metadata?.avatar_url || '');
       }
     };
 
@@ -146,7 +136,6 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
         setProfilePicture(base64);
-        setDisplayAvatar(base64);
         setIsUploading(false);
         
         toast({
@@ -307,7 +296,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         <Button variant="ghost" className="p-0 h-auto">
           <div className="flex items-center space-x-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={displayAvatar} alt={getUserDisplayName()} />
+              <AvatarImage src={getDisplayAvatar()} alt={getUserDisplayName()} />
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {getUserInitials()}
               </AvatarFallback>
