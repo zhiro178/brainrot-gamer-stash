@@ -48,6 +48,7 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
     const checkUnreadMessages = async () => {
       try {
         let totalUnread = 0;
+        console.log('Checking unread messages for user:', user?.email, 'isAdmin:', isUserAdmin);
 
         if (isUserAdmin) {
           // For admins: Check all tickets for new user messages
@@ -107,16 +108,25 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
             // 2. There's at least one user message (meaning user has actually interacted)  
             // 3. Admin message is newer than user message
             // 4. User hasn't seen this notification yet (admin message is newer than last seen time)
-            // 5. Admin message was created more than 2 minutes after the user message (to filter out auto-responses)
-            if (latestAdminMessage && latestUserMessage && 
+            const shouldShowNotification = latestAdminMessage && latestUserMessage && 
                 new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at) &&
-                (!lastSeenTime || new Date(latestAdminMessage.created_at) > new Date(lastSeenTime)) &&
-                (new Date(latestAdminMessage.created_at).getTime() - new Date(latestUserMessage.created_at).getTime()) > 120000) {
+                (!lastSeenTime || new Date(latestAdminMessage.created_at) > new Date(lastSeenTime));
+                
+            console.log(`Ticket ${ticket.id} notification check:`, {
+              hasAdminMessage: !!latestAdminMessage,
+              hasUserMessage: !!latestUserMessage,
+              adminNewerThanUser: latestAdminMessage && latestUserMessage ? new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at) : false,
+              notSeenYet: !lastSeenTime || (latestAdminMessage ? new Date(latestAdminMessage.created_at) > new Date(lastSeenTime) : false),
+              shouldShow: shouldShowNotification
+            });
+            
+            if (shouldShowNotification) {
               totalUnread++;
             }
           }
         }
 
+        console.log('Final unread count:', totalUnread);
         setUnreadMessages(totalUnread);
       } catch (error) {
         console.error('Error checking unread messages:', error);

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TicketChat } from "@/components/TicketChat";
 import { CryptoTopupList } from "@/components/CryptoTopupList";
 import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard, ShoppingBag, Trash2 } from "lucide-react";
@@ -20,6 +21,7 @@ export default function Admin() {
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userProfiles, setUserProfiles] = useState<{[key: string]: any}>({});
 
   const { toast } = useToast();
 
@@ -45,9 +47,57 @@ export default function Admin() {
         console.error('Error fetching support tickets:', error);
       }
       setSupportTickets(data || []);
+      
+      // Load user profiles for all ticket users
+      if (data && data.length > 0) {
+        const uniqueUserIds = Array.from(new Set(data.map((ticket: any) => ticket.user_id)));
+        loadUserProfiles(uniqueUserIds);
+      }
     } catch (error) {
       console.error('Error fetching support tickets:', error);
       setSupportTickets([]);
+    }
+  };
+
+  const loadUserProfiles = async (userIds: string[]) => {
+    try {
+      const profilesMap: {[key: string]: any} = {};
+      
+      for (const userId of userIds) {
+        try {
+          const { data: profileData, error } = await supabase
+            .from('user_profiles')
+            .select('user_id, username, display_name, avatar_url')
+            .eq('user_id', userId);
+
+          if (!error && profileData && profileData.length > 0) {
+            const profile = profileData[0];
+            profilesMap[userId] = {
+              name: profile.display_name || profile.username || `User ${userId.slice(-4)}`,
+              username: profile.username || `user_${userId.slice(-4)}`,
+              avatarUrl: profile.avatar_url
+            };
+          } else {
+            // Fallback for users without profiles
+            profilesMap[userId] = {
+              name: `User ${userId.slice(-4)}`,
+              username: `user_${userId.slice(-4)}`,
+              avatarUrl: null
+            };
+          }
+        } catch (profileError) {
+          console.error(`Error fetching profile for user ${userId}:`, profileError);
+          profilesMap[userId] = {
+            name: `User ${userId.slice(-4)}`,
+            username: `user_${userId.slice(-4)}`,
+            avatarUrl: null
+          };
+        }
+      }
+      
+      setUserProfiles(profilesMap);
+    } catch (error) {
+      console.error('Error loading user profiles:', error);
     }
   };
 
@@ -180,11 +230,17 @@ export default function Admin() {
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             {getCategoryIcon(ticket.category)}
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={userProfiles[ticket.user_id]?.avatarUrl} alt={userProfiles[ticket.user_id]?.name} />
+                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                                {userProfiles[ticket.user_id]?.name?.charAt(0) || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
                             <div>
                               <h3 className="font-semibold text-primary">{ticket.subject}</h3>
                               <p className="text-sm text-muted-foreground">
                                 {new Date(ticket.created_at).toLocaleDateString()} • 
-                                User: {ticket.user_id?.slice(0, 8)}...
+                                User: {userProfiles[ticket.user_id]?.name || `User ${ticket.user_id?.slice(-4)}`}
                               </p>
                             </div>
                           </div>

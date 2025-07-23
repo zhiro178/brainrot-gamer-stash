@@ -528,8 +528,9 @@ export default function Tickets() {
 
                 {/* Purchase Category */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-green-400 border-b border-green-400/20 pb-2">
-                    🛍️ Purchase
+                  <h2 className="text-xl font-semibold text-green-400 border-b border-green-400/20 pb-2 flex items-center gap-2">
+                    <img src="https://cdn-icons-png.flaticon.com/512/6012/6012718.png" alt="Purchase" className="w-6 h-6" />
+                    Purchase
                   </h2>
                   <div className="space-y-3">
                     {(() => {
@@ -624,7 +625,7 @@ export default function Tickets() {
                       ) : (
                         <Card className="bg-gradient-card border-primary/20 opacity-50">
                           <CardContent className="p-4 text-center">
-                            <Bitcoin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                            <div className="text-4xl mb-2">🛍️</div>
                             <p className="text-xs text-muted-foreground">No purchase tickets</p>
                           </CardContent>
                         </Card>
@@ -741,7 +742,10 @@ export default function Tickets() {
               // Admin view - only show purchase tickets (top-up and support handled in admin panel)
               <div className="space-y-6">
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl font-semibold text-green-400 mb-2">🛍️ Purchase Orders Management</h2>
+                  <h2 className="text-2xl font-semibold text-green-400 mb-2 flex items-center justify-center gap-2">
+                    <img src="https://cdn-icons-png.flaticon.com/512/6012/6012718.png" alt="Purchase" className="w-8 h-8" />
+                    Purchase Orders Management
+                  </h2>
                   <p className="text-muted-foreground">
                     Manage customer purchase orders and delivery tracking. 
                     Top-up and support tickets are handled in the main admin panel.
