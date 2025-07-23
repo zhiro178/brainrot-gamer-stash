@@ -15,6 +15,7 @@ import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users,
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
 
 export default function Admin() {
   const [, setLocation] = useLocation();
@@ -31,13 +32,13 @@ export default function Admin() {
   }, []);
 
   const fetchCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await workingSupabase.auth.getUser();
     setCurrentUser(user);
   };
 
   const fetchSupportTickets = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await workingSupabase
         .from('support_tickets')
         .select('*')
         .order('created_at', { ascending: false });
@@ -65,7 +66,7 @@ export default function Admin() {
       
       for (const userId of userIds) {
         try {
-          const { data: profileData, error } = await supabase
+          const { data: profileData, error } = await workingSupabase
             .from('user_profiles')
             .select('user_id, username, display_name, avatar_url')
             .eq('user_id', userId);

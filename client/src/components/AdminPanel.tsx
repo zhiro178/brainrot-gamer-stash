@@ -13,6 +13,7 @@ import { Shield, Settings, Users, FileText, Megaphone, Plus, Wallet, Trash2 } fr
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction, getAdminLogs, exportAdminLogs } from "@/lib/adminLogging";
 import { createClient } from "@supabase/supabase-js";
+import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
 
 const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
@@ -463,7 +464,7 @@ export const AdminPanel = () => {
       localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
       
       // Clear balance in Supabase
-      await supabase
+      await workingSupabase
         .from('user_balances')
         .delete()
         .eq('user_id', userId);
@@ -543,7 +544,7 @@ export const AdminPanel = () => {
 
       for (const ticket of allTickets) {
         try {
-          const { error: updateError } = await supabase
+          const { error: updateError } = await workingSupabase
             .from('support_tickets')
             .update({ 
               status: 'purged',
