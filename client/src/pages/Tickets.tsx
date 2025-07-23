@@ -616,7 +616,7 @@ export default function Tickets() {
                         <Card className="bg-gradient-card border-primary/20 opacity-50">
                           <CardContent className="p-4 text-center">
                             <Bitcoin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-xs text-muted-foreground">No top-up requests</p>
+                            <p className="text-xs text-muted-foreground">No purchase tickets</p>
                           </CardContent>
                         </Card>
                       );

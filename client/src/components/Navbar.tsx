@@ -47,34 +47,62 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
 
     const checkUnreadMessages = async () => {
       try {
-        // Get user's tickets
-        const { data: tickets, error: ticketsError } = await supabase
-          .from('support_tickets')
-          .select('id')
-          .eq('user_id', user.id);
-
-        if (ticketsError || !tickets) return;
-
-        // Count admin messages that came after the last user message in each ticket
         let totalUnread = 0;
-        
-        for (const ticket of tickets) {
-          const { data: messages, error: messagesError } = await supabase
-            .from('ticket_messages')
-            .select('is_admin, created_at')
-            .eq('ticket_id', ticket.id)
-            .order('created_at', { ascending: false });
 
-          if (messagesError || !messages || messages.length === 0) continue;
+        if (isUserAdmin) {
+          // For admins: Check all tickets for new user messages
+          const { data: allTickets, error: ticketsError } = await supabase
+            .from('support_tickets')
+            .select('id');
 
-          // Find the most recent admin message and most recent user message
-          const latestAdminMessage = messages.find((m: any) => m.is_admin);
-          const latestUserMessage = messages.find((m: any) => !m.is_admin);
+          if (ticketsError || !allTickets) return;
 
-          // If there's an admin message and it's newer than the latest user message, it's unread
-          if (latestAdminMessage && (!latestUserMessage || 
-              new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at))) {
-            totalUnread++;
+          for (const ticket of allTickets) {
+            const { data: messages, error: messagesError } = await supabase
+              .from('ticket_messages')
+              .select('is_admin, created_at')
+              .eq('ticket_id', ticket.id)
+              .order('created_at', { ascending: false });
+
+            if (messagesError || !messages || messages.length === 0) continue;
+
+            // Find the most recent admin message and most recent user message
+            const latestAdminMessage = messages.find((m: any) => m.is_admin);
+            const latestUserMessage = messages.find((m: any) => !m.is_admin);
+
+            // If there's a user message and it's newer than the latest admin message, it's unread for admin
+            if (latestUserMessage && (!latestAdminMessage || 
+                new Date(latestUserMessage.created_at) > new Date(latestAdminMessage.created_at))) {
+              totalUnread++;
+            }
+          }
+        } else {
+          // For regular users: Check only their tickets for new admin messages
+          const { data: tickets, error: ticketsError } = await supabase
+            .from('support_tickets')
+            .select('id')
+            .eq('user_id', user.id);
+
+          if (ticketsError || !tickets) return;
+
+          for (const ticket of tickets) {
+            const { data: messages, error: messagesError } = await supabase
+              .from('ticket_messages')
+              .select('is_admin, created_at')
+              .eq('ticket_id', ticket.id)
+              .order('created_at', { ascending: false });
+
+            if (messagesError || !messages || messages.length === 0) continue;
+
+            // Find the most recent admin message and most recent user message
+            const latestAdminMessage = messages.find((m: any) => m.is_admin);
+            const latestUserMessage = messages.find((m: any) => !m.is_admin);
+
+            // If there's an admin message and it's newer than the latest user message, it's unread for user
+            if (latestAdminMessage && (!latestUserMessage || 
+                new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at))) {
+              totalUnread++;
+            }
           }
         }
 
@@ -90,7 +118,7 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
     const interval = setInterval(checkUnreadMessages, 30000);
     
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, isUserAdmin]);
 
   const handleLogin = (e: any) => {
     e.preventDefault();
