@@ -40,11 +40,6 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user?.id) return;
-      
-      // Prevent excessive loading if already loaded
-      if (loadedProfile?.user_id === user.id && profilePicture) {
-        return;
-      }
 
 
 
