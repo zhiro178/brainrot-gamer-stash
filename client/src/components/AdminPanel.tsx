@@ -464,7 +464,7 @@ export const AdminPanel = () => {
       localStorage.setItem('admin_users', JSON.stringify(updatedUsers));
       
       // Clear balance in Supabase
-      await workingSupabase
+      await supabase
         .from('user_balances')
         .delete()
         .eq('user_id', userId);

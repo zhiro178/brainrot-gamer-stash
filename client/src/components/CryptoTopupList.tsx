@@ -207,8 +207,8 @@ export const CryptoTopupList = () => {
     try {
       console.log("Deleting ticket:", ticketId);
 
-      // Delete associated messages first using working supabase client
-      const { error: messagesError } = await workingSupabase
+      // Delete associated messages first using regular supabase client (has delete)
+      const { error: messagesError } = await supabase
         .from('ticket_messages')
         .delete()
         .eq('ticket_id', ticketId);
@@ -218,8 +218,8 @@ export const CryptoTopupList = () => {
         // Continue anyway, try to delete the ticket
       }
 
-      // Delete the ticket using working supabase client
-      const { error: deleteError } = await workingSupabase
+      // Delete the ticket using regular supabase client (has delete)
+      const { error: deleteError } = await supabase
         .from('support_tickets')
         .delete()
         .eq('id', ticketId);
@@ -273,14 +273,14 @@ export const CryptoTopupList = () => {
 
       for (const ticket of tickets) {
         try {
-          // First delete related messages using working supabase client
-          await workingSupabase
+          // First delete related messages using regular supabase client (has delete)
+          await supabase
             .from('ticket_messages')
             .delete()
             .eq('ticket_id', ticket.id);
           
-          // Then delete the ticket itself using working supabase client
-          const { error: deleteError } = await workingSupabase
+          // Then delete the ticket itself using regular supabase client (has delete)
+          const { error: deleteError } = await supabase
             .from('support_tickets')
             .delete()
             .eq('id', ticket.id);

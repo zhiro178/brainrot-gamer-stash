@@ -19,14 +19,17 @@ interface UserProfileProps {
 export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [username, setUsername] = useState(user?.user_metadata?.username || '');
-  const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.avatar_url || '');
+  const [profilePicture, setProfilePicture] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
   
-  // Single source of truth for avatar display - no flickering
+  // Always prioritize profilePicture state first (set by user), then fall back
   const getDisplayAvatar = () => {
-    return profilePicture || loadedProfile?.avatar_url || user?.user_metadata?.avatar_url || '';
+    if (profilePicture) return profilePicture;
+    if (user?.user_metadata?.avatar_url) return user.user_metadata.avatar_url;
+    if (loadedProfile?.avatar_url) return loadedProfile.avatar_url;
+    return '';
   };
 
 
@@ -55,7 +58,9 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           console.log('Loaded profile from database:', profileData[0]);
           setLoadedProfile(profileData[0]);
           setUsername(profileData[0].username || profileData[0].display_name || '');
-          setProfilePicture(profileData[0].avatar_url || '');
+          if (profileData[0].avatar_url) {
+            setProfilePicture(profileData[0].avatar_url);
+          }
           return;
         }
 
@@ -67,7 +72,9 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
             console.log('Loaded profile from localStorage backup:', parsed);
             setLoadedProfile(parsed);
             setUsername(parsed.username || parsed.display_name || '');
-            setProfilePicture(parsed.avatar_url || '');
+            if (parsed.avatar_url) {
+              setProfilePicture(parsed.avatar_url);
+            }
             return;
           } catch (parseError) {
             console.error('Error parsing localStorage backup:', parseError);
@@ -89,7 +96,9 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
             console.log('Using localStorage backup due to error:', parsed);
             setLoadedProfile(parsed);
             setUsername(parsed.username || parsed.display_name || '');
-            setProfilePicture(parsed.avatar_url || '');
+            if (parsed.avatar_url) {
+              setProfilePicture(parsed.avatar_url);
+            }
             return;
           } catch (parseError) {
             console.error('Error parsing localStorage backup during error recovery:', parseError);
@@ -98,7 +107,6 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         
         // Final fallback to user metadata
         setUsername(user?.user_metadata?.username || user?.user_metadata?.display_name || '');
-        setProfilePicture(user?.user_metadata?.avatar_url || '');
       }
     };
 
