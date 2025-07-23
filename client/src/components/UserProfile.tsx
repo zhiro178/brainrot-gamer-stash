@@ -20,6 +20,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [username, setUsername] = useState(user?.user_metadata?.username || '');
   const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.avatar_url || '');
+  const [displayAvatar, setDisplayAvatar] = useState(user?.user_metadata?.avatar_url || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
@@ -47,6 +48,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
           setLoadedProfile(profileData[0]);
           setUsername(profileData[0].username || profileData[0].display_name || '');
           setProfilePicture(profileData[0].avatar_url || '');
+          setDisplayAvatar(profileData[0].avatar_url || user?.user_metadata?.avatar_url || '');
           return;
         }
 
@@ -127,6 +129,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
         setProfilePicture(base64);
+        setDisplayAvatar(base64);
         setIsUploading(false);
         
         toast({
@@ -287,7 +290,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         <Button variant="ghost" className="p-0 h-auto">
           <div className="flex items-center space-x-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={loadedProfile?.avatar_url || user?.user_metadata?.avatar_url} alt={getUserDisplayName()} />
+              <AvatarImage src={displayAvatar} alt={getUserDisplayName()} />
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {getUserInitials()}
               </AvatarFallback>
