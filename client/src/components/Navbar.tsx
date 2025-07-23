@@ -94,8 +94,8 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
 
     checkNotifications();
     
-    // Check every 30 seconds for new messages (reduced frequency)
-    const interval = setInterval(checkNotifications, 30000);
+    // Check every 10 seconds for new messages
+    const interval = setInterval(checkNotifications, 10000);
     
     return () => clearInterval(interval);
   }, [user]);
