@@ -28,7 +28,10 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
   const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
   
   // Check if user is admin and set admin status
-  const isUserAdmin = user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com');
+  const isUserAdmin = user && (
+    user.email?.toLowerCase() === 'zhirocomputer@gmail.com' || 
+    user.email?.toLowerCase() === 'ajay123phone@gmail.com'
+  );
   if (isUserAdmin && !isAdminMode) {
     setIsAdmin(true);
   }
@@ -51,33 +54,10 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
         console.log('Checking unread messages for user:', user?.email, 'isAdmin:', isUserAdmin);
 
         if (isUserAdmin) {
-          // For admins: Check all tickets for new user messages
-          const { data: allTickets, error: ticketsError } = await supabase
-            .from('support_tickets')
-            .select('id');
-
-          if (ticketsError || !allTickets) return;
-
-          for (const ticket of allTickets) {
-            const { data: messages, error: messagesError } = await supabase
-              .from('ticket_messages')
-              .select('is_admin, created_at')
-              .eq('ticket_id', ticket.id)
-              .order('created_at', { ascending: false });
-
-            if (messagesError || !messages || messages.length === 0) continue;
-
-            // Find the most recent admin message and most recent user message
-            const latestAdminMessage = messages.find((m: any) => m.is_admin);
-            const latestUserMessage = messages.find((m: any) => !m.is_admin);
-
-            // If there's a user message and it's newer than the latest admin message, it's unread for admin
-            if (latestUserMessage && (!latestAdminMessage || 
-                new Date(latestUserMessage.created_at) > new Date(latestAdminMessage.created_at))) {
-              totalUnread++;
-            }
-          }
+          console.log('Checking as ADMIN - DISABLED for testing');
+          // Admin notifications temporarily disabled
         } else {
+          console.log('Checking as REGULAR USER - looking for new admin messages');
           // For regular users: Check only their tickets for new admin messages
           const { data: tickets, error: ticketsError } = await supabase
             .from('support_tickets')

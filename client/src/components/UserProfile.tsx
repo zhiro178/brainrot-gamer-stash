@@ -24,6 +24,15 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
+
+  // Debug avatar state (only log when there are changes)
+  useEffect(() => {
+    console.log('Avatar state changed:', {
+      userMetadataAvatar: user?.user_metadata?.avatar_url,
+      displayAvatar,
+      loadedProfileAvatar: loadedProfile?.avatar_url
+    });
+  }, [displayAvatar, user?.user_metadata?.avatar_url, loadedProfile?.avatar_url]);
   const { toast } = useToast();
 
   const isVerified = user?.email_confirmed_at !== null;
@@ -31,6 +40,11 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user?.id) return;
+
+      // Set initial display avatar from user metadata
+      if (user?.user_metadata?.avatar_url && !displayAvatar) {
+        setDisplayAvatar(user.user_metadata.avatar_url);
+      }
 
       try {
         console.log('Loading profile for user:', user?.id);
@@ -61,6 +75,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
             setLoadedProfile(parsed);
             setUsername(parsed.username || parsed.display_name || '');
             setProfilePicture(parsed.avatar_url || '');
+            setDisplayAvatar(parsed.avatar_url || user?.user_metadata?.avatar_url || '');
             return;
           } catch (parseError) {
             console.error('Error parsing localStorage backup:', parseError);
@@ -83,6 +98,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
             setLoadedProfile(parsed);
             setUsername(parsed.username || parsed.display_name || '');
             setProfilePicture(parsed.avatar_url || '');
+            setDisplayAvatar(parsed.avatar_url || user?.user_metadata?.avatar_url || '');
             return;
           } catch (parseError) {
             console.error('Error parsing localStorage backup during error recovery:', parseError);
@@ -92,6 +108,7 @@ export const UserProfile = ({ user, onUserUpdate }: UserProfileProps) => {
         // Final fallback to user metadata
         setUsername(user?.user_metadata?.username || user?.user_metadata?.display_name || '');
         setProfilePicture(user?.user_metadata?.avatar_url || '');
+        setDisplayAvatar(user?.user_metadata?.avatar_url || '');
       }
     };
 
