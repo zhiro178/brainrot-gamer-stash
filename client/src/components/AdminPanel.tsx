@@ -12,12 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Shield, Settings, Users, FileText, Megaphone, Plus, Wallet, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction, getAdminLogs, exportAdminLogs } from "@/lib/adminLogging";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
-
-const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const AdminPanel = () => {
   const [isAnnouncementDialogOpen, setIsAnnouncementDialogOpen] = useState(false);
