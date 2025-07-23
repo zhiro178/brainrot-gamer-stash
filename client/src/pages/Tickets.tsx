@@ -29,6 +29,15 @@ export default function Tickets() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
   const { isAdmin } = useAdmin();
+
+  // Mark ticket as seen when user opens it
+  const markTicketAsSeen = (ticket: Ticket) => {
+    if (user) {
+      const lastSeenKey = `ticket_last_seen_${user.id}_${ticket.id}`;
+      localStorage.setItem(lastSeenKey, new Date().toISOString());
+    }
+    setSelectedTicket(ticket);
+  };
   
   // Also check if user is admin by email as backup
   const isAdminByEmail = user?.email === 'zhirocomputer@gmail.com' || user?.email === 'ajay123phone@gmail.com';
@@ -465,7 +474,7 @@ export default function Tickets() {
                                     <Button 
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => setSelectedTicket(ticket)}
+                                      onClick={() => markTicketAsSeen(ticket)}
                                       className="border-primary/30 hover:bg-primary/20 hover:border-primary/50 w-full text-sm font-medium bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm"
                                     >
                                       <MessageCircle className="h-4 w-4 mr-2" />
@@ -575,7 +584,7 @@ export default function Tickets() {
                                     <Button 
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => setSelectedTicket(ticket)}
+                                      onClick={() => markTicketAsSeen(ticket)}
                                       className="border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-400/50 w-full text-sm font-medium bg-gradient-to-r from-emerald-500/5 to-emerald-500/10 backdrop-blur-sm"
                                     >
                                       <MessageCircle className="h-4 w-4 mr-2" />
@@ -684,7 +693,7 @@ export default function Tickets() {
                                     <Button 
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => setSelectedTicket(ticket)}
+                                      onClick={() => markTicketAsSeen(ticket)}
                                       className="border-blue-500/30 hover:bg-blue-500/20 hover:border-blue-400/50 w-full text-sm font-medium bg-gradient-to-r from-blue-500/5 to-blue-500/10 backdrop-blur-sm"
                                     >
                                       <MessageCircle className="h-4 w-4 mr-2" />
@@ -791,7 +800,7 @@ export default function Tickets() {
                                     <Button 
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => setSelectedTicket(ticket)}
+                                      onClick={() => markTicketAsSeen(ticket)}
                                       className="border-primary/20 hover:bg-primary/10"
                                     >
                                       <MessageCircle className="h-4 w-4 mr-2" />

@@ -98,9 +98,20 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
             const latestAdminMessage = messages.find((m: any) => m.is_admin);
             const latestUserMessage = messages.find((m: any) => !m.is_admin);
 
-            // If there's an admin message and it's newer than the latest user message, it's unread for user
-            if (latestAdminMessage && (!latestUserMessage || 
-                new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at))) {
+            // Check if user has seen this ticket's notifications
+            const lastSeenKey = `ticket_last_seen_${user.id}_${ticket.id}`;
+            const lastSeenTime = localStorage.getItem(lastSeenKey);
+
+            // Only show notification if:
+            // 1. There's an admin message
+            // 2. There's at least one user message (meaning user has actually interacted)  
+            // 3. Admin message is newer than user message
+            // 4. User hasn't seen this notification yet (admin message is newer than last seen time)
+            // 5. Admin message was created more than 2 minutes after the user message (to filter out auto-responses)
+            if (latestAdminMessage && latestUserMessage && 
+                new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at) &&
+                (!lastSeenTime || new Date(latestAdminMessage.created_at) > new Date(lastSeenTime)) &&
+                (new Date(latestAdminMessage.created_at).getTime() - new Date(latestUserMessage.created_at).getTime()) > 120000) {
               totalUnread++;
             }
           }
