@@ -33,11 +33,30 @@ export default function Tickets() {
   // Mark ticket as seen when user opens it
   const markTicketAsSeen = (ticket: Ticket) => {
     if (user) {
-      const lastSeenKey = `ticket_last_seen_${user.id}_${ticket.id}`;
-      localStorage.setItem(lastSeenKey, new Date().toISOString());
+      const notificationKey = `ticket_notification_${user.id}_${ticket.id}`;
+      const currentTime = new Date().toISOString();
+      
+      // Mark ticket as seen
+      localStorage.setItem(notificationKey, currentTime);
+      
+      // Mark admin messages as seen
+      localStorage.setItem(`${notificationKey}_admin`, currentTime);
     }
     setSelectedTicket(ticket);
   };
+
+  // Mark tickets as seen when user visits tickets page (for initial notification)
+  useEffect(() => {
+    if (user && tickets.length > 0) {
+      tickets.forEach(ticket => {
+        const notificationKey = `ticket_notification_${user.id}_${ticket.id}`;
+        if (!localStorage.getItem(notificationKey)) {
+          // First time seeing this ticket - mark as seen
+          localStorage.setItem(notificationKey, new Date().toISOString());
+        }
+      });
+    }
+  }, [user, tickets]);
   
   // Also check if user is admin by email as backup
   const isAdminByEmail = user?.email === 'zhirocomputer@gmail.com' || user?.email === 'ajay123phone@gmail.com';

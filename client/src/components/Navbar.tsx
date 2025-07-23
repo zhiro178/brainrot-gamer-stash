@@ -44,82 +44,61 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
 
-  // Check for unread messages
+  // Simple notification system
   useEffect(() => {
     if (!user) return;
 
-    const checkUnreadMessages = async () => {
+    const checkNotifications = async () => {
       try {
         let totalUnread = 0;
-        console.log('Checking unread messages for user:', user?.email, 'isAdmin:', isUserAdmin);
 
-        if (isUserAdmin) {
-          console.log('Checking as ADMIN - DISABLED for testing');
-          // Admin notifications temporarily disabled
-        } else {
-          console.log('Checking as REGULAR USER - looking for new admin messages');
-          // For regular users: Check only their tickets for new admin messages
-          const { data: tickets, error: ticketsError } = await supabase
-            .from('support_tickets')
-            .select('id')
-            .eq('user_id', user.id);
+        // Get user's tickets
+        const { data: tickets, error: ticketsError } = await supabase
+          .from('support_tickets')
+          .select('id, created_at')
+          .eq('user_id', user.id);
 
-          if (ticketsError || !tickets) return;
+        if (ticketsError || !tickets) return;
 
-          for (const ticket of tickets) {
-            const { data: messages, error: messagesError } = await supabase
-              .from('ticket_messages')
-              .select('is_admin, created_at')
-              .eq('ticket_id', ticket.id)
-              .order('created_at', { ascending: false });
+        for (const ticket of tickets) {
+          const notificationKey = `ticket_notification_${user.id}_${ticket.id}`;
+          const hasSeenTicket = localStorage.getItem(notificationKey);
 
-            if (messagesError || !messages || messages.length === 0) continue;
+          // Check if there are any admin messages in this ticket
+          const { data: adminMessages, error: messagesError } = await supabase
+            .from('ticket_messages')
+            .select('created_at')
+            .eq('ticket_id', ticket.id)
+            .eq('is_admin', true);
 
-            // Find the most recent admin message and most recent user message
-            const latestAdminMessage = messages.find((m: any) => m.is_admin);
-            const latestUserMessage = messages.find((m: any) => !m.is_admin);
+          if (messagesError) continue;
 
-            // Check if user has seen this ticket's notifications
-            const lastSeenKey = `ticket_last_seen_${user.id}_${ticket.id}`;
-            const lastSeenTime = localStorage.getItem(lastSeenKey);
-
-            // Only show notification if:
-            // 1. There's an admin message
-            // 2. There's at least one user message (meaning user has actually interacted)  
-            // 3. Admin message is newer than user message
-            // 4. User hasn't seen this notification yet (admin message is newer than last seen time)
-            const shouldShowNotification = latestAdminMessage && latestUserMessage && 
-                new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at) &&
-                (!lastSeenTime || new Date(latestAdminMessage.created_at) > new Date(lastSeenTime));
-                
-            console.log(`Ticket ${ticket.id} notification check:`, {
-              hasAdminMessage: !!latestAdminMessage,
-              hasUserMessage: !!latestUserMessage,
-              adminNewerThanUser: latestAdminMessage && latestUserMessage ? new Date(latestAdminMessage.created_at) > new Date(latestUserMessage.created_at) : false,
-              notSeenYet: !lastSeenTime || (latestAdminMessage ? new Date(latestAdminMessage.created_at) > new Date(lastSeenTime) : false),
-              shouldShow: shouldShowNotification
-            });
+          // Show notification if:
+          // 1. User hasn't seen this ticket notification yet, OR
+          // 2. There are admin messages and user hasn't seen the latest admin response
+          if (!hasSeenTicket || (adminMessages && adminMessages.length > 0)) {
+            const lastAdminMessage = adminMessages?.[adminMessages.length - 1];
+            const lastSeenAdmin = localStorage.getItem(`${notificationKey}_admin`);
             
-            if (shouldShowNotification) {
+            if (!hasSeenTicket || (lastAdminMessage && (!lastSeenAdmin || new Date(lastAdminMessage.created_at) > new Date(lastSeenAdmin)))) {
               totalUnread++;
             }
           }
         }
 
-        console.log('Final unread count:', totalUnread);
         setUnreadMessages(totalUnread);
       } catch (error) {
-        console.error('Error checking unread messages:', error);
+        console.error('Error checking notifications:', error);
       }
     };
 
-    checkUnreadMessages();
+    checkNotifications();
     
-    // Check every 30 seconds for new messages
-    const interval = setInterval(checkUnreadMessages, 30000);
+    // Check every 10 seconds for new messages
+    const interval = setInterval(checkNotifications, 10000);
     
     return () => clearInterval(interval);
-  }, [user, isUserAdmin]);
+  }, [user]);
 
   const handleLogin = (e: any) => {
     e.preventDefault();
