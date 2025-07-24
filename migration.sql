@@ -260,8 +260,7 @@ SELECT
     COALESCE(raw_user_meta_data->>'display_name', split_part(email, '@', 1)),
     LOWER(split_part(email, '@', 1)) || '_' || LEFT(id::text, 4)
 FROM auth.users
-WHERE id::text NOT IN (SELECT user_id FROM public.user_profiles)
-ON CONFLICT (user_id) DO NOTHING;
+WHERE id::text NOT IN (SELECT user_id FROM public.user_profiles);
 
 -- ============================================================================
 -- 9. COMPLETION MESSAGE
