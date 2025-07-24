@@ -236,7 +236,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.user_profiles (user_id, display_name, username)
   VALUES (
-    NEW.id,
+    NEW.id::text,
     COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
     LOWER(split_part(NEW.email, '@', 1)) || '_' || LEFT(NEW.id::text, 4)
   );
@@ -256,11 +256,11 @@ CREATE TRIGGER on_auth_user_created
 
 INSERT INTO public.user_profiles (user_id, display_name, username)
 SELECT 
-    id,
+    id::text,
     COALESCE(raw_user_meta_data->>'display_name', split_part(email, '@', 1)),
     LOWER(split_part(email, '@', 1)) || '_' || LEFT(id::text, 4)
 FROM auth.users
-WHERE id NOT IN (SELECT user_id FROM public.user_profiles)
+WHERE id::text NOT IN (SELECT user_id FROM public.user_profiles)
 ON CONFLICT (user_id) DO NOTHING;
 
 -- ============================================================================
