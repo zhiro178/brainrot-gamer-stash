@@ -241,6 +241,11 @@ BEGIN
     LOWER(split_part(NEW.email, '@', 1)) || '_' || LEFT(NEW.id::text, 4)
   );
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log error and continue
+    RAISE WARNING 'Failed to create user profile for %: %', NEW.id, SQLERRM;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -254,13 +259,30 @@ CREATE TRIGGER on_auth_user_created
 -- 8. CREATE PROFILES FOR EXISTING USERS
 -- ============================================================================
 
-INSERT INTO public.user_profiles (user_id, display_name, username)
-SELECT 
-    id::text,
-    COALESCE(raw_user_meta_data->>'display_name', split_part(email, '@', 1)),
-    LOWER(split_part(email, '@', 1)) || '_' || LEFT(id::text, 4)
-FROM auth.users
-WHERE id::text NOT IN (SELECT user_id FROM public.user_profiles);
+-- Create profiles for existing users (with better error handling)
+DO $$
+DECLARE
+    user_record RECORD;
+BEGIN
+    FOR user_record IN 
+        SELECT id, email, raw_user_meta_data 
+        FROM auth.users 
+        WHERE id::text NOT IN (SELECT COALESCE(user_id, '') FROM public.user_profiles WHERE user_id IS NOT NULL)
+    LOOP
+        BEGIN
+            INSERT INTO public.user_profiles (user_id, display_name, username)
+            VALUES (
+                user_record.id::text,
+                COALESCE(user_record.raw_user_meta_data->>'display_name', split_part(user_record.email, '@', 1)),
+                LOWER(split_part(user_record.email, '@', 1)) || '_' || LEFT(user_record.id::text, 4)
+            );
+        EXCEPTION
+            WHEN OTHERS THEN
+                RAISE WARNING 'Failed to create profile for user %: %', user_record.id, SQLERRM;
+        END;
+    END LOOP;
+END;
+$$;
 
 -- ============================================================================
 -- 9. COMPLETION MESSAGE
