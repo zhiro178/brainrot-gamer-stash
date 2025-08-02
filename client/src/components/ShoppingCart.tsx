@@ -166,7 +166,7 @@ function CheckoutDialog({ isOpen, onOpenChange, items, totalPrice }: CheckoutDia
     setIsProcessing(true);
     
     try {
-              const { supabase: workingSupabase } = await import("@/lib/supabase");
+      const { simpleSupabase: workingSupabase } = await import("@/lib/simple-supabase");
       
       // Get current user
       const { data: { user } } = await workingSupabase.auth.getUser();

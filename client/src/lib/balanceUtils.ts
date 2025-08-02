@@ -1,5 +1,4 @@
-import { supabase as workingSupabase, updateUserBalance } from '@/lib/supabase';
-import { emitBalanceUpdate } from '@/lib/balanceEvents';
+import { simpleSupabase as workingSupabase } from '@/lib/simple-supabase';
 
 export interface ApproveAndAddFundsParams {
   ticketId: string;
@@ -44,30 +43,119 @@ export const approveAndAddFunds = async ({
     
     console.log("Ticket updated to resolved");
 
-    // Get current balance and update it using unified client
+    // Get or create user balance
     console.log("Fetching existing balance for user:", userId);
-    const { data: balanceData, error: balanceError } = await workingSupabase
-      .from('user_balances')
-      .select('balance')
-      .eq('user_id', userId)
-      .single();
+    const fetchResult = await new Promise((resolve) => {
+      workingSupabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .then(resolve);
+    });
 
-    console.log("Existing balance query result:", { balanceData, balanceError });
+    const existingBalance = (fetchResult as any).data;
+    const balanceError = (fetchResult as any).error;
 
-    const currentBalance = parseFloat(balanceData?.balance || '0');
+    console.log("Existing balance query result:", { existingBalance, balanceError });
+
+    if (balanceError) {
+      console.error('Error fetching balance:', balanceError);
+      throw new Error(`Failed to fetch user balance: ${balanceError.message}`);
+    }
+
+    const currentBalance = parseFloat(existingBalance?.[0]?.balance || '0');
     const newBalance = currentBalance + amount;
     
     console.log("Balance calculation:", { currentBalance, amount, newBalance });
     
-    // Update or create balance record using unified function
-    const { data: updateData, error: updateError } = await updateUserBalance(userId, newBalance);
+    let operationResult, balanceUpdateError;
     
-    if (updateError) {
-      console.error('Error updating balance:', updateError);
-      throw new Error(`Failed to update user balance: ${updateError.message}`);
+    // If balance record exists, update it
+    if (existingBalance && existingBalance.length > 0) {
+      console.log("Updating existing balance record with new balance:", newBalance.toFixed(2));
+      
+      try {
+        // Use the simple-supabase update API correctly
+        const updateResult = await new Promise((resolve) => {
+          workingSupabase
+            .from('user_balances')
+            .update({
+              balance: newBalance.toFixed(2)
+            })
+            .eq('user_id', userId)
+            .then(resolve);
+        });
+        
+        operationResult = (updateResult as any).data;
+        balanceUpdateError = (updateResult as any).error;
+        console.log("Balance update result:", { operationResult, balanceUpdateError });
+        
+        // Verify the update worked by fetching the balance again
+        const verifyResult = await new Promise((resolve) => {
+          workingSupabase
+            .from('user_balances')
+            .select('balance')
+            .eq('user_id', userId)
+            .then(resolve);
+        });
+        
+        const verifyBalance = (verifyResult as any).data;
+        const verifyError = (verifyResult as any).error;
+        
+        console.log("Verification of updated balance:", { verifyBalance, verifyError });
+        
+        if (verifyError) {
+          console.error('Error verifying balance update:', verifyError);
+        } else if (verifyBalance && verifyBalance[0]) {
+          const actualBalance = parseFloat(verifyBalance[0].balance);
+          console.log("Actual balance after update:", actualBalance, "Expected:", newBalance);
+          if (Math.abs(actualBalance - newBalance) > 0.01) {
+            console.warn("Balance mismatch detected!");
+          }
+        }
+      } catch (error) {
+        console.error('Exception during balance update:', error);
+        balanceUpdateError = { message: error instanceof Error ? error.message : String(error) };
+      }
+    } else {
+      // If no balance record exists, create one
+      console.log("Creating new balance record with balance:", newBalance.toFixed(2));
+      
+      try {
+        const insertResult = await workingSupabase
+          .from('user_balances')
+          .insert({
+            user_id: userId,
+            balance: newBalance.toFixed(2)
+          });
+        
+        operationResult = insertResult.data;
+        balanceUpdateError = insertResult.error;
+        console.log("Balance insert result:", { operationResult, balanceUpdateError });
+        
+        // Verify the insert worked
+        const verifyResult = await new Promise((resolve) => {
+          workingSupabase
+            .from('user_balances')
+            .select('balance')
+            .eq('user_id', userId)
+            .then(resolve);
+        });
+        
+        const verifyBalance = (verifyResult as any).data;
+        const verifyError = (verifyResult as any).error;
+        
+        console.log("Verification of inserted balance:", { verifyBalance, verifyError });
+      } catch (error) {
+        console.error('Exception during balance insert:', error);
+        balanceUpdateError = { message: error instanceof Error ? error.message : String(error) };
+      }
     }
     
-    console.log("Balance update successful:", updateData);
+    if (balanceUpdateError) {
+      console.error('Error updating balance:', balanceUpdateError);
+      throw new Error(`Failed to update balance: ${balanceUpdateError.message}`);
+    }
 
     // Add admin confirmation message
     console.log("Adding admin confirmation message");
@@ -87,14 +175,38 @@ export const approveAndAddFunds = async ({
       // Don't throw error here, balance update is more important
     }
 
-    // Emit balance update event using unified system
-    console.log("=== EMITTING BALANCE UPDATE EVENT ===");
-    emitBalanceUpdate({
-      userId,
-      newBalance,
-      previousBalance: currentBalance,
-      source: 'approval'
-    });
+    // Dispatch balance refresh events
+    console.log("=== DISPATCHING BALANCE REFRESH EVENTS ===");
+    console.log("Target userId:", userId);
+    console.log("New balance:", newBalance.toFixed(2));
+    console.log("Added amount:", amount.toFixed(2));
+    
+    const eventDetail = { 
+      userId, 
+      newBalance: newBalance.toFixed(2),
+      addedAmount: amount.toFixed(2)
+    };
+    
+    console.log("Event detail object:", eventDetail);
+    
+    // Dispatch multiple events to ensure UI updates
+    window.dispatchEvent(new CustomEvent('balance-updated', { 
+      detail: { userId } 
+    }));
+    
+    window.dispatchEvent(new CustomEvent('user-balance-updated', { 
+      detail: eventDetail
+    }));
+    
+    // Additional event for navbar refresh
+    window.dispatchEvent(new CustomEvent('refresh-navbar-balance', { 
+      detail: { userId } 
+    }));
+    
+    // Force a broader refresh event that all components can listen to
+    window.dispatchEvent(new CustomEvent('force-balance-refresh', { 
+      detail: eventDetail
+    }));
     
     console.log("=== ALL BALANCE REFRESH EVENTS DISPATCHED ===");
     

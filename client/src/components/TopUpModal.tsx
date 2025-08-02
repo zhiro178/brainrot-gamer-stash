@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Wallet, AlertTriangle, Bitcoin, CreditCard } from "lucide-react";
-import { supabase as workingSupabase } from "@/lib/supabase";
+import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Your admin email
