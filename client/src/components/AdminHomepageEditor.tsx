@@ -31,6 +31,9 @@ interface HomepageContent {
       description: string;
     }>;
   };
+  ui: {
+    balanceColor: string;
+  };
 }
 
 interface AdminHomepageEditorProps {
@@ -71,6 +74,9 @@ const DEFAULT_CONTENT: HomepageContent = {
         description: "Our AI-powered support mascot is always here to help with your questions"
       }
     ]
+  },
+  ui: {
+    balanceColor: "text-gaming-success"
   }
 };
 
@@ -196,9 +202,10 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="hero" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="hero">Hero Section</TabsTrigger>
             <TabsTrigger value="features">Features Section</TabsTrigger>
+            <TabsTrigger value="ui">UI Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="hero" className="space-y-4">
@@ -269,9 +276,13 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                           <option value="bg-gaming-danger">Red</option>
                           <option value="bg-gaming-info">Light Blue</option>
                           <option value="bg-gaming-orange">Orange</option>
-                          <option value="bg-gaming-black">Black</option>
-                          <option value="bg-gaming-dark-gray">Dark Gray</option>
-                          <option value="bg-gaming-charcoal">Charcoal</option>
+                                                     <option value="bg-gaming-black">Black</option>
+                           <option value="bg-gaming-dark-gray">Dark Gray</option>
+                           <option value="bg-gaming-charcoal">Charcoal</option>
+                           <option value="bg-gaming-forest-green">Forest Green</option>
+                           <option value="bg-gaming-midnight-blue">Midnight Blue</option>
+                           <option value="bg-gaming-deep-emerald">Deep Emerald</option>
+                           <option value="bg-gaming-prussian-blue">Prussian Blue</option>
                         </select>
                         <Button
                           onClick={() => removeBadge(badge.id)}
