@@ -101,6 +101,9 @@ const Index = () => {
           description: "Our AI-powered support mascot is always here to help with your questions"
         }
       ]
+    },
+    ui: {
+      balanceColor: "text-gaming-success"
     }
   });
 
