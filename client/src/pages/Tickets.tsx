@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { supabase as workingSupabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-import { SimpleChatDialog } from "@/components/SimpleChatDialog";
-import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign, ShoppingBag, Trash2, Loader2 } from "lucide-react";
-import { LoadingCard, LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { SimpleTicketChat } from "@/components/SimpleTicketChat";
+import { ArrowLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Bitcoin, CreditCard, DollarSign, ShoppingBag, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 
@@ -289,10 +289,10 @@ export default function Tickets() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-dark relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20" />
-        <div className="relative z-10 container mx-auto px-4 py-8">
-          <LoadingCard message="Loading your tickets..." />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading tickets...</p>
         </div>
       </div>
     );
@@ -708,12 +708,39 @@ export default function Tickets() {
                                   <p className="text-sm text-gray-300 line-clamp-2">{ticket.message}</p>
                                 </div>
                                 
-                                <SimpleChatDialog 
-                                  ticket={ticket}
-                                  currentUser={user}
-                                  isAdmin={isAdmin || isAdminByEmail}
-                                  onOpen={() => markTicketAsSeen(ticket)}
-                                />
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => markTicketAsSeen(ticket)}
+                                      className="border-blue-500/30 hover:bg-blue-500/20 hover:border-blue-400/50 w-full text-sm font-medium bg-gradient-to-r from-blue-500/5 to-blue-500/10 backdrop-blur-sm"
+                                    >
+                                      <MessageCircle className="h-4 w-4 mr-2" />
+                                      Open Chat
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-4xl bg-gradient-card border-primary/20">
+                                    <DialogHeader>
+                                      <DialogTitle className="flex items-center gap-2">
+                                        <IconComponent className="h-5 w-5" />
+                                        {typeInfo.title} Chat
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Communicate with our support team about your ticket
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    {selectedTicket && user && (
+                                      <SimpleTicketChat 
+                                        ticketId={selectedTicket.id}
+                                        ticketSubject={selectedTicket.subject}
+                                        currentUser={user}
+                                        isAdmin={isAdmin || isAdminByEmail}
+                                        ticketStatus={selectedTicket.status}
+                                      />
+                                    )}
+                                  </DialogContent>
+                                </Dialog>
                               </CardContent>
                             </Card>
                           );

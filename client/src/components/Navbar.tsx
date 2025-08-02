@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
-import { subscribeToBalanceUpdates } from "@/lib/balanceEvents";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +26,6 @@ interface NavbarProps {
 export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin, onRegister, onLogout, onUserUpdate }: NavbarProps) => {
   const [, setLocation] = useLocation();
   const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
-  const [localBalance, setLocalBalance] = useState(userBalance);
   
   // Check if user is admin and set admin status
   const isUserAdmin = user && (
@@ -45,25 +43,6 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
   const [loginPassword, setLoginPassword] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
-
-  // Update local balance when prop changes
-  useEffect(() => {
-    setLocalBalance(userBalance);
-  }, [userBalance]);
-
-  // Subscribe to balance updates
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubscribe = subscribeToBalanceUpdates((event) => {
-      if (user.id === event.userId) {
-        console.log('Navbar received balance update:', event);
-        setLocalBalance(event.newBalance);
-      }
-    });
-
-    return unsubscribe;
-  }, [user]);
 
   // Simple notification system
   useEffect(() => {
@@ -177,7 +156,7 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
                         <p className="font-semibold text-gaming-success text-sm">Loading...</p>
                       </div>
                     ) : (
-                      <p className="font-semibold text-gaming-success text-sm">${localBalance.toFixed(2)}</p>
+                      <p className="font-semibold text-gaming-success text-sm">${userBalance.toFixed(2)}</p>
                     )}
                   </div>
                 </div>
