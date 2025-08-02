@@ -58,6 +58,10 @@ export default {
         "gaming-midnight-blue": "hsl(var(--gaming-midnight-blue))",
         "gaming-deep-emerald": "hsl(var(--gaming-deep-emerald))",
         "gaming-prussian-blue": "hsl(var(--gaming-prussian-blue))",
+        "gaming-mint-green": "hsl(var(--gaming-mint-green))",
+        "gaming-lavender": "hsl(var(--gaming-lavender))",
+        "gaming-pale-yellow": "hsl(var(--gaming-pale-yellow))",
+        "gaming-powder-blue": "hsl(var(--gaming-powder-blue))",
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
