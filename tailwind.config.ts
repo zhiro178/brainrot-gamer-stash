@@ -44,9 +44,13 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        "gaming-primary": "hsl(var(--gaming-primary))",
         "gaming-accent": "hsl(var(--gaming-accent))",
         "gaming-warning": "hsl(var(--gaming-warning))",
         "gaming-success": "hsl(var(--gaming-success))",
+        "gaming-danger": "hsl(var(--gaming-danger))",
+        "gaming-info": "hsl(var(--gaming-info))",
+        "gaming-orange": "hsl(var(--gaming-orange))",
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
