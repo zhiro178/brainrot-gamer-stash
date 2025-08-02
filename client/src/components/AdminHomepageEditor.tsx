@@ -257,23 +257,22 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                           onChange={(e) => updateBadge(badge.id, 'text', e.target.value)}
                           className="flex-1"
                         />
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-6 h-6 rounded border-2 border-gray-300 ${badge.color}`}></div>
-                          <select
-                            value={badge.color}
-                            onChange={(e) => updateBadge(badge.id, 'color', e.target.value)}
-                            className="px-2 py-1 border rounded"
-                          >
-                            <option value="bg-gaming-success">Green</option>
-                            <option value="bg-gaming-accent">Blue</option>
-                            <option value="bg-gaming-warning">Yellow</option>
-                            <option value="bg-gaming-primary">Purple</option>
-                            <option value="bg-gaming-danger">Red</option>
-                            <option value="bg-gaming-info">Light Blue</option>
-                            <option value="bg-gaming-orange">Orange</option>
-                            <option value="bg-gaming-black">Black</option>
-                          </select>
-                        </div>
+                        <select
+                          value={badge.color}
+                          onChange={(e) => updateBadge(badge.id, 'color', e.target.value)}
+                          className="px-2 py-1 border rounded text-black"
+                        >
+                          <option value="bg-gaming-success">Green</option>
+                          <option value="bg-gaming-accent">Blue</option>
+                          <option value="bg-gaming-warning">Yellow</option>
+                          <option value="bg-gaming-primary">Purple</option>
+                          <option value="bg-gaming-danger">Red</option>
+                          <option value="bg-gaming-info">Light Blue</option>
+                          <option value="bg-gaming-orange">Orange</option>
+                          <option value="bg-gaming-black">Black</option>
+                          <option value="bg-gaming-dark-gray">Dark Gray</option>
+                          <option value="bg-gaming-charcoal">Charcoal</option>
+                        </select>
                         <Button
                           onClick={() => removeBadge(badge.id)}
                           size="sm"

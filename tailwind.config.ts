@@ -52,6 +52,8 @@ export default {
         "gaming-info": "hsl(var(--gaming-info))",
         "gaming-orange": "hsl(var(--gaming-orange))",
         "gaming-black": "hsl(var(--gaming-black))",
+        "gaming-dark-gray": "hsl(var(--gaming-dark-gray))",
+        "gaming-charcoal": "hsl(var(--gaming-charcoal))",
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
