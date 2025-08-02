@@ -51,6 +51,7 @@ export default {
         "gaming-danger": "hsl(var(--gaming-danger))",
         "gaming-info": "hsl(var(--gaming-info))",
         "gaming-orange": "hsl(var(--gaming-orange))",
+        "gaming-black": "hsl(var(--gaming-black))",
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
