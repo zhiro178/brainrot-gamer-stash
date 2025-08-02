@@ -804,6 +804,7 @@ const Index = () => {
         user={user}
         userBalance={userBalance ?? 0}
         balanceLoading={balanceLoading}
+        balanceColor={homepageContent.ui.balanceColor}
         onLogin={handleLogin}
         onRegister={handleRegister}
         onLogout={handleLogout}
