@@ -101,17 +101,6 @@ const Index = () => {
           description: "Our AI-powered support mascot is always here to help with your questions"
         }
       ]
-    },
-    ui: {
-      balanceColor: "text-gaming-success",
-      badgeSize: "text-sm px-3 py-1",
-      branding: {
-        siteName: "592 Stock",
-        tagline: "Gaming Marketplace",
-        siteNameSize: "text-2xl",
-        siteNameColor: "bg-gradient-primary bg-clip-text text-transparent",
-        taglineColor: "bg-gaming-accent text-black"
-      }
     }
   });
 
@@ -812,8 +801,6 @@ const Index = () => {
         user={user}
         userBalance={userBalance ?? 0}
         balanceLoading={balanceLoading}
-        balanceColor={homepageContent.ui.balanceColor}
-        branding={homepageContent.ui.branding}
         onLogin={handleLogin}
         onRegister={handleRegister}
         onLogout={handleLogout}
@@ -928,7 +915,7 @@ const Index = () => {
           <div className="flex flex-col gap-6 justify-center items-center">
             <div className="flex items-center space-x-2">
               {homepageContent.hero.badges.map((badge) => (
-                <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black ${homepageContent.ui.badgeSize}`}>
+                <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black`}>
                   {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
                     <img src={badge.emoji} alt="Badge icon" className="w-4 h-4 inline mr-1 object-cover rounded" />
                   ) : (
