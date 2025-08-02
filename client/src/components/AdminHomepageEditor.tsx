@@ -276,6 +276,10 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                           <option value="bg-gaming-midnight-blue">Midnight Blue</option>
                           <option value="bg-gaming-deep-emerald">Deep Emerald</option>
                           <option value="bg-gaming-prussian-blue">Prussian Blue</option>
+                          <option value="bg-gaming-mint-green">Mint Green</option>
+                          <option value="bg-gaming-lavender">Lavender</option>
+                          <option value="bg-gaming-pale-yellow">Pale Yellow</option>
+                          <option value="bg-gaming-powder-blue">Powder Blue</option>
                         </select>
                         <Button
                           onClick={() => removeBadge(badge.id)}
