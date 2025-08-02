@@ -101,6 +101,9 @@ const Index = () => {
           description: "Our AI-powered support mascot is always here to help with your questions"
         }
       ]
+    },
+    ui: {
+      balanceColor: "text-gaming-success"
     }
   });
 
@@ -801,6 +804,7 @@ const Index = () => {
         user={user}
         userBalance={userBalance ?? 0}
         balanceLoading={balanceLoading}
+        balanceColor={homepageContent.ui.balanceColor}
         onLogin={handleLogin}
         onRegister={handleRegister}
         onLogout={handleLogout}
