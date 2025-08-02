@@ -27,7 +27,9 @@
     --gaming-danger: 0 85% 60%;
     --gaming-info: 210 80% 60%;
     --gaming-orange: 25 95% 55%;
-    --gaming-black: 0 0% 15%;
+    --gaming-black: 0 0% 0%;
+    --gaming-dark-gray: 0 0% 7%;
+    --gaming-charcoal: 0 0% 10%;
 
     --secondary: 210 25% 18%;
     --secondary-foreground: 210 40% 98%;
