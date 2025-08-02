@@ -86,7 +86,7 @@ export default function Catalog() {
     };
 
     try {
-      const { simpleSupabase: workingSupabase } = await import("@/lib/simple-supabase");
+              const { supabase: workingSupabase } = await import("@/lib/supabase");
       
       // Get current user using working client
       const { data: { user } } = await workingSupabase.auth.getUser();

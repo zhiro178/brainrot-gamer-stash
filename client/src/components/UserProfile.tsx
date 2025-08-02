@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { User, Upload, Check, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, handleSupabaseError } from "@/lib/supabase";
-import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
+import { supabase as workingSupabase } from "@/lib/supabase";
 
 interface UserProfileProps {
   user: any;

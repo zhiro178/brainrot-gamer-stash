@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { supabase, handleSupabaseError } from "@/lib/supabase";
+import { supabase, handleSupabaseError, getUserBalance } from "@/lib/supabase";
+import { subscribeToBalanceUpdates } from "@/lib/balanceEvents";
 import { Navbar } from "@/components/Navbar";
 import { GameCard } from "@/components/GameCard";
 import { TopUpModal } from "@/components/TopUpModal";
@@ -296,13 +297,23 @@ const Index = () => {
       }
     };
 
-    // Listen for all balance update events
+    // Subscribe to unified balance update events
+    const unsubscribeFromBalanceUpdates = subscribeToBalanceUpdates((event) => {
+      if (user?.id === event.userId) {
+        console.log('Balance update received for current user:', event);
+        setUserBalance(event.newBalance);
+        setBalanceLoading(false);
+      }
+    });
+    
+    // Keep legacy event listeners for backward compatibility
     window.addEventListener('balance-updated', handleBalanceUpdate);
     window.addEventListener('user-balance-updated', handleUserBalanceUpdate);
     window.addEventListener('refresh-navbar-balance', handleNavbarBalanceRefresh);
     window.addEventListener('force-balance-refresh', handleForceBalanceRefresh);
     
     return () => {
+      unsubscribeFromBalanceUpdates();
       window.removeEventListener('balance-updated', handleBalanceUpdate);
       window.removeEventListener('user-balance-updated', handleUserBalanceUpdate);
       window.removeEventListener('refresh-navbar-balance', handleNavbarBalanceRefresh);
@@ -349,19 +360,8 @@ const Index = () => {
         setUserBalance(parseFloat(cachedBalance));
       }
       
-      // Import the working client here to avoid import errors
-      const { simpleSupabase: workingSupabase } = await import('@/lib/simple-supabase');
-      
-      const result = await new Promise((resolve) => {
-        workingSupabase
-          .from('user_balances')
-          .select('balance')
-          .eq('user_id', userId)
-          .then(resolve);
-      });
-      
-      const data = (result as any).data;
-      const error = (result as any).error;
+      // Use the unified supabase client
+      const { data, error } = await getUserBalance(userId);
       
       console.log('Balance fetch result:', { data, error, userId });
       
@@ -372,7 +372,7 @@ const Index = () => {
         return;
       }
       
-      const balance = parseFloat(data?.[0]?.balance || '0');
+      const balance = parseFloat(data?.balance || '0');
       console.log('Setting user balance to:', balance);
       
       // Cache the balance to prevent zero flash on navigation
