@@ -15,7 +15,7 @@ import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users,
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
+import { supabase as workingSupabase } from "@/lib/supabase";
 
 export default function Admin() {
   const [, setLocation] = useLocation();
