@@ -20,9 +20,13 @@
     --primary-foreground: 210 40% 98%;
     
     --primary-glow: 280 85% 70%;
-    --gaming-accent: 120 60% 50%;
+    --gaming-primary: 280 85% 60%;
+    --gaming-accent: 200 95% 50%;
     --gaming-warning: 45 90% 60%;
     --gaming-success: 140 65% 50%;
+    --gaming-danger: 0 85% 60%;
+    --gaming-info: 210 80% 60%;
+    --gaming-orange: 25 95% 55%;
 
     --secondary: 210 25% 18%;
     --secondary-foreground: 210 40% 98%;
