@@ -31,9 +31,6 @@ interface HomepageContent {
       description: string;
     }>;
   };
-  ui: {
-    balanceColor: string;
-  };
 }
 
 interface AdminHomepageEditorProps {
@@ -74,9 +71,6 @@ const DEFAULT_CONTENT: HomepageContent = {
         description: "Our AI-powered support mascot is always here to help with your questions"
       }
     ]
-  },
-  ui: {
-    balanceColor: "text-gaming-success"
   }
 };
 
@@ -202,10 +196,9 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="hero" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="hero">Hero Section</TabsTrigger>
             <TabsTrigger value="features">Features Section</TabsTrigger>
-            <TabsTrigger value="ui">UI Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="hero" className="space-y-4">
@@ -276,13 +269,9 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                           <option value="bg-gaming-danger">Red</option>
                           <option value="bg-gaming-info">Light Blue</option>
                           <option value="bg-gaming-orange">Orange</option>
-                                                     <option value="bg-gaming-black">Black</option>
-                           <option value="bg-gaming-dark-gray">Dark Gray</option>
-                           <option value="bg-gaming-charcoal">Charcoal</option>
-                           <option value="bg-gaming-forest-green">Forest Green</option>
-                           <option value="bg-gaming-midnight-blue">Midnight Blue</option>
-                           <option value="bg-gaming-deep-emerald">Deep Emerald</option>
-                           <option value="bg-gaming-prussian-blue">Prussian Blue</option>
+                          <option value="bg-gaming-black">Black</option>
+                          <option value="bg-gaming-dark-gray">Dark Gray</option>
+                          <option value="bg-gaming-charcoal">Charcoal</option>
                         </select>
                         <Button
                           onClick={() => removeBadge(badge.id)}
@@ -376,44 +365,6 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                       </Card>
                     ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="ui" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>UI Settings</CardTitle>
-                <CardDescription>Customize the appearance of UI elements</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="balance-color">Balance Text Color</Label>
-                  <select
-                    id="balance-color"
-                    value={editingContent.ui.balanceColor}
-                    onChange={(e) => setEditingContent({
-                      ...editingContent,
-                      ui: { ...editingContent.ui, balanceColor: e.target.value }
-                    })}
-                    className="w-full px-2 py-1 border rounded text-black mt-1"
-                  >
-                    <option value="text-gaming-success">Green</option>
-                    <option value="text-gaming-accent">Blue</option>
-                    <option value="text-gaming-warning">Yellow</option>
-                    <option value="text-gaming-primary">Purple</option>
-                    <option value="text-gaming-danger">Red</option>
-                    <option value="text-gaming-info">Light Blue</option>
-                    <option value="text-gaming-orange">Orange</option>
-                    <option value="text-gaming-black">Black</option>
-                    <option value="text-gaming-dark-gray">Dark Gray</option>
-                    <option value="text-gaming-charcoal">Charcoal</option>
-                    <option value="text-gaming-forest-green">Forest Green</option>
-                    <option value="text-gaming-midnight-blue">Midnight Blue</option>
-                    <option value="text-gaming-deep-emerald">Deep Emerald</option>
-                    <option value="text-gaming-prussian-blue">Prussian Blue</option>
-                  </select>
                 </div>
               </CardContent>
             </Card>
