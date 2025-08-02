@@ -104,7 +104,14 @@ const Index = () => {
     },
     ui: {
       balanceColor: "text-gaming-success",
-      badgeSize: "text-sm px-3 py-1"
+      badgeSize: "text-sm px-3 py-1",
+      branding: {
+        siteName: "592 Stock",
+        tagline: "Gaming Marketplace",
+        siteNameSize: "text-2xl",
+        siteNameColor: "bg-gradient-primary bg-clip-text text-transparent",
+        taglineColor: "bg-gaming-accent text-black"
+      }
     }
   });
 
@@ -806,6 +813,7 @@ const Index = () => {
         userBalance={userBalance ?? 0}
         balanceLoading={balanceLoading}
         balanceColor={homepageContent.ui.balanceColor}
+        branding={homepageContent.ui.branding}
         onLogin={handleLogin}
         onRegister={handleRegister}
         onLogout={handleLogout}

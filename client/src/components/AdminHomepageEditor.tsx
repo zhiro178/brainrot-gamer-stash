@@ -34,6 +34,13 @@ interface HomepageContent {
   ui: {
     balanceColor: string;
     badgeSize: string;
+    branding: {
+      siteName: string;
+      tagline: string;
+      siteNameSize: string;
+      siteNameColor: string;
+      taglineColor: string;
+    };
   };
 }
 
@@ -78,7 +85,14 @@ const DEFAULT_CONTENT: HomepageContent = {
   },
   ui: {
     balanceColor: "text-gaming-success",
-    badgeSize: "text-sm px-3 py-1"
+    badgeSize: "text-sm px-3 py-1",
+    branding: {
+      siteName: "592 Stock",
+      tagline: "Gaming Marketplace",
+      siteNameSize: "text-2xl",
+      siteNameColor: "bg-gradient-primary bg-clip-text text-transparent",
+      taglineColor: "bg-gaming-accent text-black"
+    }
   }
 };
 
@@ -442,6 +456,118 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                     <option value="text-base px-4 py-1.5">Large</option>
                     <option value="text-lg px-5 py-2">Extra Large</option>
                   </select>
+                </div>
+                
+                <div className="border-t pt-4 space-y-4">
+                  <h4 className="font-semibold text-sm">Site Branding</h4>
+                  
+                  <div>
+                    <Label htmlFor="site-name">Site Name</Label>
+                    <Input
+                      id="site-name"
+                      value={editingContent.ui.branding.siteName}
+                      onChange={(e) => setEditingContent({
+                        ...editingContent,
+                        ui: { 
+                          ...editingContent.ui, 
+                          branding: { ...editingContent.ui.branding, siteName: e.target.value }
+                        }
+                      })}
+                      className="mt-1"
+                      placeholder="592 Stock"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="tagline">Tagline</Label>
+                    <Input
+                      id="tagline"
+                      value={editingContent.ui.branding.tagline}
+                      onChange={(e) => setEditingContent({
+                        ...editingContent,
+                        ui: { 
+                          ...editingContent.ui, 
+                          branding: { ...editingContent.ui.branding, tagline: e.target.value }
+                        }
+                      })}
+                      className="mt-1"
+                      placeholder="Gaming Marketplace"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="site-name-size">Site Name Size</Label>
+                    <select
+                      id="site-name-size"
+                      value={editingContent.ui.branding.siteNameSize}
+                      onChange={(e) => setEditingContent({
+                        ...editingContent,
+                        ui: { 
+                          ...editingContent.ui, 
+                          branding: { ...editingContent.ui.branding, siteNameSize: e.target.value }
+                        }
+                      })}
+                      className="w-full px-2 py-1 border rounded text-black mt-1"
+                    >
+                      <option value="text-lg">Small</option>
+                      <option value="text-xl">Medium</option>
+                      <option value="text-2xl">Large (Default)</option>
+                      <option value="text-3xl">Extra Large</option>
+                      <option value="text-4xl">Huge</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="site-name-color">Site Name Style</Label>
+                    <select
+                      id="site-name-color"
+                      value={editingContent.ui.branding.siteNameColor}
+                      onChange={(e) => setEditingContent({
+                        ...editingContent,
+                        ui: { 
+                          ...editingContent.ui, 
+                          branding: { ...editingContent.ui.branding, siteNameColor: e.target.value }
+                        }
+                      })}
+                      className="w-full px-2 py-1 border rounded text-black mt-1"
+                    >
+                      <option value="bg-gradient-primary bg-clip-text text-transparent">Gradient Primary</option>
+                      <option value="bg-gradient-gaming bg-clip-text text-transparent">Gradient Gaming</option>
+                      <option value="text-gaming-primary">Purple</option>
+                      <option value="text-gaming-accent">Blue</option>
+                      <option value="text-gaming-success">Green</option>
+                      <option value="text-gaming-warning">Yellow</option>
+                      <option value="text-gaming-danger">Red</option>
+                      <option value="text-white">White</option>
+                      <option value="text-gaming-black">Black</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="tagline-color">Tagline Color</Label>
+                    <select
+                      id="tagline-color"
+                      value={editingContent.ui.branding.taglineColor}
+                      onChange={(e) => setEditingContent({
+                        ...editingContent,
+                        ui: { 
+                          ...editingContent.ui, 
+                          branding: { ...editingContent.ui.branding, taglineColor: e.target.value }
+                        }
+                      })}
+                      className="w-full px-2 py-1 border rounded text-black mt-1"
+                    >
+                      <option value="bg-gaming-accent text-black">Blue Badge</option>
+                      <option value="bg-gaming-success text-black">Green Badge</option>
+                      <option value="bg-gaming-warning text-black">Yellow Badge</option>
+                      <option value="bg-gaming-danger text-white">Red Badge</option>
+                      <option value="bg-gaming-primary text-white">Purple Badge</option>
+                      <option value="text-gaming-accent">Blue Text</option>
+                      <option value="text-gaming-success">Green Text</option>
+                      <option value="text-gaming-warning">Yellow Text</option>
+                      <option value="text-muted-foreground">Gray Text</option>
+                    </select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
