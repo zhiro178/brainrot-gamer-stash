@@ -17,21 +17,13 @@ interface NavbarProps {
   user?: any;
   userBalance?: number;
   balanceLoading?: boolean;
-  balanceColor?: string;
-  branding?: {
-    siteName: string;
-    tagline: string;
-    siteNameSize: string;
-    siteNameColor: string;
-    taglineColor: string;
-  };
   onLogin: (email: string, password: string) => void;
   onRegister: (email: string, password: string) => void;
   onLogout: () => void;
   onUserUpdate?: (user: any) => void;
 }
 
-export const Navbar = ({ user, userBalance = 0, balanceLoading = false, balanceColor = "text-gaming-success", branding, onLogin, onRegister, onLogout, onUserUpdate }: NavbarProps) => {
+export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin, onRegister, onLogout, onUserUpdate }: NavbarProps) => {
   const [, setLocation] = useLocation();
   const { isAdminMode, toggleAdminMode, setIsAdmin } = useAdmin();
   
@@ -142,11 +134,11 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, balanceC
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <div className={`${branding?.siteNameSize || "text-2xl"} font-bold ${branding?.siteNameColor || "bg-gradient-primary bg-clip-text text-transparent"}`}>
-              {branding?.siteName || "592 Stock"}
+            <div className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              592 Stock
             </div>
-            <Badge variant="secondary" className={branding?.taglineColor || "bg-gaming-accent text-black"}>
-              {branding?.tagline || "Gaming Marketplace"}
+            <Badge variant="secondary" className="bg-gaming-accent text-black">
+              Gaming Marketplace
             </Badge>
           </div>
 
@@ -155,16 +147,16 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, balanceC
             {user ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-3 bg-background/50 backdrop-blur-sm border border-primary/20 rounded-lg px-3 py-2">
-                  <Wallet className={`h-4 w-4 ${balanceColor}`} />
+                  <Wallet className="h-4 w-4 text-gaming-success" />
                   <div>
                     <p className="text-xs text-muted-foreground">Balance</p>
                     {balanceLoading ? (
                       <div className="flex items-center space-x-1">
-                        <div className={`animate-spin rounded-full h-3 w-3 border-b ${balanceColor.replace('text-', 'border-')}`}></div>
-                        <p className={`font-semibold ${balanceColor} text-sm`}>Loading...</p>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b border-gaming-success"></div>
+                        <p className="font-semibold text-gaming-success text-sm">Loading...</p>
                       </div>
                     ) : (
-                      <p className={`font-semibold ${balanceColor} text-sm`}>${userBalance.toFixed(2)}</p>
+                      <p className="font-semibold text-gaming-success text-sm">${userBalance.toFixed(2)}</p>
                     )}
                   </div>
                 </div>
