@@ -12,6 +12,7 @@ import { useLocation } from "wouter";
 import { useAdmin } from "@/contexts/AdminContext";
 import { AdminPanel } from "@/components/AdminPanel";
 import { UserProfile } from "@/components/UserProfile";
+import { AdminLogoEditor } from "@/components/AdminLogoEditor";
 
 interface NavbarProps {
   user?: any;
@@ -43,6 +44,37 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
   const [loginPassword, setLoginPassword] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
+
+  // Logo style state management
+  const [logoStyle, setLogoStyle] = useState(() => {
+    const saved = localStorage.getItem('admin_logo_style');
+    return saved ? JSON.parse(saved) : {
+      text: "592 Stock",
+      fontSize: "text-2xl",
+      fontWeight: "font-bold",
+      fontFamily: "font-sans",
+      color: "bg-gradient-primary bg-clip-text text-transparent",
+      textDecoration: "no-underline",
+      letterSpacing: "tracking-normal",
+      textTransform: "normal-case"
+    };
+  });
+
+  const handleLogoUpdate = (newLogoStyle: any) => {
+    setLogoStyle(newLogoStyle);
+  };
+
+  const getLogoClassName = () => {
+    return [
+      logoStyle.fontSize,
+      logoStyle.fontWeight,
+      logoStyle.fontFamily,
+      logoStyle.color,
+      logoStyle.textDecoration,
+      logoStyle.letterSpacing,
+      logoStyle.textTransform
+    ].filter(Boolean).join(' ');
+  };
 
   // Simple notification system
   useEffect(() => {
@@ -134,12 +166,18 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <div className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              592 Stock
+            <div className={getLogoClassName()}>
+              {logoStyle.text}
             </div>
             <Badge variant="secondary" className="bg-gaming-accent text-black">
               Gaming Marketplace
             </Badge>
+            {isAdminMode && isUserAdmin && (
+              <AdminLogoEditor 
+                logoStyle={logoStyle}
+                onLogoUpdate={handleLogoUpdate}
+              />
+            )}
           </div>
 
           {/* User Section */}
@@ -226,7 +264,7 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
                   </DialogTrigger>
                   <DialogContent className="bg-gradient-card border-primary/20">
                     <DialogHeader>
-                      <DialogTitle className="text-primary">Login to 592 Stock</DialogTitle>
+                      <DialogTitle className="text-primary">Login to {logoStyle.text}</DialogTitle>
                       <DialogDescription>
                         Enter your email and password to access your account
                       </DialogDescription>
@@ -269,7 +307,7 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
                     <DialogHeader>
                       <DialogTitle className="text-primary">Create Account</DialogTitle>
                       <DialogDescription>
-                        Join 592 Stock to start trading gaming items
+                        Join {logoStyle.text} to start trading gaming items
                       </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleRegister} className="space-y-4">
