@@ -10,6 +10,8 @@ import Game from "./pages/Game";
 import Catalog from "./pages/Catalog";
 import Admin from "./pages/Admin";
 import Tickets from "./pages/Tickets";
+import PurchasePolicy from "./pages/PurchasePolicy";
+import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
               <Route path="/game/:gameId/category/:categoryId" component={Catalog} />
               <Route path="/admin" component={Admin} />
               <Route path="/tickets" component={Tickets} />
+              <Route path="/purchase-policy" component={PurchasePolicy} />
+              <Route path="/terms-of-service" component={TermsOfService} />
               <Route component={NotFound} />
             </Switch>
           </Router>
