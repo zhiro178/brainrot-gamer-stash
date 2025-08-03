@@ -22,6 +22,11 @@ interface HomepageContent {
       emoji: string;
     }>;
   };
+  games: {
+    title: string;
+    titleColor: string;
+    subtitle: string;
+  };
   features: {
     title: string;
     subtitle: string;
@@ -49,6 +54,11 @@ const DEFAULT_CONTENT: HomepageContent = {
       { id: "2", text: "Guaranteed Items", color: "bg-gaming-accent", emoji: "📦" },
       { id: "3", text: "Secure Payments", color: "bg-gaming-warning", emoji: "💰" }
     ]
+  },
+  games: {
+    title: "Browse Games",
+    titleColor: "text-primary",
+    subtitle: "Explore our gaming marketplace"
   },
   features: {
     title: "Why Choose 592 Stock?",
@@ -198,8 +208,9 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="hero" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="hero">Hero Section</TabsTrigger>
+            <TabsTrigger value="games">Games Section</TabsTrigger>
             <TabsTrigger value="features">Features Section</TabsTrigger>
           </TabsList>
           
@@ -329,6 +340,77 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                       </div>
                     ))}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="games" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Games Section</CardTitle>
+                <CardDescription>Edit the games section content</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="games-title">Title</Label>
+                  <Input
+                    id="games-title"
+                    value={editingContent.games.title}
+                    onChange={(e) => setEditingContent({
+                      ...editingContent,
+                      games: { ...editingContent.games, title: e.target.value }
+                    })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="games-title-color">Title Color</Label>
+                  <select
+                    id="games-title-color"
+                    value={editingContent.games.titleColor}
+                    onChange={(e) => setEditingContent({
+                      ...editingContent,
+                      games: { ...editingContent.games, titleColor: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  >
+                    <option value="text-primary">Primary Color (Default)</option>
+                    <option value="bg-gradient-primary bg-clip-text text-transparent">Primary Gradient</option>
+                    <option value="text-gaming-success">Success Green</option>
+                    <option value="text-gaming-accent">Accent Blue</option>
+                    <option value="text-gaming-warning">Warning Yellow</option>
+                    <option value="text-gaming-danger">Danger Red</option>
+                    <option value="text-gaming-orange">Orange</option>
+                    <option value="text-white">White</option>
+                    <option value="text-black">Black</option>
+                    <option value="text-gray-500">Gray</option>
+                    <option value="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Purple-Pink Gradient</option>
+                    <option value="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">Blue-Green Gradient</option>
+                    <option value="bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">Red-Yellow Gradient</option>
+                    <option value="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">Indigo-Purple Gradient</option>
+                    <option value="bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">Green-Blue Gradient</option>
+                    <option value="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Yellow-Orange Gradient</option>
+                  </select>
+                  <div className="mt-2 p-2 border rounded bg-muted/50">
+                    <p className="text-sm text-muted-foreground">Preview:</p>
+                    <h3 className={`text-2xl font-bold ${editingContent.games.titleColor}`}>
+                      {editingContent.games.title || "Browse Games"}
+                    </h3>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="games-subtitle">Subtitle</Label>
+                  <Input
+                    id="games-subtitle"
+                    value={editingContent.games.subtitle}
+                    onChange={(e) => setEditingContent({
+                      ...editingContent,
+                      games: { ...editingContent.games, subtitle: e.target.value }
+                    })}
+                    placeholder="Enter games section subtitle"
+                  />
                 </div>
               </CardContent>
             </Card>

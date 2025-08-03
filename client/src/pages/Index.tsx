@@ -102,6 +102,11 @@ const Index = () => {
         { id: "3", text: "Secure Payments", color: "bg-gaming-warning", emoji: "💰" }
       ]
     },
+    games: {
+      title: "Browse Games",
+      titleColor: "text-primary",
+      subtitle: "Explore our gaming marketplace"
+    },
     features: {
       title: "Why Choose 592 Stock?",
       subtitle: "The most trusted gaming marketplace",
@@ -1031,7 +1036,9 @@ const Index = () => {
               <div className={getLayoutClasses(sectionId)}>
                 <div className="mb-12">
                   <div className="flex items-center justify-center space-x-4 mb-4">
-                    <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
+                    <h2 className={`text-3xl font-bold ${homepageContent.games.titleColor}`}>
+                      {homepageContent.games.title}
+                    </h2>
                     {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
                       <>
                         <AdminGameEditor 
@@ -1045,7 +1052,9 @@ const Index = () => {
                       </>
                     )}
                   </div>
-
+                  <p className="text-muted-foreground">
+                    {homepageContent.games.subtitle}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
