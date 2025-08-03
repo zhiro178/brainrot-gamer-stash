@@ -977,7 +977,7 @@ const Index = () => {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
             <p className="text-muted-foreground">
-              {homepageContent.features.subtitle} - Read our{' '}
+              {homepageContent.features.subtitle} Read our{' '}
               <a 
                 href="/purchase-policy" 
                 className="text-primary hover:text-primary/80 underline transition-colors"
