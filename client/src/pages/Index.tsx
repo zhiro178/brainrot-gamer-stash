@@ -976,7 +976,30 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
-            <p className="text-muted-foreground">{homepageContent.features.subtitle}</p>
+            <p className="text-muted-foreground">
+              {homepageContent.features.subtitle} - Read our{' '}
+              <a 
+                href="/purchase-policy" 
+                className="text-primary hover:text-primary/80 underline transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setLocation('/purchase-policy');
+                }}
+              >
+                Purchase Policy
+              </a>
+              {' '}and{' '}
+              <a 
+                href="/terms-of-service" 
+                className="text-primary hover:text-primary/80 underline transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setLocation('/terms-of-service');
+                }}
+              >
+                Terms of Service
+              </a>
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
