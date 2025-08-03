@@ -164,14 +164,7 @@ const Index = () => {
         visible: true,
         component: 'FeaturesSection'
       },
-      {
-        id: 'live-chat',
-        name: 'Live Chat',
-        description: 'Customer support chat widget',
-        icon: '💬',
-        visible: true,
-        component: 'LiveChat'
-      }
+
     ];
   });
 
@@ -1012,6 +1005,20 @@ const Index = () => {
                                  <h1 className={`text-5xl font-bold ${homepageContent.hero.titleColor}`}>
                    {homepageContent.hero.title}
                  </h1>
+                 
+                 {/* Hero Badges */}
+                 <div className="flex flex-wrap items-center gap-2 mt-4">
+                   {homepageContent.hero.badges.map((badge) => (
+                     <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black`}>
+                       {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
+                         <img src={badge.emoji} alt="Badge icon" className="w-4 h-4 inline mr-1 object-cover rounded" />
+                       ) : (
+                         <span className="mr-1">{badge.emoji}</span>
+                       )}
+                       {badge.text}
+                     </Badge>
+                   ))}
+                 </div>
               </div>
             </div>
           </div>
@@ -1094,9 +1101,6 @@ const Index = () => {
             </div>
           </div>
         );
-
-      case 'live-chat':
-        return <LiveChat key={sectionId} user={user} />;
 
       default:
         return null;

@@ -66,14 +66,7 @@ const DEFAULT_SECTIONS: SectionItem[] = [
     visible: true,
     component: 'FeaturesSection'
   },
-  {
-    id: 'live-chat',
-    name: 'Live Chat',
-    description: 'Customer support chat widget',
-    icon: '💬',
-    visible: true,
-    component: 'LiveChat'
-  }
+
 ];
 
 export const AdminSectionManager: React.FC<AdminSectionManagerProps> = ({
