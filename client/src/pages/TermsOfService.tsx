@@ -1,18 +1,220 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase, handleSupabaseError } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/contexts/AdminContext";
 
 const TermsOfService = () => {
+  const [user, setUser] = useState<any>(null);
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
+
+  // Fetch user balance
+  const fetchUserBalance = async (userId: string) => {
+    try {
+      setBalanceLoading(true);
+      console.log('Fetching balance for user:', userId);
+      
+      const { simpleSupabase: workingSupabase } = await import('@/lib/simple-supabase');
+      
+      const { data, error } = await workingSupabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching balance:', error);
+        if (error.code === 'PGRST116') {
+          // No balance record found, create one
+          const { data: newBalance, error: createError } = await workingSupabase
+            .from('user_balances')
+            .insert([{ user_id: userId, balance: 0 }])
+            .select('balance')
+            .single();
+
+          if (createError) {
+            console.error('Error creating balance record:', createError);
+            setUserBalance(0);
+          } else {
+            console.log('Created new balance record:', newBalance);
+            setUserBalance(newBalance.balance);
+            localStorage.setItem(`user_balance_${userId}`, newBalance.balance.toString());
+          }
+        }
+      } else {
+        console.log('Balance fetched successfully:', data);
+        setUserBalance(data.balance);
+        localStorage.setItem(`user_balance_${userId}`, data.balance.toString());
+      }
+    } catch (error) {
+      console.error('Error in fetchUserBalance:', error);
+      setUserBalance(0);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
+  // Authentication setup
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Load cached balance immediately if available
+        const cachedBalance = localStorage.getItem(`user_balance_${session.user.id}`);
+        if (cachedBalance) {
+          console.log('Loading cached balance on initial session:', cachedBalance);
+          setUserBalance(parseFloat(cachedBalance));
+          setBalanceLoading(false);
+        }
+        // Then fetch fresh balance
+        fetchUserBalance(session.user.id);
+        // Set admin status if user is admin
+        if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
+          setIsAdmin(true);
+        }
+      } else {
+        setBalanceLoading(false);
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Load cached balance immediately if available
+        const cachedBalance = localStorage.getItem(`user_balance_${session.user.id}`);
+        if (cachedBalance) {
+          console.log('Loading cached balance on auth change:', cachedBalance);
+          setUserBalance(parseFloat(cachedBalance));
+          setBalanceLoading(false);
+        }
+        // Then fetch fresh balance
+        fetchUserBalance(session.user.id);
+        // Set admin status if user is admin
+        if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
+          setIsAdmin(true);
+        }
+      } else {
+        setUserBalance(null);
+        setBalanceLoading(false);
+        setIsAdmin(false);
+        // Clear cached balance on logout
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('user_balance_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Authentication handlers
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Login successful!",
+        description: "Welcome back to 592 Stock!",
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: handleSupabaseError(error),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "See you next time!",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Error logging out",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRegister = async (email: string, password: string, username: string) => {
+    try {
+      await supabase.auth.signOut();
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username,
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Registration successful!",
+        description: "Please check your email to verify your account.",
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Registration failed",
+        description: handleSupabaseError(error),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUserUpdate = () => {
+    if (user?.id) {
+      fetchUserBalance(user.id);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar 
-        user={null}
-        userBalance={0}
-        balanceLoading={false}
-        onLogin={() => {}}
-        onRegister={() => {}}
-        onLogout={() => {}}
-        onUserUpdate={() => {}}
+        user={user}
+        userBalance={userBalance}
+        balanceLoading={balanceLoading}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onLogout={handleLogout}
+        onUserUpdate={handleUserUpdate}
       />
       
       <div className="container mx-auto px-4 py-16">
@@ -39,9 +241,12 @@ const TermsOfService = () => {
                   and provision of this agreement. If you do not agree to abide by the above, 
                   please do not use this service.
                 </p>
-                <p className="text-muted-foreground">
-                  These terms apply to all visitors, users, and others who access or use our service.
-                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 flex items-start gap-2">
+                    <span className="text-blue-600 mt-0.5">ℹ️</span>
+                    <span>These terms apply to all visitors, users, and others who access or use our service.</span>
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -60,9 +265,12 @@ const TermsOfService = () => {
                   <li>Verify your email address to activate full account features</li>
                   <li>Accept responsibility for all activities under your account</li>
                 </ul>
-                <p className="text-sm bg-blue-50 text-blue-700 p-3 rounded-lg">
-                  ℹ️ We recommend using a strong, unique password for your account security.
-                </p>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-800 flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">💡</span>
+                    <span><strong>Security Tip:</strong> We recommend using a strong, unique password for your account security.</span>
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -124,9 +332,12 @@ const TermsOfService = () => {
                   <li>Harassing other users or our support staff</li>
                   <li>Posting or sharing inappropriate content</li>
                 </ul>
-                <p className="text-sm bg-red-50 text-red-700 p-3 rounded-lg">
-                  ⚠️ Violation of these terms may result in account suspension or termination.
-                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-800 flex items-start gap-2">
+                    <span className="text-red-600 mt-0.5">⚠️</span>
+                    <span><strong>Warning:</strong> Violation of these terms may result in account suspension or termination.</span>
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -151,7 +362,7 @@ const TermsOfService = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="text-primary flex items-center gap-2">
-                  🔒 Privacy & Data
+                  🔒 Privacy & Data Protection
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -163,6 +374,12 @@ const TermsOfService = () => {
                   <li>You can request deletion of your account and data</li>
                   <li>We comply with applicable data protection regulations</li>
                 </ul>
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <p className="text-sm text-purple-800 flex items-start gap-2">
+                    <span className="text-purple-600 mt-0.5">🔐</span>
+                    <span>Your data is encrypted both in transit and at rest using industry-standard protocols.</span>
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -187,7 +404,7 @@ const TermsOfService = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="text-primary flex items-center gap-2">
-                  📞 Contact Information
+                  📞 Contact & Support
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -203,13 +420,19 @@ const TermsOfService = () => {
             </Card>
           </div>
 
-          <div className="mt-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              Last updated: {new Date().toLocaleDateString()}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              These terms are effective immediately and supersede all previous versions.
-            </p>
+          <div className="mt-12 text-center space-y-3">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <h3 className="font-semibold text-gray-800 mb-2">Terms Effective Date</h3>
+              <p className="text-sm text-muted-foreground">
+                Last updated: {new Date().toLocaleDateString()}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                These terms are effective immediately and supersede all previous versions.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                By continuing to use our service, you acknowledge that you have read, understood, and agree to be bound by these terms.
+              </p>
+            </div>
           </div>
         </div>
       </div>

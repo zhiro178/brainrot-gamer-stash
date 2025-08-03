@@ -1,18 +1,220 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase, handleSupabaseError } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/contexts/AdminContext";
 
 const PurchasePolicy = () => {
+  const [user, setUser] = useState<any>(null);
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
+
+  // Fetch user balance
+  const fetchUserBalance = async (userId: string) => {
+    try {
+      setBalanceLoading(true);
+      console.log('Fetching balance for user:', userId);
+      
+      const { simpleSupabase: workingSupabase } = await import('@/lib/simple-supabase');
+      
+      const { data, error } = await workingSupabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching balance:', error);
+        if (error.code === 'PGRST116') {
+          // No balance record found, create one
+          const { data: newBalance, error: createError } = await workingSupabase
+            .from('user_balances')
+            .insert([{ user_id: userId, balance: 0 }])
+            .select('balance')
+            .single();
+
+          if (createError) {
+            console.error('Error creating balance record:', createError);
+            setUserBalance(0);
+          } else {
+            console.log('Created new balance record:', newBalance);
+            setUserBalance(newBalance.balance);
+            localStorage.setItem(`user_balance_${userId}`, newBalance.balance.toString());
+          }
+        }
+      } else {
+        console.log('Balance fetched successfully:', data);
+        setUserBalance(data.balance);
+        localStorage.setItem(`user_balance_${userId}`, data.balance.toString());
+      }
+    } catch (error) {
+      console.error('Error in fetchUserBalance:', error);
+      setUserBalance(0);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
+  // Authentication setup
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Load cached balance immediately if available
+        const cachedBalance = localStorage.getItem(`user_balance_${session.user.id}`);
+        if (cachedBalance) {
+          console.log('Loading cached balance on initial session:', cachedBalance);
+          setUserBalance(parseFloat(cachedBalance));
+          setBalanceLoading(false);
+        }
+        // Then fetch fresh balance
+        fetchUserBalance(session.user.id);
+        // Set admin status if user is admin
+        if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
+          setIsAdmin(true);
+        }
+      } else {
+        setBalanceLoading(false);
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Load cached balance immediately if available
+        const cachedBalance = localStorage.getItem(`user_balance_${session.user.id}`);
+        if (cachedBalance) {
+          console.log('Loading cached balance on auth change:', cachedBalance);
+          setUserBalance(parseFloat(cachedBalance));
+          setBalanceLoading(false);
+        }
+        // Then fetch fresh balance
+        fetchUserBalance(session.user.id);
+        // Set admin status if user is admin
+        if (session.user.email === 'zhirocomputer@gmail.com' || session.user.email === 'ajay123phone@gmail.com') {
+          setIsAdmin(true);
+        }
+      } else {
+        setUserBalance(null);
+        setBalanceLoading(false);
+        setIsAdmin(false);
+        // Clear cached balance on logout
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('user_balance_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Authentication handlers
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Login successful!",
+        description: "Welcome back to 592 Stock!",
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: handleSupabaseError(error),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "See you next time!",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Error logging out",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRegister = async (email: string, password: string, username: string) => {
+    try {
+      await supabase.auth.signOut();
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username,
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Registration successful!",
+        description: "Please check your email to verify your account.",
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Registration failed",
+        description: handleSupabaseError(error),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUserUpdate = () => {
+    if (user?.id) {
+      fetchUserBalance(user.id);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar 
-        user={null}
-        userBalance={0}
-        balanceLoading={false}
-        onLogin={() => {}}
-        onRegister={() => {}}
-        onLogout={() => {}}
-        onUserUpdate={() => {}}
+        user={user}
+        userBalance={userBalance}
+        balanceLoading={balanceLoading}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onLogout={handleLogout}
+        onUserUpdate={handleUserUpdate}
       />
       
       <div className="container mx-auto px-4 py-16">
@@ -101,9 +303,12 @@ const PurchasePolicy = () => {
                   <li>Refunds are processed to your 592 Stock balance or original payment method</li>
                   <li>Contact support immediately if you experience any issues</li>
                 </ul>
-                <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
-                  ⚠️ Digital items cannot be refunded once successfully delivered and claimed.
-                </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800 flex items-start gap-2">
+                    <span className="text-amber-600 mt-0.5">⚠️</span>
+                    <span><strong>Important:</strong> Digital items cannot be refunded once successfully delivered and claimed.</span>
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
