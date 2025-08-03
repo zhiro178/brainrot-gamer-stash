@@ -8,6 +8,7 @@ import { LiveChat } from "@/components/LiveChat";
 import { AdminGameEditor } from "@/components/AdminGameEditor";
 import { AdminHomepageEditor } from "@/components/AdminHomepageEditor";
 import { AdminCatalogEditor } from "@/components/AdminCatalogEditor";
+import { AdminSectionManager } from "@/components/AdminSectionManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,16 @@ import adoptMeBanner from "@/assets/adopt-me-banner.jpg";
 import gardenBanner from "@/assets/garden-banner.jpg";
 import mm2Banner from "@/assets/mm2-banner.jpg";
 import brainrotBanner from "@/assets/brainrot-banner.jpg";
+
+// Section management types
+interface SectionItem {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  visible: boolean;
+  component: string;
+}
 
 const GAMES = [
   {
@@ -102,6 +113,53 @@ const Index = () => {
         }
       ]
     }
+  });
+
+  // Section management state
+  const [sectionOrder, setSectionOrder] = useState<SectionItem[]>(() => {
+    const saved = localStorage.getItem('admin_section_order');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'email-verification',
+        name: 'Email Verification Alert',
+        description: 'Shows email verification notice when needed',
+        icon: '📧',
+        visible: true,
+        component: 'EmailVerificationAlert'
+      },
+      {
+        id: 'hero',
+        name: 'Hero Section',
+        description: 'Main welcome section with title and badges',
+        icon: '🏠',
+        visible: true,
+        component: 'HeroSection'
+      },
+      {
+        id: 'games',
+        name: 'Games Section',
+        description: 'Browse available games and categories',
+        icon: '🎮',
+        visible: true,
+        component: 'GamesSection'
+      },
+      {
+        id: 'features',
+        name: 'Features Section',
+        description: 'Highlight platform features and benefits',
+        icon: '⭐',
+        visible: true,
+        component: 'FeaturesSection'
+      },
+      {
+        id: 'live-chat',
+        name: 'Live Chat',
+        description: 'Customer support chat widget',
+        icon: '💬',
+        visible: true,
+        component: 'LiveChat'
+      }
+    ];
   });
 
   useEffect(() => {
@@ -730,6 +788,11 @@ const Index = () => {
     logAdminAction('UPDATE_HOMEPAGE', 'Updated homepage content', user?.email);
   };
 
+  const handleSectionOrderUpdate = (newSectionOrder: SectionItem[]) => {
+    setSectionOrder(newSectionOrder);
+    logAdminAction('UPDATE_SECTION_ORDER', 'Updated homepage section order', user?.email);
+  };
+
   // Announcement helper functions
   const refreshAnnouncements = () => {
     const savedAnnouncements = localStorage.getItem('admin_announcements');
@@ -781,6 +844,188 @@ const Index = () => {
     (ann: any) => !dismissedAnnouncements.includes(ann.id)
   );
 
+  // Function to render sections based on their ID and visibility
+  const renderSection = (sectionId: string) => {
+    const section = sectionOrder.find((s: SectionItem) => s.id === sectionId);
+    if (!section || !section.visible) return null;
+
+    switch (sectionId) {
+      case 'email-verification':
+        return user && !user.email_confirmed_at ? (
+          <div key={sectionId} className="bg-gaming-warning/20 border-gaming-warning border-t border-b">
+            <div className="container mx-auto px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="text-gaming-warning text-2xl">⚠️</div>
+                  <div>
+                    <h3 className="font-semibold text-gaming-warning">Email Verification Required</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Please verify your email to access profile customization and full features.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase.auth.resend({
+                        type: 'signup',
+                        email: user.email
+                      });
+                      
+                      if (error) throw error;
+                      
+                      toast({
+                        title: "Verification email sent",
+                        description: "Check your email for the verification link",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Failed to send email",
+                        description: "Please try again later",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="border-gaming-warning text-gaming-warning hover:bg-gaming-warning hover:text-black"
+                >
+                  Resend Email
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null;
+
+      case 'hero':
+        return (
+          <div key={sectionId} className="relative bg-gradient-hero">
+            <div className="container mx-auto px-4 py-16 text-center">
+              <div className="flex justify-center mb-4 space-x-2">
+                {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
+                  <>
+                    <AdminHomepageEditor 
+                      content={homepageContent}
+                      onContentUpdate={handleHomepageContentUpdate}
+                    />
+                    <AdminSectionManager 
+                      sections={sectionOrder}
+                      onSectionsUpdate={handleSectionOrderUpdate}
+                    />
+                  </>
+                )}
+              </div>
+              
+              <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
+                {homepageContent.hero.title}
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                {homepageContent.hero.subtitle}
+              </p>
+              
+              <div className="flex flex-col gap-6 justify-center items-center">
+                <div className="flex items-center space-x-2">
+                  {homepageContent.hero.badges.map((badge) => (
+                    <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black`}>
+                      {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
+                        <img src={badge.emoji} alt="Badge icon" className="w-4 h-4 inline mr-1 object-cover rounded" />
+                      ) : (
+                        <span className="mr-1">{badge.emoji}</span>
+                      )}
+                      {badge.text}
+                    </Badge>
+                  ))}
+                </div>
+                
+                <div className="flex flex-col items-center space-y-3">
+                  <TopUpModal user={user} />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'games':
+        return (
+          <div key={sectionId} className="container mx-auto px-4 py-16">
+            <div className="text-center mb-12">
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
+                {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
+                  <>
+                    <AdminGameEditor 
+                      games={games}
+                      defaultGames={GAMES}
+                      onGamesUpdate={handleGamesUpdate}
+                    />
+                    <AdminCatalogEditor 
+                      games={games}
+                    />
+                  </>
+                )}
+              </div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Select your favorite game to explore available items and start trading
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {games.map((game) => (
+                <GameCard
+                  key={game.id}
+                  title={game.title}
+                  description={game.description}
+                  imageUrl={game.imageUrl}
+                  itemCount={game.itemCount}
+                  onClick={() => handleGameClick(game.id)}
+                  onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'features':
+        return (
+          <div key={sectionId} className="bg-gradient-card py-16">
+            <div className="container mx-auto px-4">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
+                <p className="text-muted-foreground">{homepageContent.features.subtitle}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {homepageContent.features.items.map((feature) => (
+                  <Card key={feature.id} className="bg-background border-primary/20">
+                    <CardHeader className="text-center">
+                      <div className="mb-2 flex justify-center">
+                        {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
+                          <img src={feature.emoji} alt="Feature icon" className="w-12 h-12 object-cover rounded" />
+                        ) : (
+                          <span className="text-4xl">{feature.emoji}</span>
+                        )}
+                      </div>
+                      <CardTitle className="text-primary">{feature.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-center">
+                        {feature.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'live-chat':
+        return <LiveChat key={sectionId} user={user} />;
+
+      default:
+        return null;
+    }
+  };
 
   if (loading) {
     return (
@@ -807,54 +1052,7 @@ const Index = () => {
         onUserUpdate={handleUserUpdate}
       />
       
-      {/* Verification Banner */}
-      {user && !user.email_confirmed_at && (
-        <div className="bg-gaming-warning/20 border-gaming-warning border-t border-b">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="text-gaming-warning text-2xl">⚠️</div>
-                <div>
-                  <h3 className="font-semibold text-gaming-warning">Email Verification Required</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Please verify your email to access profile customization and full features.
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={async () => {
-                  try {
-                    const { error } = await supabase.auth.resend({
-                      type: 'signup',
-                      email: user.email
-                    });
-                    
-                    if (error) throw error;
-                    
-                    toast({
-                      title: "Verification email sent",
-                      description: "Check your email for the verification link",
-                    });
-                  } catch (error) {
-                    toast({
-                      title: "Failed to send email",
-                      description: "Please try again later",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                variant="outline"
-                size="sm"
-                className="border-gaming-warning text-gaming-warning hover:bg-gaming-warning/10"
-              >
-                Resend Email
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Announcements */}
+      {/* Announcements - Always shown first */}
       {visibleAnnouncements.length > 0 && (
         <div className="container mx-auto px-4 py-4 space-y-3">
           {visibleAnnouncements.map((announcement: any) => (
@@ -893,117 +1091,8 @@ const Index = () => {
         </div>
       )}
       
-      {/* Hero Section */}
-      <div className="relative bg-gradient-hero">
-        <div className="container mx-auto px-4 py-16 text-center">
-          <div className="flex justify-center mb-4">
-            {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-              <AdminHomepageEditor 
-                content={homepageContent}
-                onContentUpdate={handleHomepageContentUpdate}
-              />
-            )}
-          </div>
-          
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
-            {homepageContent.hero.title}
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            {homepageContent.hero.subtitle}
-          </p>
-          
-          <div className="flex flex-col gap-6 justify-center items-center">
-            <div className="flex items-center space-x-2">
-              {homepageContent.hero.badges.map((badge) => (
-                <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black`}>
-                  {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
-                    <img src={badge.emoji} alt="Badge icon" className="w-4 h-4 inline mr-1 object-cover rounded" />
-                  ) : (
-                    <span className="mr-1">{badge.emoji}</span>
-                  )}
-                  {badge.text}
-                </Badge>
-              ))}
-            </div>
-            
-            <div className="flex flex-col items-center space-y-3">
-              <TopUpModal user={user} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Games Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center space-x-4 mb-4">
-            <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
-            {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-              <>
-                <AdminGameEditor 
-                  games={games}
-                  defaultGames={GAMES}
-                  onGamesUpdate={handleGamesUpdate}
-                />
-                <AdminCatalogEditor 
-                  games={games}
-                />
-              </>
-            )}
-          </div>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Select your favorite game to explore available items and start trading
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {games.map((game) => (
-            <GameCard
-              key={game.id}
-              title={game.title}
-              description={game.description}
-              imageUrl={game.imageUrl}
-              itemCount={game.itemCount}
-              onClick={() => handleGameClick(game.id)}
-              onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="bg-gradient-card py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
-            <p className="text-muted-foreground">{homepageContent.features.subtitle}</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {homepageContent.features.items.map((feature) => (
-              <Card key={feature.id} className="bg-background border-primary/20">
-                <CardHeader className="text-center">
-                  <div className="mb-2 flex justify-center">
-                    {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
-                      <img src={feature.emoji} alt="Feature icon" className="w-12 h-12 object-cover rounded" />
-                    ) : (
-                      <span className="text-4xl">{feature.emoji}</span>
-                    )}
-                  </div>
-                  <CardTitle className="text-primary">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-center">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <LiveChat user={user} />
+      {/* Dynamic Sections - Rendered based on admin configuration */}
+      {sectionOrder.map((section: SectionItem) => renderSection(section.id))}
       
       {/* Debug Panel for Email Verification - Remove in production */}
       {process.env.NODE_ENV === 'development' && (
@@ -1015,6 +1104,7 @@ const Index = () => {
               console.log('User email_confirmed_at:', user?.email_confirmed_at);
               console.log('User email:', user?.email);
               console.log('User created_at:', user?.created_at);
+              console.log('Section order:', sectionOrder);
               console.log('================================');
             }}
             variant="outline" 
