@@ -305,7 +305,7 @@ export function TopUpModal({ user, variant = "default" }: { user?: any; variant?
 
   const getButtonClasses = () => {
     if (variant === "fixed") {
-      return "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-white/20";
+      return "bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full p-5 shadow-2xl hover:shadow-green-500/50 transition-all duration-300 border-3 border-white/30 hover:border-white/50 hover:scale-110 animate-pulse";
     }
     return "bg-gradient-gaming hover:shadow-glow text-lg px-8 py-6 h-auto";
   };

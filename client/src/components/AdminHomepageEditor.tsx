@@ -14,6 +14,7 @@ interface HomepageContent {
   hero: {
     title: string;
     subtitle: string;
+    titleColor: string;
     badges: Array<{
       id: string;
       text: string;
@@ -42,6 +43,7 @@ const DEFAULT_CONTENT: HomepageContent = {
   hero: {
     title: "Welcome to 592 Stock",
     subtitle: "Your ultimate destination for gaming items across Adopt Me, Grow a Garden, MM2, and Steal a Brainrot",
+    titleColor: "bg-gradient-primary bg-clip-text text-transparent",
     badges: [
       { id: "1", text: "Most Popular", color: "bg-gaming-success", emoji: "🎮" },
       { id: "2", text: "Guaranteed Items", color: "bg-gaming-accent", emoji: "📦" },
@@ -218,6 +220,42 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                       hero: { ...editingContent.hero, title: e.target.value }
                     })}
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="hero-title-color">Title Color</Label>
+                  <select
+                    id="hero-title-color"
+                    value={editingContent.hero.titleColor}
+                    onChange={(e) => setEditingContent({
+                      ...editingContent,
+                      hero: { ...editingContent.hero, titleColor: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  >
+                    <option value="bg-gradient-primary bg-clip-text text-transparent">Primary Gradient (Default)</option>
+                    <option value="text-primary">Primary Color</option>
+                    <option value="text-gaming-success">Success Green</option>
+                    <option value="text-gaming-accent">Accent Blue</option>
+                    <option value="text-gaming-warning">Warning Yellow</option>
+                    <option value="text-gaming-danger">Danger Red</option>
+                    <option value="text-gaming-orange">Orange</option>
+                    <option value="text-white">White</option>
+                    <option value="text-black">Black</option>
+                    <option value="text-gray-500">Gray</option>
+                    <option value="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Purple-Pink Gradient</option>
+                    <option value="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">Blue-Green Gradient</option>
+                    <option value="bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">Red-Yellow Gradient</option>
+                    <option value="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">Indigo-Purple Gradient</option>
+                    <option value="bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">Green-Blue Gradient</option>
+                    <option value="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Yellow-Orange Gradient</option>
+                  </select>
+                  <div className="mt-2 p-2 border rounded bg-muted/50">
+                    <p className="text-sm text-muted-foreground">Preview:</p>
+                    <h3 className={`text-2xl font-bold ${editingContent.hero.titleColor}`}>
+                      {editingContent.hero.title || "Your Title"}
+                    </h3>
+                  </div>
                 </div>
                 
                 <div>

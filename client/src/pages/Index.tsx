@@ -95,6 +95,7 @@ const Index = () => {
     hero: {
       title: "Welcome to 592 Stock",
       subtitle: "Your ultimate destination for gaming items across Adopt Me, Grow a Garden, MM2, and Steal a Brainrot",
+      titleColor: "bg-gradient-primary bg-clip-text text-transparent",
       badges: [
         { id: "1", text: "Most Popular", color: "bg-gaming-success", emoji: "🎮" },
         { id: "2", text: "Guaranteed Items", color: "bg-gaming-accent", emoji: "📦" },
@@ -1008,9 +1009,9 @@ const Index = () => {
                   </div>
                 )}
               
-                <h1 className="text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  {homepageContent.hero.title}
-                </h1>
+                                 <h1 className={`text-5xl font-bold ${homepageContent.hero.titleColor}`}>
+                   {homepageContent.hero.title}
+                 </h1>
               </div>
             </div>
           </div>
@@ -1037,9 +1038,7 @@ const Index = () => {
                       </>
                     )}
                   </div>
-                  <p className="text-muted-foreground max-w-2xl">
-                    Select your favorite game to explore available items and start trading
-                  </p>
+
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1130,7 +1129,7 @@ const Index = () => {
       />
       
       {/* Fixed Top-Up Button - Right Side */}
-      <div className="fixed top-1/2 right-4 z-40 transform -translate-y-1/2">
+      <div className="fixed top-1/3 right-6 z-50 transform -translate-y-1/2">
         <TopUpModal user={user} variant="fixed" />
       </div>
       
