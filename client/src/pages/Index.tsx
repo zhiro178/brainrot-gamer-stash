@@ -988,7 +988,18 @@ const Index = () => {
               >
                 Purchase Policy
               </a>
-              {' '}and{' '}
+              {', '}
+              <a 
+                href="/privacy-policy" 
+                className="text-primary hover:text-primary/80 underline transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setLocation('/privacy-policy');
+                }}
+              >
+                Privacy Policy
+              </a>
+              {' and '}
               <a 
                 href="/terms-of-service" 
                 className="text-primary hover:text-primary/80 underline transition-colors"
