@@ -306,8 +306,8 @@ export function TopUpModal({ user }: { user?: any }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-gaming hover:shadow-glow text-base px-6 py-4 h-auto">
-          <Wallet className="h-5 w-5 mr-2" />
+        <Button className="bg-gradient-gaming hover:shadow-glow text-lg px-8 py-6 h-auto">
+          <Wallet className="h-6 w-6 mr-3" />
           Top Up Balance
         </Button>
       </DialogTrigger>

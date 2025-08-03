@@ -12,7 +12,6 @@ import Admin from "./pages/Admin";
 import Tickets from "./pages/Tickets";
 import PurchasePolicy from "./pages/PurchasePolicy";
 import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +32,6 @@ const App = () => (
               <Route path="/tickets" component={Tickets} />
               <Route path="/purchase-policy" component={PurchasePolicy} />
               <Route path="/terms-of-service" component={TermsOfService} />
-        <Route path="/privacy-policy" component={PrivacyPolicy} />
               <Route component={NotFound} />
             </Switch>
           </Router>
