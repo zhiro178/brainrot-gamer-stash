@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TicketChat } from "@/components/TicketChat";
 import { CryptoTopupList } from "@/components/CryptoTopupList";
-import { PolicyEditor } from "@/components/PolicyEditor";
 import { Settings, Ticket, DollarSign, ArrowLeft, MessageCircle, Bitcoin, Users, Activity, CreditCard, ShoppingBag, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -206,15 +205,12 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="topup-management" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-background border border-primary/20">
+          <TabsList className="grid w-full grid-cols-2 bg-background border border-primary/20">
             <TabsTrigger value="topup-management" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Top-up Management
             </TabsTrigger>
             <TabsTrigger value="support-tickets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Support Tickets
-            </TabsTrigger>
-            <TabsTrigger value="policy-editor" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Policy Editor
             </TabsTrigger>
           </TabsList>
 
@@ -327,11 +323,6 @@ export default function Admin() {
                 <CryptoTopupList />
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Policy Editor Tab */}
-          <TabsContent value="policy-editor" className="space-y-6">
-            <PolicyEditor />
           </TabsContent>
         </Tabs>
       </div>
