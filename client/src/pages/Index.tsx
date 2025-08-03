@@ -183,10 +183,10 @@ const Index = () => {
         name: 'Hero Section',
         description: 'Main welcome section with title and badges',
         icon: '🏠',
-        alignment: 'center',
-        maxWidth: 'max-w-none',
-        padding: 'px-4 py-16',
-        margin: 'mx-auto'
+        alignment: 'left',
+        maxWidth: 'max-w-2xl',
+        padding: 'px-4 py-8',
+        margin: 'ml-0 mr-auto'
       },
       {
         id: 'games',
@@ -991,50 +991,26 @@ const Index = () => {
           <div key={sectionId} className="relative bg-gradient-hero">
             <div className={getContainerClasses(sectionId)}>
               <div className={getLayoutClasses(sectionId)}>
-                <div className="flex justify-center mb-4 space-x-2">
-                  {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-                    <>
-                      <AdminHomepageEditor 
-                        content={homepageContent}
-                        onContentUpdate={handleHomepageContentUpdate}
-                      />
-                      <AdminSectionManager 
-                        sections={sectionOrder}
-                        onSectionsUpdate={handleSectionOrderUpdate}
-                      />
-                      <AdminLayoutManager 
-                        sections={sectionLayouts}
-                        onLayoutUpdate={handleSectionLayoutUpdate}
-                      />
-                    </>
-                  )}
-                </div>
+                {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <AdminHomepageEditor 
+                      content={homepageContent}
+                      onContentUpdate={handleHomepageContentUpdate}
+                    />
+                    <AdminSectionManager 
+                      sections={sectionOrder}
+                      onSectionsUpdate={handleSectionOrderUpdate}
+                    />
+                    <AdminLayoutManager 
+                      sections={sectionLayouts}
+                      onLayoutUpdate={handleSectionLayoutUpdate}
+                    />
+                  </div>
+                )}
               
-              <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
-                {homepageContent.hero.title}
-              </h1>
-              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                {homepageContent.hero.subtitle}
-              </p>
-              
-              <div className="flex flex-col gap-6 justify-center items-center">
-                <div className="flex items-center space-x-2">
-                  {homepageContent.hero.badges.map((badge) => (
-                    <Badge key={badge.id} variant="secondary" className={`${badge.color} text-black`}>
-                      {badge.emoji.startsWith('http://') || badge.emoji.startsWith('https://') || badge.emoji.startsWith('data:image/') ? (
-                        <img src={badge.emoji} alt="Badge icon" className="w-4 h-4 inline mr-1 object-cover rounded" />
-                      ) : (
-                        <span className="mr-1">{badge.emoji}</span>
-                      )}
-                      {badge.text}
-                    </Badge>
-                  ))}
-                </div>
-                
-                <div className="flex flex-col items-center space-y-3">
-                  <TopUpModal user={user} />
-                </div>
-              </div>
+                <h1 className="text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  {homepageContent.hero.title}
+                </h1>
               </div>
             </div>
           </div>
@@ -1152,6 +1128,11 @@ const Index = () => {
         onLogout={handleLogout}
         onUserUpdate={handleUserUpdate}
       />
+      
+      {/* Fixed Top-Up Button - Right Side */}
+      <div className="fixed top-1/2 right-4 z-40 transform -translate-y-1/2">
+        <TopUpModal user={user} variant="fixed" />
+      </div>
       
       {/* Announcements - Always shown first */}
       {visibleAnnouncements.length > 0 && (

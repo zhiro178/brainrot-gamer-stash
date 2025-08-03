@@ -28,7 +28,7 @@ const CRYPTO_OPTIONS = [
   }
 ];
 
-export function TopUpModal({ user }: { user?: any }) {
+export function TopUpModal({ user, variant = "default" }: { user?: any; variant?: "default" | "fixed" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [cryptoAmount, setCryptoAmount] = useState("");
   const [selectedCrypto, setSelectedCrypto] = useState("");
@@ -303,12 +303,30 @@ export function TopUpModal({ user }: { user?: any }) {
     );
   }
 
+  const getButtonClasses = () => {
+    if (variant === "fixed") {
+      return "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-white/20";
+    }
+    return "bg-gradient-gaming hover:shadow-glow text-lg px-8 py-6 h-auto";
+  };
+
+  const getButtonContent = () => {
+    if (variant === "fixed") {
+      return <Wallet className="h-6 w-6" />;
+    }
+    return (
+      <>
+        <Wallet className="h-6 w-6 mr-3" />
+        Top Up Balance
+      </>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-gaming hover:shadow-glow text-lg px-8 py-6 h-auto">
-          <Wallet className="h-6 w-6 mr-3" />
-          Top Up Balance
+        <Button className={getButtonClasses()}>
+          {getButtonContent()}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">

@@ -36,10 +36,10 @@ const DEFAULT_LAYOUTS: SectionLayout[] = [
     name: 'Hero Section',
     description: 'Main welcome section with title and badges',
     icon: '🏠',
-    alignment: 'center',
-    maxWidth: 'max-w-none',
-    padding: 'px-4 py-16',
-    margin: 'mx-auto'
+    alignment: 'left',
+    maxWidth: 'max-w-2xl',
+    padding: 'px-4 py-8',
+    margin: 'ml-0 mr-auto'
   },
   {
     id: 'games',
