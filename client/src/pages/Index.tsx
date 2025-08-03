@@ -9,6 +9,7 @@ import { AdminGameEditor } from "@/components/AdminGameEditor";
 import { AdminHomepageEditor } from "@/components/AdminHomepageEditor";
 import { AdminCatalogEditor } from "@/components/AdminCatalogEditor";
 import { AdminSectionManager } from "@/components/AdminSectionManager";
+import { AdminLayoutManager } from "@/components/AdminLayoutManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,17 @@ interface SectionItem {
   icon: string;
   visible: boolean;
   component: string;
+}
+
+interface SectionLayout {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  alignment: 'left' | 'center' | 'right';
+  maxWidth: string;
+  padding: string;
+  margin: string;
 }
 
 const GAMES = [
@@ -158,6 +170,43 @@ const Index = () => {
         icon: '💬',
         visible: true,
         component: 'LiveChat'
+      }
+    ];
+  });
+
+  // Section layout state
+  const [sectionLayouts, setSectionLayouts] = useState<SectionLayout[]>(() => {
+    const saved = localStorage.getItem('admin_section_layouts');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'hero',
+        name: 'Hero Section',
+        description: 'Main welcome section with title and badges',
+        icon: '🏠',
+        alignment: 'center',
+        maxWidth: 'max-w-none',
+        padding: 'px-4 py-16',
+        margin: 'mx-auto'
+      },
+      {
+        id: 'games',
+        name: 'Games Section',
+        description: 'Browse available games and categories',
+        icon: '🎮',
+        alignment: 'center',
+        maxWidth: 'max-w-none',
+        padding: 'px-4 py-16',
+        margin: 'mx-auto'
+      },
+      {
+        id: 'features',
+        name: 'Features Section',
+        description: 'Highlight platform features and benefits',
+        icon: '⭐',
+        alignment: 'center',
+        maxWidth: 'max-w-none',
+        padding: 'px-4 py-16',
+        margin: 'mx-auto'
       }
     ];
   });
@@ -793,6 +842,11 @@ const Index = () => {
     logAdminAction('UPDATE_SECTION_ORDER', 'Updated homepage section order', user?.email);
   };
 
+  const handleSectionLayoutUpdate = (newSectionLayouts: SectionLayout[]) => {
+    setSectionLayouts(newSectionLayouts);
+    logAdminAction('UPDATE_SECTION_LAYOUT', 'Updated homepage section layouts', user?.email);
+  };
+
   // Announcement helper functions
   const refreshAnnouncements = () => {
     const savedAnnouncements = localStorage.getItem('admin_announcements');
@@ -843,6 +897,41 @@ const Index = () => {
   const visibleAnnouncements = announcements.filter(
     (ann: any) => !dismissedAnnouncements.includes(ann.id)
   );
+
+  // Helper function to get layout classes for a section
+  const getLayoutClasses = (sectionId: string) => {
+    const layout = sectionLayouts.find((l: SectionLayout) => l.id === sectionId);
+    if (!layout) return 'text-center items-center justify-center mx-auto max-w-none px-4 py-16';
+    
+    const alignmentClasses = (() => {
+      switch (layout.alignment) {
+        case 'left':
+          return 'text-left items-start justify-start ml-0 mr-auto';
+        case 'right':
+          return 'text-right items-end justify-end ml-auto mr-0';
+        case 'center':
+        default:
+          return 'text-center items-center justify-center mx-auto';
+      }
+    })();
+    
+    return `${alignmentClasses} ${layout.maxWidth} ${layout.padding}`;
+  };
+
+  const getContainerClasses = (sectionId: string) => {
+    const layout = sectionLayouts.find((l: SectionLayout) => l.id === sectionId);
+    if (!layout) return 'container mx-auto';
+    
+    switch (layout.alignment) {
+      case 'left':
+        return 'container ml-0 mr-auto';
+      case 'right':
+        return 'container ml-auto mr-0';
+      case 'center':
+      default:
+        return 'container mx-auto';
+    }
+  };
 
   // Function to render sections based on their ID and visibility
   const renderSection = (sectionId: string) => {
@@ -900,21 +989,26 @@ const Index = () => {
       case 'hero':
         return (
           <div key={sectionId} className="relative bg-gradient-hero">
-            <div className="container mx-auto px-4 py-16 text-center">
-              <div className="flex justify-center mb-4 space-x-2">
-                {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-                  <>
-                    <AdminHomepageEditor 
-                      content={homepageContent}
-                      onContentUpdate={handleHomepageContentUpdate}
-                    />
-                    <AdminSectionManager 
-                      sections={sectionOrder}
-                      onSectionsUpdate={handleSectionOrderUpdate}
-                    />
-                  </>
-                )}
-              </div>
+            <div className={getContainerClasses(sectionId)}>
+              <div className={getLayoutClasses(sectionId)}>
+                <div className="flex justify-center mb-4 space-x-2">
+                  {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
+                    <>
+                      <AdminHomepageEditor 
+                        content={homepageContent}
+                        onContentUpdate={handleHomepageContentUpdate}
+                      />
+                      <AdminSectionManager 
+                        sections={sectionOrder}
+                        onSectionsUpdate={handleSectionOrderUpdate}
+                      />
+                      <AdminLayoutManager 
+                        sections={sectionLayouts}
+                        onLayoutUpdate={handleSectionLayoutUpdate}
+                      />
+                    </>
+                  )}
+                </div>
               
               <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
                 {homepageContent.hero.title}
@@ -941,46 +1035,51 @@ const Index = () => {
                   <TopUpModal user={user} />
                 </div>
               </div>
+              </div>
             </div>
           </div>
         );
 
       case 'games':
         return (
-          <div key={sectionId} className="container mx-auto px-4 py-16">
-            <div className="text-center mb-12">
-              <div className="flex items-center justify-center space-x-4 mb-4">
-                <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
-                {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-                  <>
-                    <AdminGameEditor 
-                      games={games}
-                      defaultGames={GAMES}
-                      onGamesUpdate={handleGamesUpdate}
-                    />
-                    <AdminCatalogEditor 
-                      games={games}
-                    />
-                  </>
-                )}
-              </div>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Select your favorite game to explore available items and start trading
-              </p>
-            </div>
+          <div key={sectionId}>
+            <div className={getContainerClasses(sectionId)}>
+              <div className={getLayoutClasses(sectionId)}>
+                <div className="mb-12">
+                  <div className="flex items-center justify-center space-x-4 mb-4">
+                    <h2 className="text-3xl font-bold text-primary">Browse Games</h2>
+                    {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
+                      <>
+                        <AdminGameEditor 
+                          games={games}
+                          defaultGames={GAMES}
+                          onGamesUpdate={handleGamesUpdate}
+                        />
+                        <AdminCatalogEditor 
+                          games={games}
+                        />
+                      </>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground max-w-2xl">
+                    Select your favorite game to explore available items and start trading
+                  </p>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {games.map((game) => (
-                <GameCard
-                  key={game.id}
-                  title={game.title}
-                  description={game.description}
-                  imageUrl={game.imageUrl}
-                  itemCount={game.itemCount}
-                  onClick={() => handleGameClick(game.id)}
-                  onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
-                />
-              ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {games.map((game) => (
+                    <GameCard
+                      key={game.id}
+                      title={game.title}
+                      description={game.description}
+                      imageUrl={game.imageUrl}
+                      itemCount={game.itemCount}
+                      onClick={() => handleGameClick(game.id)}
+                      onUpdateGame={(newImageUrl, newDescription) => handleUpdateGame(game.id, newImageUrl, newDescription)}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -988,32 +1087,34 @@ const Index = () => {
       case 'features':
         return (
           <div key={sectionId} className="bg-gradient-card py-16">
-            <div className="container mx-auto px-4">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
-                <p className="text-muted-foreground">{homepageContent.features.subtitle}</p>
-              </div>
+            <div className={getContainerClasses(sectionId)}>
+              <div className={getLayoutClasses(sectionId)}>
+                <div className="mb-12">
+                  <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
+                  <p className="text-muted-foreground">{homepageContent.features.subtitle}</p>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {homepageContent.features.items.map((feature) => (
-                  <Card key={feature.id} className="bg-background border-primary/20">
-                    <CardHeader className="text-center">
-                      <div className="mb-2 flex justify-center">
-                        {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
-                          <img src={feature.emoji} alt="Feature icon" className="w-12 h-12 object-cover rounded" />
-                        ) : (
-                          <span className="text-4xl">{feature.emoji}</span>
-                        )}
-                      </div>
-                      <CardTitle className="text-primary">{feature.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-center">
-                        {feature.description}
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {homepageContent.features.items.map((feature) => (
+                    <Card key={feature.id} className="bg-background border-primary/20">
+                      <CardHeader className="text-center">
+                        <div className="mb-2 flex justify-center">
+                          {feature.emoji.startsWith('http://') || feature.emoji.startsWith('https://') || feature.emoji.startsWith('data:image/') ? (
+                            <img src={feature.emoji} alt="Feature icon" className="w-12 h-12 object-cover rounded" />
+                          ) : (
+                            <span className="text-4xl">{feature.emoji}</span>
+                          )}
+                        </div>
+                        <CardTitle className="text-primary">{feature.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="text-center">
+                          {feature.description}
+                        </CardDescription>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
