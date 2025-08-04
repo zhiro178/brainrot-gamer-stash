@@ -7,15 +7,43 @@ import { supabase, handleSupabaseError } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useLocation } from "wouter";
+import { PolicyRenderer } from "@/components/PolicyRenderer";
 
 const PurchasePolicy = () => {
   const [user, setUser] = useState<any>(null);
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [policyData, setPolicyData] = useState<any>(null);
+  const [policyLoading, setPolicyLoading] = useState(true);
   const { toast } = useToast();
   const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
   const [, setLocation] = useLocation();
+
+  // Fetch policy data
+  const fetchPolicyData = async () => {
+    try {
+      setPolicyLoading(true);
+      const { data, error } = await supabase
+        .from('site_policies')
+        .select('*')
+        .eq('policy_type', 'purchase_policy')
+        .single();
+
+      if (error) {
+        console.error('Error fetching policy:', error);
+        // Use fallback data if database fails
+        setPolicyData(null);
+      } else {
+        setPolicyData(data.content);
+      }
+    } catch (error) {
+      console.error('Error in fetchPolicyData:', error);
+      setPolicyData(null);
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
 
   // Fetch user balance
   const fetchUserBalance = async (userId: string) => {
@@ -65,6 +93,9 @@ const PurchasePolicy = () => {
 
   // Authentication setup
   useEffect(() => {
+    // Fetch policy data
+    fetchPolicyData();
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -183,7 +214,44 @@ const PurchasePolicy = () => {
     }
   };
 
-  if (loading) {
+  // Default fallback policy data
+  const defaultPolicyData = {
+    sections: [
+      {
+        id: "purchase_process",
+        icon: "🛒",
+        title: "Purchase Process",
+        content: {
+          text: "All purchases on 592 Stock are processed securely through our payment system. We accept multiple payment methods including crypto and gift cards.",
+          items: [
+            "Add items to your cart and proceed to checkout",
+            "Select your preferred payment method",
+            "Complete payment verification",
+            "Receive your items instantly upon successful payment"
+          ]
+        }
+      },
+      {
+        id: "payment_methods",
+        icon: "💰",
+        title: "Payment Methods",
+        content: {
+          text: "We accept the following payment methods:",
+          items: [
+            "Cryptocurrency (Bitcoin, Ethereum, and other supported coins)",
+            "Gift cards (Roblox, Steam, Amazon, and other popular cards)",
+            "Account balance (top-up your 592 Stock balance)"
+          ],
+          note: "All payments are processed securely. We do not store payment information."
+        }
+      }
+    ],
+    footer: {
+      text: "By making a purchase, you agree to these terms and conditions."
+    }
+  };
+
+  if (loading || policyLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -227,135 +295,7 @@ const PurchasePolicy = () => {
             </p>
           </div>
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  🛒 Purchase Process
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p>
-                  All purchases on 592 Stock are processed securely through our payment system. 
-                  We accept multiple payment methods including crypto and gift cards.
-                </p>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>Add items to your cart and proceed to checkout</li>
-                  <li>Select your preferred payment method</li>
-                  <li>Complete payment verification</li>
-                  <li>Receive your items instantly upon successful payment</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  💰 Payment Methods
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p>We accept the following payment methods:</p>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>Cryptocurrency (Bitcoin, Ethereum, and other supported coins)</li>
-                  <li>Gift cards (Roblox, Steam, Amazon, and other popular cards)</li>
-                  <li>Account balance (top-up your 592 Stock balance)</li>
-                </ul>
-                <p className="text-sm text-muted-foreground">
-                  All payments are processed securely. We do not store payment information.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  📦 Delivery Policy
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p>
-                  We provide instant delivery for all digital gaming items:
-                </p>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>Items are delivered immediately after successful payment</li>
-                  <li>You will receive detailed instructions for claiming your items</li>
-                  <li>Our support team is available 24/7 to assist with delivery</li>
-                  <li>Delivery method varies by game (trade, code, or direct transfer)</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  🔄 Refund Policy
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p>
-                  We want you to be completely satisfied with your purchase:
-                </p>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>Refunds are available within 24 hours if items cannot be delivered</li>
-                  <li>Issues with item delivery will be resolved by our support team</li>
-                  <li>Refunds are processed to your 592 Stock balance or original payment method</li>
-                  <li>Contact support immediately if you experience any issues</li>
-                </ul>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-sm text-amber-800 flex items-start gap-2">
-                    <span className="text-amber-600 mt-0.5">⚠️</span>
-                    <span><strong>Important:</strong> Digital items cannot be refunded once successfully delivered and claimed.</span>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  🛡️ Security & Safety
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p>Your security is our top priority:</p>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>All transactions are encrypted and secure</li>
-                  <li>We never ask for your game passwords or personal information</li>
-                  <li>Items are sourced from verified and trusted suppliers</li>
-                  <li>Your account information is protected and never shared</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-primary flex items-center gap-2">
-                  📞 Contact & Support
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p>
-                  Need help with your purchase? Our support team is here to assist:
-                </p>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>24/7 live chat support available on all pages</li>
-                  <li>Create a support ticket for detailed assistance</li>
-                  <li>Response time: typically within 1-2 hours</li>
-                  <li>All purchase issues are resolved quickly and fairly</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="mt-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              Last updated: {new Date().toLocaleDateString()}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              By making a purchase, you agree to these terms and conditions.
-            </p>
-          </div>
+          <PolicyRenderer policyData={policyData || defaultPolicyData} />
         </div>
       </div>
     </div>

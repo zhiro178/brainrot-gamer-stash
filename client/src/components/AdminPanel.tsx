@@ -9,11 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Settings, Users, FileText, Megaphone, Plus, Wallet, Trash2 } from "lucide-react";
+import { Shield, Settings, Users, FileText, Megaphone, Plus, Wallet, Trash2, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction, getAdminLogs, exportAdminLogs } from "@/lib/adminLogging";
 import { createClient } from "@supabase/supabase-js";
 import { simpleSupabase as workingSupabase } from "@/lib/simple-supabase";
+import { AdminPolicyEditor } from "@/components/AdminPolicyEditor";
 
 const supabaseUrl = "https://uahxenisnppufpswupnz.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhaHhlbmlzbnBwdWZwc3d1cG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzE5MzgsImV4cCI6MjA2NzE0NzkzOH0.2Ojgzc6byziUMnB8AaA0LnuHgbqlsKIur2apF-jrc3Q";
@@ -22,6 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export const AdminPanel = () => {
   const [isAnnouncementDialogOpen, setIsAnnouncementDialogOpen] = useState(false);
   const [isLogsDialogOpen, setIsLogsDialogOpen] = useState(false);
+  const [isPolicyEditorDialogOpen, setIsPolicyEditorDialogOpen] = useState(false);
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: '',
     content: '',
@@ -507,6 +509,10 @@ export const AdminPanel = () => {
     setIsAnnouncementDialogOpen(true);
   };
 
+  const openPolicyEditorDialog = () => {
+    setIsPolicyEditorDialogOpen(true);
+  };
+
   const purgeAllResolvedTickets = async () => {
     if (purgingAllTickets) return;
     
@@ -851,6 +857,19 @@ export const AdminPanel = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Policy Editor Dialog */}
+      <Dialog open={isPolicyEditorDialogOpen} onOpenChange={setIsPolicyEditorDialogOpen}>
+        <DialogTrigger asChild>
+          <div id="policy-editor-trigger" style={{ display: 'none' }} />
+        </DialogTrigger>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Policy Editor</DialogTitle>
+          </DialogHeader>
+          <AdminPolicyEditor />
+        </DialogContent>
+      </Dialog>
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button 
@@ -882,6 +901,11 @@ export const AdminPanel = () => {
           <DropdownMenuItem className="flex items-center cursor-pointer" onClick={openAnnouncementDialog}>
             <Megaphone className="h-4 w-4 mr-2" />
             Create Announcement
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem className="flex items-center cursor-pointer" onClick={openPolicyEditorDialog}>
+            <BookOpen className="h-4 w-4 mr-2" />
+            Edit Policies
           </DropdownMenuItem>
           
           <DropdownMenuItem 
