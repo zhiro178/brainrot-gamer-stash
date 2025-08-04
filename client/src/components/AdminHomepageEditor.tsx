@@ -31,16 +31,6 @@ interface HomepageContent {
       description: string;
     }>;
   };
-  policies: {
-    purchasePolicy: {
-      name: string;
-      url: string;
-    };
-    termsOfService: {
-      name: string;
-      url: string;
-    };
-  };
 }
 
 interface AdminHomepageEditorProps {
@@ -81,16 +71,6 @@ const DEFAULT_CONTENT: HomepageContent = {
         description: "Our AI-powered support mascot is always here to help with your questions"
       }
     ]
-  },
-  policies: {
-    purchasePolicy: {
-      name: "Purchase Policy",
-      url: "/purchase-policy"
-    },
-    termsOfService: {
-      name: "Terms of Service",
-      url: "/terms-of-service"
-    }
   }
 };
 
@@ -216,10 +196,9 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="hero" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="hero">Hero Section</TabsTrigger>
             <TabsTrigger value="features">Features Section</TabsTrigger>
-            <TabsTrigger value="policies">Policy Links</TabsTrigger>
           </TabsList>
           
           <TabsContent value="hero" className="space-y-4">
@@ -394,88 +373,6 @@ export const AdminHomepageEditor: React.FC<AdminHomepageEditorProps> = ({
                       </Card>
                     ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="policies" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Policy Links</CardTitle>
-                <CardDescription>Edit the policy links displayed in the features section</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="purchase-policy-name">Purchase Policy Name</Label>
-                  <Input
-                    id="purchase-policy-name"
-                    value={editingContent.policies.purchasePolicy.name}
-                    onChange={(e) => setEditingContent({
-                      ...editingContent,
-                      policies: {
-                        ...editingContent.policies,
-                        purchasePolicy: {
-                          ...editingContent.policies.purchasePolicy,
-                          name: e.target.value
-                        }
-                      }
-                    })}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="purchase-policy-url">Purchase Policy URL</Label>
-                  <Input
-                    id="purchase-policy-url"
-                    value={editingContent.policies.purchasePolicy.url}
-                    onChange={(e) => setEditingContent({
-                      ...editingContent,
-                      policies: {
-                        ...editingContent.policies,
-                        purchasePolicy: {
-                          ...editingContent.policies.purchasePolicy,
-                          url: e.target.value
-                        }
-                      }
-                    })}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="terms-of-service-name">Terms of Service Name</Label>
-                  <Input
-                    id="terms-of-service-name"
-                    value={editingContent.policies.termsOfService.name}
-                    onChange={(e) => setEditingContent({
-                      ...editingContent,
-                      policies: {
-                        ...editingContent.policies,
-                        termsOfService: {
-                          ...editingContent.policies.termsOfService,
-                          name: e.target.value
-                        }
-                      }
-                    })}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="terms-of-service-url">Terms of Service URL</Label>
-                  <Input
-                    id="terms-of-service-url"
-                    value={editingContent.policies.termsOfService.url}
-                    onChange={(e) => setEditingContent({
-                      ...editingContent,
-                      policies: {
-                        ...editingContent.policies,
-                        termsOfService: {
-                          ...editingContent.policies.termsOfService,
-                          url: e.target.value
-                        }
-                      }
-                    })}
-                  />
                 </div>
               </CardContent>
             </Card>
