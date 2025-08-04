@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { supabase, handleSupabaseError } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useLocation } from "wouter";
 
 const TermsOfService = () => {
   const [user, setUser] = useState<any>(null);
@@ -12,6 +15,7 @@ const TermsOfService = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { setIsAdmin, isAdminMode, toggleAdminMode } = useAdmin();
+  const [, setLocation] = useLocation();
 
   // Fetch user balance
   const fetchUserBalance = async (userId: string) => {
@@ -141,22 +145,7 @@ const TermsOfService = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logged out successfully",
-        description: "See you next time!",
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-      toast({
-        title: "Error logging out",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
+  // Removed logout functionality for policy pages
 
   const handleRegister = async (email: string, password: string, username: string) => {
     try {
@@ -213,12 +202,22 @@ const TermsOfService = () => {
         balanceLoading={balanceLoading}
         onLogin={handleLogin}
         onRegister={handleRegister}
-        onLogout={handleLogout}
+        onLogout={() => {}} // Disabled logout on policy pages
         onUserUpdate={handleUserUpdate}
       />
       
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation('/')}
+              className="flex items-center gap-2 hover:bg-primary/10"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Homepage
+            </Button>
+          </div>
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
               Terms of Service

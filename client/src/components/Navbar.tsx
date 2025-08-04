@@ -166,7 +166,10 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <div className={getLogoClassName()}>
+            <div 
+              className={`${getLogoClassName()} cursor-pointer hover:opacity-80 transition-opacity`}
+              onClick={() => setLocation('/')}
+            >
               {logoStyle.text}
             </div>
             <Badge variant="secondary" className="bg-gaming-accent text-black">
