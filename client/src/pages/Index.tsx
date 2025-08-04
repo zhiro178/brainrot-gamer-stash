@@ -8,8 +8,6 @@ import { LiveChat } from "@/components/LiveChat";
 import { AdminGameEditor } from "@/components/AdminGameEditor";
 import { AdminHomepageEditor } from "@/components/AdminHomepageEditor";
 import { AdminCatalogEditor } from "@/components/AdminCatalogEditor";
-import { AdminPolicyEditor } from "@/components/AdminPolicyEditor";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,9 +67,6 @@ const Index = () => {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState<string[]>([]);
   
-  // Policy data state
-  const [policies, setPolicies] = useState<any[]>([]);
-  
   // Homepage content state
   const [homepageContent, setHomepageContent] = useState({
     hero: {
@@ -106,16 +101,6 @@ const Index = () => {
           description: "Our AI-powered support mascot is always here to help with your questions"
         }
       ]
-    },
-    policies: {
-      purchasePolicy: {
-        name: "Purchase Policy",
-        url: "/purchase-policy"
-      },
-      termsOfService: {
-        name: "Terms of Service",
-        url: "/terms-of-service"
-      }
     }
   });
 
@@ -151,9 +136,6 @@ const Index = () => {
         console.error('Error loading saved homepage content:', error);
       }
     }
-    
-    // Fetch policy data to update policy names
-    fetchPolicyData();
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -319,14 +301,12 @@ const Index = () => {
     window.addEventListener('user-balance-updated', handleUserBalanceUpdate);
     window.addEventListener('refresh-navbar-balance', handleNavbarBalanceRefresh);
     window.addEventListener('force-balance-refresh', handleForceBalanceRefresh);
-    window.addEventListener('policies-updated', handlePolicyUpdate);
     
     return () => {
       window.removeEventListener('balance-updated', handleBalanceUpdate);
       window.removeEventListener('user-balance-updated', handleUserBalanceUpdate);
       window.removeEventListener('refresh-navbar-balance', handleNavbarBalanceRefresh);
       window.removeEventListener('force-balance-refresh', handleForceBalanceRefresh);
-      window.removeEventListener('policies-updated', handlePolicyUpdate);
     };
   }, [user]);
 
@@ -356,45 +336,6 @@ const Index = () => {
       }
     }
   }, []);
-
-  // Fetch policy data from database
-  const fetchPolicyData = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_policies')
-        .select('*')
-        .order('policy_type');
-
-      if (error) {
-        console.error('Error fetching policies:', error);
-        return;
-      }
-
-      setPolicies(data || []);
-      
-      // Update homepage content with actual policy names
-      const purchasePolicy = data.find((p: any) => p.policy_type === 'purchase_policy');
-      const termsOfService = data.find((p: any) => p.policy_type === 'terms_of_service');
-      
-      if (purchasePolicy || termsOfService) {
-        setHomepageContent(prev => ({
-          ...prev,
-          policies: {
-            purchasePolicy: {
-              name: purchasePolicy?.title || prev.policies.purchasePolicy.name,
-              url: prev.policies.purchasePolicy.url
-            },
-            termsOfService: {
-              name: termsOfService?.title || prev.policies.termsOfService.name,
-              url: prev.policies.termsOfService.url
-            }
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error in fetchPolicyData:', error);
-    }
-  };
 
   const fetchUserBalance = async (userId: string) => {
     try {
@@ -789,12 +730,6 @@ const Index = () => {
     logAdminAction('UPDATE_HOMEPAGE', 'Updated homepage content', user?.email);
   };
 
-  const handlePolicyUpdate = () => {
-    // Refresh policy data when policies are updated
-    fetchPolicyData();
-    logAdminAction('UPDATE_POLICIES', 'Updated site policies', user?.email);
-  };
-
   // Announcement helper functions
   const refreshAnnouncements = () => {
     const savedAnnouncements = localStorage.getItem('admin_announcements');
@@ -1040,49 +975,29 @@ const Index = () => {
       <div className="bg-gradient-card py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <div className="flex justify-center items-center space-x-4 mb-4">
-              <h2 className="text-3xl font-bold text-primary">{homepageContent.features.title}</h2>
-              {isAdminMode && user && (user.email === 'zhirocomputer@gmail.com' || user.email === 'ajay123phone@gmail.com') && (
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Edit Policies
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Policy Editor</DialogTitle>
-                      </DialogHeader>
-                      <AdminPolicyEditor />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              )}
-            </div>
+            <h2 className="text-3xl font-bold mb-4 text-primary">{homepageContent.features.title}</h2>
             <p className="text-muted-foreground">
               {homepageContent.features.subtitle} Read our{' '}
               <a 
-                href={homepageContent.policies.purchasePolicy.url} 
+                href="/purchase-policy" 
                 className="text-primary hover:text-primary/80 underline transition-colors"
                 onClick={(e) => {
                   e.preventDefault();
-                  setLocation(homepageContent.policies.purchasePolicy.url);
+                  setLocation('/purchase-policy');
                 }}
               >
-                {homepageContent.policies.purchasePolicy.name}
+                Purchase Policy
               </a>
               {' '}and{' '}
               <a 
-                href={homepageContent.policies.termsOfService.url} 
+                href="/terms-of-service" 
                 className="text-primary hover:text-primary/80 underline transition-colors"
                 onClick={(e) => {
                   e.preventDefault();
-                  setLocation(homepageContent.policies.termsOfService.url);
+                  setLocation('/terms-of-service');
                 }}
               >
-                {homepageContent.policies.termsOfService.name}
+                Terms of Service
               </a>
             </p>
           </div>
