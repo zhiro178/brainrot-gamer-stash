@@ -1,18 +1,256 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase, handleSupabaseError } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { logAdminAction } from "@/lib/adminLogging";
 
 const PurchasePolicy = () => {
+  const [user, setUser] = useState<any>(null);
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Fetch user balance
+  const fetchUserBalance = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching balance:', error);
+        return;
+      }
+
+      const balance = data?.balance || 0;
+      setUserBalance(balance);
+      setBalanceLoading(false);
+      
+      // Cache the balance
+      localStorage.setItem(`user_balance_${userId}`, balance.toString());
+    } catch (error) {
+      console.error('Error fetching user balance:', error);
+      setBalanceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Load cached balance immediately if available
+        const cachedBalance = localStorage.getItem(`user_balance_${session.user.id}`);
+        if (cachedBalance) {
+          setUserBalance(parseFloat(cachedBalance));
+          setBalanceLoading(false);
+        }
+        // Then fetch fresh balance
+        fetchUserBalance(session.user.id);
+      } else {
+        setBalanceLoading(false);
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Load cached balance immediately if available
+        const cachedBalance = localStorage.getItem(`user_balance_${session.user.id}`);
+        if (cachedBalance) {
+          setUserBalance(parseFloat(cachedBalance));
+          setBalanceLoading(false);
+        }
+        // Then fetch fresh balance
+        fetchUserBalance(session.user.id);
+      } else {
+        setUserBalance(null);
+        setBalanceLoading(false);
+        // Clear cached balance on logout
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('user_balance_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        // Special handling for unverified email errors
+        if (error.message.includes('Email not confirmed') || error.message.includes('not verified')) {
+          toast({
+            title: "Email Not Verified",
+            description: "Please check your email and click the verification link to activate your account.",
+            variant: "destructive",
+          });
+        } else {
+          const errorInfo = handleSupabaseError(error, "Login failed");
+          toast(errorInfo);
+        }
+        return;
+      }
+      
+      if (!data.user) {
+        toast({
+          title: "Login Error",
+          description: "Something went wrong during login. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if user is verified before allowing access
+      const isVerified = data.user.email_confirmed_at !== null;
+      
+      if (!isVerified) {
+        // Force logout unverified users
+        await supabase.auth.signOut();
+        
+        toast({
+          title: "Email Verification Required ⚠️",
+          description: "You must verify your email before you can log in. Please check your inbox and click the verification link.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Welcome back! 🎮",
+        description: "Successfully logged in to 592 Stock",
+      });
+      
+      logAdminAction('USER_LOGIN', `Verified user logged in: ${email}`, 'system');
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      const errorInfo = handleSupabaseError(error, "Login failed");
+      toast(errorInfo);
+    }
+  };
+
+  const handleRegister = async (email: string, password: string) => {
+    try {
+      // Sign out any existing session first
+      await supabase.auth.signOut();
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/?verified=true`,
+          data: {
+            email_confirm: true // Explicitly require email confirmation
+          }
+        }
+      });
+      
+      if (error) {
+        const errorInfo = handleSupabaseError(error, "Registration failed");
+        toast(errorInfo);
+        return;
+      }
+      
+      // Check if user was created but not confirmed
+      if (data.user && !data.session) {
+        logAdminAction('USER_REGISTERED', `New unverified user registered: ${email}`, 'system');
+        
+        toast({
+          title: "Account Created! 📧",
+          description: "Please check your email and click the verification link to activate your account. Check your spam folder if you don't see it.",
+        });
+      } else if (data.session) {
+        // Force logout to ensure they verify email first
+        await supabase.auth.signOut();
+        
+        toast({
+          title: "Account Created! 📧", 
+          description: "Please check your email and click the verification link to activate your account.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration Error",
+          description: "Something went wrong during registration. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      const errorInfo = handleSupabaseError(error, "Registration failed");
+      toast(errorInfo);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Clear local state immediately
+      setUser(null);
+      setUserBalance(null);
+      setBalanceLoading(false);
+      
+      // Clear cached user balances
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('user_balance_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Try to sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Show success message
+      toast({
+        title: "Goodbye!",
+        description: "Successfully logged out",
+      });
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+      
+      // Force logout by clearing everything
+      setUser(null);
+      setUserBalance(null);
+      setBalanceLoading(false);
+      
+      toast({
+        title: "Logged out",
+        description: "Session ended",
+      });
+    }
+  };
+
+  const handleUserUpdate = () => {
+    if (user?.id) {
+      fetchUserBalance(user.id);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar 
-        user={null}
-        userBalance={0}
-        balanceLoading={false}
-        onLogin={() => {}}
-        onRegister={() => {}}
-        onLogout={() => {}}
-        onUserUpdate={() => {}}
+        user={user}
+        userBalance={userBalance || 0}
+        balanceLoading={balanceLoading}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onLogout={handleLogout}
+        onUserUpdate={handleUserUpdate}
       />
       
       <div className="container mx-auto px-4 py-16">
