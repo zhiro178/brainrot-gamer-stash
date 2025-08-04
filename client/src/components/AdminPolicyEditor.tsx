@@ -144,6 +144,9 @@ export const AdminPolicyEditor: React.FC = () => {
 
       fetchPolicies();
       setIsDialogOpen(false);
+      
+      // Dispatch event to update homepage policy links
+      window.dispatchEvent(new CustomEvent('policies-updated'));
     } catch (error) {
       console.error('Error saving policy:', error);
       toast({
