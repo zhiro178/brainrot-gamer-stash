@@ -66,8 +66,48 @@ export default function Admin() {
       console.log('loadUserProfiles called with:', userIds);
       const profilesMap: {[key: string]: any} = {};
       
+      // Define admin accounts
+      const adminAccounts = [
+        {
+          email: 'zhirocomputer@gmail.com',
+          name: 'Zhiro Computer',
+          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+        },
+        {
+          email: 'ajay123phone@gmail.com',
+          name: 'Ajay Admin',
+          avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        },
+      ];
+      
       for (const userId of userIds) {
         try {
+          // First, try to get user email to check if it's an admin
+          let userEmail = '';
+          try {
+            const { data: authData, error: authError } = await workingSupabase.auth.admin.getUserById(userId);
+            if (!authError && authData?.user?.email) {
+              userEmail = authData.user.email;
+            }
+          } catch (e) {
+            console.log('Could not fetch user email for admin detection:', e);
+          }
+          
+          // Check if this is an admin user
+          if (userEmail) {
+            const admin = adminAccounts.find(a => a.email === userEmail);
+            if (admin) {
+              profilesMap[userId] = {
+                name: admin.name,
+                username: admin.name,
+                avatarUrl: admin.avatarUrl,
+                isAdmin: true
+              };
+              continue; // Skip the profile lookup for admin users
+            }
+          }
+          
+          // For non-admin users, fetch their profile
           const { data: profileData, error } = await workingSupabase
             .from('user_profiles')
             .select('user_id, username, display_name, avatar_url')
@@ -244,7 +284,14 @@ export default function Admin() {
                               <h3 className="font-semibold text-primary">{ticket.subject}</h3>
                               <p className="text-sm text-muted-foreground">
                                 {new Date(ticket.created_at).toLocaleDateString()} • 
-                                User: {userProfiles[ticket.user_id]?.name || `User ${ticket.user_id?.slice(-4)}`}
+                                <span className="flex items-center gap-2">
+                                  <span>User: {userProfiles[ticket.user_id]?.name || `User ${ticket.user_id?.slice(-4)}`}</span>
+                                  {userProfiles[ticket.user_id]?.isAdmin && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-xs font-bold text-black shadow-sm border border-yellow-300/50">
+                                      👑 Admin
+                                    </span>
+                                  )}
+                                </span>
                                 <br />Debug: {JSON.stringify(userProfiles[ticket.user_id] || 'not found')}
                               </p>
                             </div>
