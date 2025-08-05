@@ -224,15 +224,32 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
   };
 
   // Get user display info (now uses preloaded cache)
-  const getUserInfo = (userId: string, isAdminMessage: boolean) => {
-    if (isAdminMessage) {
-      return {
-        name: 'Support',
-        email: 'support@system.com',
-        avatar: '🛡️',
-        isEmoji: false,
-        avatarUrl: 'https://cdn-icons-png.flaticon.com/512/6843/6843785.png'
-      };
+  const getUserInfo = (userId: string, isAdminMessage: boolean, userEmail?: string) => {
+    // If this is an admin message, check if it's from a known admin account
+    const adminAccounts = [
+      {
+        email: 'zhirocomputer@gmail.com',
+        name: 'Zhiro Computer',
+        avatarUrl: 'https://www.gravatar.com/avatar/0e4e6e2e2e2e2e2e2e2e2e2e2e2e2e2e?d=identicon', // Replace with real avatar if available
+      },
+      {
+        email: 'ajay123phone@gmail.com',
+        name: 'Ajay Admin',
+        avatarUrl: 'https://www.gravatar.com/avatar/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7?d=identicon', // Replace with real avatar if available
+      },
+    ];
+    if (isAdminMessage && userEmail) {
+      const admin = adminAccounts.find(a => a.email === userEmail);
+      if (admin) {
+        return {
+          name: admin.name,
+          email: admin.email,
+          avatar: null,
+          avatarUrl: admin.avatarUrl,
+          isEmoji: false,
+          isAdmin: true,
+        };
+      }
     }
     
     // Use cached data (preloaded when messages are fetched)
@@ -577,7 +594,8 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
               messages.map((message) => {
                 const isCurrentUser = message.user_id === currentUser.id;
                 const isAdminMessage = message.is_admin;
-                const userInfo = getUserInfo(message.user_id, isAdminMessage);
+                // Pass user_email if available for admin detection
+                const userInfo = getUserInfo(message.user_id, isAdminMessage, message.user_email);
                 
                 return (
                   <div
@@ -587,17 +605,12 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                     <div className={`flex items-start gap-3 max-w-[75%] ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                       {/* Avatar */}
                       <div className="flex-shrink-0">
-                        {userInfo.isEmoji ? (
-                          <div className="w-8 h-8 rounded-full bg-gaming-accent/20 flex items-center justify-center text-lg">
-                            {userInfo.avatar}
-                          </div>
-                        ) : userInfo.avatarUrl ? (
+                        {userInfo.avatarUrl ? (
                           <img 
                             src={userInfo.avatarUrl} 
                             alt={userInfo.name}
                             className="w-8 h-8 rounded-full object-cover border border-primary/20"
                             onError={(e) => {
-                              // Fallback to generated avatar if image fails to load
                               e.currentTarget.style.display = 'none';
                               const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
                               if (nextElement) {
@@ -605,8 +618,11 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                               }
                             }}
                           />
-                        ) : null}
-                        {!userInfo.isEmoji && (
+                        ) : userInfo.isEmoji ? (
+                          <div className="w-8 h-8 rounded-full bg-gaming-accent/20 flex items-center justify-center text-lg">
+                            {userInfo.avatar}
+                          </div>
+                        ) : (
                           <div 
                             className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${userInfo.avatarUrl ? 'hidden' : ''}`}
                             style={{ backgroundColor: userInfo.avatar?.backgroundColor || '#666' }}
@@ -636,6 +652,9 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                                 : 'text-black'
                           }`}>
                             {userInfo.name}
+                            {userInfo.isAdmin && (
+                              <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded bg-gaming-warning text-xs font-semibold text-black border border-gaming-warning/50 align-middle">Admin</span>
+                            )}
                           </span>
                           <span className={`text-xs ml-auto ${
                             isAdminMessage 
