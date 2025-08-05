@@ -16,7 +16,7 @@ interface Message {
   message: string;
   is_admin: boolean;
   created_at: string;
-  user_email?: string;
+  user_email?: string; // Ensure this is available for admin detection
 }
 
 interface TicketChatProps {
@@ -140,6 +140,38 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser, ticketStatus 
     return new Date(timestamp).toLocaleString();
   };
 
+  // Helper: get user info (admin or user)
+  const getUserInfo = (message: Message) => {
+    const adminAccounts = [
+      {
+        email: 'zhirocomputer@gmail.com',
+        name: 'Zhiro Computer',
+        avatarUrl: 'https://www.gravatar.com/avatar/0e4e6e2e2e2e2e2e2e2e2e2e2e2e2e2e?d=identicon',
+      },
+      {
+        email: 'ajay123phone@gmail.com',
+        name: 'Ajay Admin',
+        avatarUrl: 'https://www.gravatar.com/avatar/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7?d=identicon',
+      },
+    ];
+    if (message.is_admin && message.user_email) {
+      const admin = adminAccounts.find(a => a.email === message.user_email);
+      if (admin) {
+        return {
+          name: admin.name,
+          avatarUrl: admin.avatarUrl,
+          isAdmin: true,
+        };
+      }
+    }
+    // User fallback
+    return {
+      name: message.user_id === currentUser.id ? (currentUser.user_metadata?.display_name || currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User') : `User ${message.user_id.slice(-4)}`,
+      avatarUrl: message.user_id === currentUser.id ? currentUser.user_metadata?.avatar_url : undefined,
+      isAdmin: false,
+    };
+  };
+
   if (loading) {
     return <div className="flex justify-center p-4">Loading chat...</div>;
   }
@@ -167,37 +199,56 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser, ticketStatus 
                   <p>Chat is ready! Send a message to start the conversation.</p>
                 </div>
               ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.user_id === currentUser.id ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
+                messages.map((message) => {
+                  const isCurrentUser = message.user_id === currentUser.id;
+                  const isAdminMessage = message.is_admin;
+                  const userInfo = getUserInfo(message);
+                  return (
                     <div
-                      className={`max-w-[80%] rounded-lg p-3 shadow-sm ${
-                        message.user_id === currentUser.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-background border border-primary/20'
+                      key={message.id}
+                      className={`flex ${
+                        message.user_id === currentUser.id ? 'justify-end' : 'justify-start'
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        {message.is_admin ? (
-                          <Crown className="h-4 w-4 text-gaming-warning" />
-                        ) : (
-                          <User className="h-4 w-4" />
-                        )}
-                        <span className="text-xs font-medium">
-                          {message.is_admin ? 'Admin' : 'Customer'}
-                        </span>
-                        <span className="text-xs opacity-70">
-                          {formatTime(message.created_at)}
-                        </span>
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 shadow-sm ${
+                          message.user_id === currentUser.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background border border-primary/20'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          {userInfo.avatarUrl ? (
+                            <img
+                              src={userInfo.avatarUrl}
+                              alt={userInfo.name}
+                              className="w-7 h-7 rounded-full object-cover border border-primary/20"
+                              onError={e => (e.currentTarget.style.display = 'none')}
+                            />
+                          ) : (
+                            isAdminMessage ? (
+                              <span className="w-7 h-7 rounded-full bg-gaming-warning flex items-center justify-center text-lg">🛡️</span>
+                            ) : (
+                              <span className="w-7 h-7 rounded-full bg-primary/30 flex items-center justify-center text-xs font-bold text-white">
+                                {userInfo.name[0]}
+                              </span>
+                            )
+                          )}
+                          <span className="text-xs font-medium">
+                            {userInfo.name}
+                            {userInfo.isAdmin && (
+                              <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded bg-gaming-warning text-xs font-semibold text-black border border-gaming-warning/50 align-middle">Admin</span>
+                            )}
+                          </span>
+                          <span className="text-xs opacity-70">
+                            {formatTime(message.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-sm leading-relaxed">{message.message}</p>
                       </div>
-                      <p className="text-sm leading-relaxed">{message.message}</p>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
             </div>

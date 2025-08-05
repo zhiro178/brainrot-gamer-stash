@@ -513,8 +513,8 @@ export default function Tickets() {
                                       </DialogTitle>
                                       <DialogDescription>
                                         {ticket.category === 'crypto_topup' ? 
-                                          'Chat with our team about your crypto top-up request. You\'ll receive payment instructions and updates here.' :
-                                          'Chat with our team about your gift card top-up. We\'ll verify your card and update you on the process.'
+                                          'Chat with an admin (e.g., Zhiro Computer) about your crypto top-up request. You\'ll receive payment instructions and updates here.' :
+                                          'Chat with an admin (e.g., Zhiro Computer) about your gift card top-up. We\'ll verify your card and update you on the process.'
                                         }
                                       </DialogDescription>
                                     </DialogHeader>
@@ -623,7 +623,7 @@ export default function Tickets() {
                                           )}
                                         </DialogTitle>
                                         <DialogDescription>
-                                          Track your purchase order and communicate with our delivery team. You'll receive updates on your item delivery here.
+                                          Track your purchase order and communicate with an admin (e.g., Zhiro Computer). You'll receive updates on your item delivery here.
                                         </DialogDescription>
                                       </DialogHeader>
                                       {selectedTicket && user && (
@@ -727,7 +727,7 @@ export default function Tickets() {
                                         {typeInfo.title} Chat
                                       </DialogTitle>
                                       <DialogDescription>
-                                        Communicate with our support team about your ticket
+                                        Chat with an admin (e.g., Zhiro Computer) about your ticket.
                                       </DialogDescription>
                                     </DialogHeader>
                                     {selectedTicket && user && (
