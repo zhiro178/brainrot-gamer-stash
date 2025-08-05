@@ -170,7 +170,7 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
 
   // Check if ticket is closed/resolved and messaging should be disabled
   const isTicketClosed = ticketStatus === 'resolved' || ticketStatus === 'closed';
-  const canMessage = ticketStatus === 'open' || ticketStatus === 'pending' || isAdmin;
+  const canMessage = ['open', 'pending', 'in_progress'].includes(ticketStatus) || isAdmin;
 
   console.log('SimpleTicketChat mounted with:', { 
     ticketId, 
