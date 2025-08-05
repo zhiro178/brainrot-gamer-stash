@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpCircle, MessageSquare, Ticket, Send } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { simpleSupabase } from "@/lib/simple-supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -48,18 +48,16 @@ export const SupportButton = ({ user }: SupportButtonProps) => {
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase
+      // Use the working client and correct field names
+      const { data, error } = await simpleSupabase
         .from('support_tickets')
         .insert({
           user_id: user.id,
           subject: subject.trim(),
           category: category,
-          description: description.trim(),
+          message: description.trim(), // Use 'message' to match Ticket interface
           status: 'open',
-          priority: 'medium'
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
