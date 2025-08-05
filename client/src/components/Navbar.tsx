@@ -209,12 +209,12 @@ export const Navbar = ({ user, userBalance = 0, balanceLoading = false, onLogin,
                     variant="outline" 
                     size="sm"
                     onClick={() => setLocation('/tickets')}
-                    className="border-primary/20 hover:bg-primary/10 relative"
+                    className="border-primary/30 hover:bg-primary/10 relative bg-gradient-to-r from-primary/5 to-primary/10 hover:shadow-glow transition-all duration-300"
                   >
-                    <Ticket className="h-4 w-4 mr-2" />
-                    My Tickets
+                    <Ticket className="h-4 w-4 mr-2 text-primary" />
+                    <span className="font-semibold">Support & Tickets</span>
                     {unreadMessages > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-destructive text-white text-xs min-w-[1.2rem] h-5 flex items-center justify-center rounded-full">
+                      <Badge className="absolute -top-2 -right-2 bg-destructive text-white text-xs min-w-[1.2rem] h-5 flex items-center justify-center rounded-full animate-pulse">
                         {unreadMessages > 9 ? '9+' : unreadMessages}
                       </Badge>
                     )}

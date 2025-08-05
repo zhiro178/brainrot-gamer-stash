@@ -4,7 +4,7 @@ import { supabase, handleSupabaseError } from "@/lib/supabase";
 import { Navbar } from "@/components/Navbar";
 import { GameCard } from "@/components/GameCard";
 import { TopUpModal } from "@/components/TopUpModal";
-import { LiveChat } from "@/components/LiveChat";
+import { SupportButton } from "@/components/SupportButton";
 import { AdminGameEditor } from "@/components/AdminGameEditor";
 import { AdminHomepageEditor } from "@/components/AdminHomepageEditor";
 import { AdminCatalogEditor } from "@/components/AdminCatalogEditor";
@@ -1026,7 +1026,7 @@ const Index = () => {
         </div>
       </div>
 
-      <LiveChat user={user} />
+      <SupportButton user={user} />
       
       {/* Debug Panel for Email Verification - Remove in production */}
       {process.env.NODE_ENV === 'development' && (
