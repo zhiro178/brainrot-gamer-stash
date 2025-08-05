@@ -16,7 +16,6 @@ interface Message {
   message: string;
   is_admin: boolean;
   created_at: string;
-  user_email?: string; // Ensure this is available for admin detection
 }
 
 interface TicketChatProps {
@@ -146,24 +145,37 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser, ticketStatus 
       {
         email: 'zhirocomputer@gmail.com',
         name: 'Zhiro Computer',
-        avatarUrl: 'https://www.gravatar.com/avatar/0e4e6e2e2e2e2e2e2e2e2e2e2e2e2e2e?d=identicon',
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
       },
       {
         email: 'ajay123phone@gmail.com',
         name: 'Ajay Admin',
-        avatarUrl: 'https://www.gravatar.com/avatar/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7?d=identicon',
+        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
       },
     ];
-    if (message.is_admin && message.user_email) {
-      const admin = adminAccounts.find(a => a.email === message.user_email);
-      if (admin) {
-        return {
-          name: admin.name,
-          avatarUrl: admin.avatarUrl,
-          isAdmin: true,
-        };
+    
+    // For admin messages, try to determine which admin sent it
+    if (message.is_admin) {
+      // Try to get admin info from current user if they're an admin
+      if (currentUser?.email) {
+        const admin = adminAccounts.find(a => a.email === currentUser.email);
+        if (admin) {
+          return {
+            name: admin.name,
+            avatarUrl: admin.avatarUrl,
+            isAdmin: true,
+          };
+        }
       }
+      
+      // Fallback: if we can't determine which admin, show generic admin info
+      return {
+        name: 'Support Team',
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+        isAdmin: true,
+      };
     }
+    
     // User fallback
     return {
       name: message.user_id === currentUser.id ? (currentUser.user_metadata?.display_name || currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User') : `User ${message.user_id.slice(-4)}`,
@@ -237,7 +249,9 @@ export const TicketChat = ({ ticketId, ticketSubject, currentUser, ticketStatus 
                           <span className="text-xs font-medium">
                             {userInfo.name}
                             {userInfo.isAdmin && (
-                              <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded bg-gaming-warning text-xs font-semibold text-black border border-gaming-warning/50 align-middle">Admin</span>
+                              <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-xs font-bold text-black shadow-sm border border-yellow-300/50 align-middle">
+                                👑 Admin
+                              </span>
                             )}
                           </span>
                           <span className="text-xs opacity-70">

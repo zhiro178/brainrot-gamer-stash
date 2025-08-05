@@ -230,26 +230,59 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
       {
         email: 'zhirocomputer@gmail.com',
         name: 'Zhiro Computer',
-        avatarUrl: 'https://www.gravatar.com/avatar/0e4e6e2e2e2e2e2e2e2e2e2e2e2e2e2e?d=identicon', // Replace with real avatar if available
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
       },
       {
         email: 'ajay123phone@gmail.com',
         name: 'Ajay Admin',
-        avatarUrl: 'https://www.gravatar.com/avatar/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7?d=identicon', // Replace with real avatar if available
+        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
       },
     ];
-    if (isAdminMessage && userEmail) {
-      const admin = adminAccounts.find(a => a.email === userEmail);
-      if (admin) {
-        return {
-          name: admin.name,
-          email: admin.email,
-          avatar: null,
-          avatarUrl: admin.avatarUrl,
-          isEmoji: false,
-          isAdmin: true,
-        };
+    
+    // For admin messages, we need to determine which admin sent it
+    if (isAdminMessage) {
+      // Try to get admin info from current user if they're an admin
+      if (currentUser?.email) {
+        const admin = adminAccounts.find(a => a.email === currentUser.email);
+        if (admin) {
+          return {
+            name: admin.name,
+            email: admin.email,
+            avatar: null,
+            avatarUrl: admin.avatarUrl,
+            isEmoji: false,
+            isAdmin: true,
+          };
+        }
       }
+      
+      // Try to get admin info from user cache (if admin profile was loaded)
+      if (userCache[userId]) {
+        const cachedUser = userCache[userId];
+        if (cachedUser.email) {
+          const admin = adminAccounts.find(a => a.email === cachedUser.email);
+          if (admin) {
+            return {
+              name: admin.name,
+              email: admin.email,
+              avatar: null,
+              avatarUrl: admin.avatarUrl,
+              isEmoji: false,
+              isAdmin: true,
+            };
+          }
+        }
+      }
+      
+      // Fallback: if we can't determine which admin, show generic admin info
+      return {
+        name: 'Support Team',
+        email: 'support@example.com',
+        avatar: null,
+        avatarUrl: 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
+        isEmoji: false,
+        isAdmin: true,
+      };
     }
     
     // Use cached data (preloaded when messages are fetched)
@@ -424,7 +457,22 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
               isEmoji: false
             };
           } else {
-            // Fallback for users without profiles
+            // For admin users, try to get their email from the auth system
+            let userEmail = '';
+            if (userId === currentUser?.id) {
+              userEmail = currentUser?.email || '';
+            } else {
+              // Try to get email from auth.users table for admin detection
+              try {
+                const { data: authData, error: authError } = await workingSupabase.auth.admin.getUserById(userId);
+                if (!authError && authData?.user?.email) {
+                  userEmail = authData.user.email;
+                }
+              } catch (e) {
+                console.log('Could not fetch user email for admin detection:', e);
+              }
+            }
+            
             newCache[userId] = {
               name: userId === currentUser?.id 
                 ? (currentUser?.user_metadata?.display_name || 
@@ -434,11 +482,11 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                    `User ${userId.slice(-4)}`)
                 : `User ${userId.slice(-4)}`,
               username: `user_${userId.slice(-4)}`,
-              email: userId === currentUser?.id ? currentUser?.email : '',
+              email: userEmail,
               avatar: generateAvatar(`user_${userId.slice(-4)}`),
               avatarUrl: userId === currentUser?.id ? currentUser?.user_metadata?.avatar_url : null,
               isEmoji: false
-            };
+
             
             // Check localStorage backup for current user
             if (userId === currentUser?.id) {
@@ -594,8 +642,8 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
               messages.map((message) => {
                 const isCurrentUser = message.user_id === currentUser.id;
                 const isAdminMessage = message.is_admin;
-                // Pass user_email if available for admin detection
-                const userInfo = getUserInfo(message.user_id, isAdminMessage, message.user_email);
+                // Get user info for message display
+                const userInfo = getUserInfo(message.user_id, isAdminMessage);
                 
                 return (
                   <div
@@ -653,7 +701,9 @@ export const SimpleTicketChat = ({ ticketId, ticketSubject, currentUser, isAdmin
                           }`}>
                             {userInfo.name}
                             {userInfo.isAdmin && (
-                              <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded bg-gaming-warning text-xs font-semibold text-black border border-gaming-warning/50 align-middle">Admin</span>
+                              <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-xs font-bold text-black shadow-sm border border-yellow-300/50 align-middle">
+                                👑 Admin
+                              </span>
                             )}
                           </span>
                           <span className={`text-xs ml-auto ${
